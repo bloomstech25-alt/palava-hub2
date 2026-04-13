@@ -22,6 +22,7 @@ import { useMessaging, type Message } from "@/context/MessagingContext";
 import { useColors } from "@/hooks/useColors";
 import VoiceCallModal from "@/components/VoiceCallModal";
 import VideoCallModal from "@/components/VideoCallModal";
+import EmojiPicker from "@/components/EmojiPicker";
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -185,6 +186,8 @@ export default function ChatScreen() {
   const [recordDuration, setRecordDuration] = useState(0);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const textInputRef = useRef<TextInput>(null);
   const flatRef = useRef<FlatList>(null);
   const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -210,6 +213,20 @@ export default function ChatScreen() {
     if (!text.trim()) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     doSend(text.trim());
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setText((prev) => prev + emoji);
+    textInputRef.current?.focus();
+  };
+
+  const toggleEmoji = () => {
+    setShowEmoji((v) => !v);
+    if (!showEmoji) {
+      textInputRef.current?.blur();
+    } else {
+      textInputRef.current?.focus();
+    }
   };
 
   const pickImage = async () => {
@@ -405,45 +422,60 @@ export default function ChatScreen() {
         />
       ) : (
         /* Input bar */
-        <View style={[styles.inputBar, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: bottomPad + 8 }]}>
-          {/* Media buttons */}
-          <TouchableOpacity onPress={pickImage} style={styles.mediaBtn} activeOpacity={0.7}>
-            <Feather name="image" size={22} color={colors.mutedForeground} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={pickVideo} style={styles.mediaBtn} activeOpacity={0.7}>
-            <Feather name="film" size={22} color={colors.mutedForeground} />
-          </TouchableOpacity>
+        <View>
+          <View style={[styles.inputBar, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: showEmoji ? 8 : bottomPad + 8 }]}>
+            {/* Media buttons */}
+            <TouchableOpacity onPress={pickImage} style={styles.mediaBtn} activeOpacity={0.7}>
+              <Feather name="image" size={21} color={colors.mutedForeground} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={pickVideo} style={styles.mediaBtn} activeOpacity={0.7}>
+              <Feather name="film" size={21} color={colors.mutedForeground} />
+            </TouchableOpacity>
 
-          {/* Text input */}
-          <View style={[styles.inputWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <TextInput
-              style={[styles.input, { color: colors.foreground }]}
-              placeholder={`Message ${name?.split(" ")[0] ?? ""}...`}
-              placeholderTextColor={colors.mutedForeground}
-              value={text}
-              onChangeText={setText}
-              multiline
-              returnKeyType="send"
-              onSubmitEditing={handleSend}
-              blurOnSubmit={false}
-            />
+            {/* Text input */}
+            <View style={[styles.inputWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <TextInput
+                ref={textInputRef}
+                style={[styles.input, { color: colors.foreground }]}
+                placeholder={`Message ${name?.split(" ")[0] ?? ""}...`}
+                placeholderTextColor={colors.mutedForeground}
+                value={text}
+                onChangeText={setText}
+                multiline
+                returnKeyType="send"
+                onSubmitEditing={handleSend}
+                blurOnSubmit={false}
+                onFocus={() => setShowEmoji(false)}
+              />
+              {/* Emoji toggle inside input */}
+              <TouchableOpacity onPress={toggleEmoji} activeOpacity={0.7} style={styles.emojiBtn}>
+                <Text style={styles.emojiBtnText}>{showEmoji ? "⌨️" : "😊"}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Send or mic */}
+            {text.trim() ? (
+              <TouchableOpacity onPress={handleSend} style={[styles.sendBtn, { backgroundColor: colors.primary }]} activeOpacity={0.8}>
+                <Feather name="send" size={18} color="#ffffff" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={startRecording}
+                onLongPress={startRecording}
+                style={[styles.sendBtn, { backgroundColor: colors.accent }]}
+                activeOpacity={0.8}
+              >
+                <Feather name="mic" size={18} color={colors.primary} />
+              </TouchableOpacity>
+            )}
           </View>
 
-          {/* Send or mic */}
-          {text.trim() ? (
-            <TouchableOpacity onPress={handleSend} style={[styles.sendBtn, { backgroundColor: colors.primary }]} activeOpacity={0.8}>
-              <Feather name="send" size={18} color="#ffffff" />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              onPress={startRecording}
-              onLongPress={startRecording}
-              style={[styles.sendBtn, { backgroundColor: colors.accent }]}
-              activeOpacity={0.8}
-            >
-              <Feather name="mic" size={18} color={colors.primary} />
-            </TouchableOpacity>
+          {/* Emoji picker panel */}
+          {showEmoji && (
+            <EmojiPicker onSelect={handleEmojiSelect} />
           )}
+          {/* Safe area bottom padding when emoji is open */}
+          {showEmoji && <View style={{ height: bottomPad, backgroundColor: colors.card }} />}
         </View>
       )}
 
@@ -522,8 +554,10 @@ const styles = StyleSheet.create({
   typingDots: { fontSize: 16, letterSpacing: 2 },
   inputBar: { flexDirection: "row", alignItems: "flex-end", paddingHorizontal: 8, paddingTop: 10, borderTopWidth: 1, gap: 6 },
   mediaBtn: { width: 38, height: 44, alignItems: "center", justifyContent: "center" },
-  inputWrap: { flex: 1, borderRadius: 24, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, maxHeight: 120 },
-  input: { fontSize: 15, lineHeight: 20 },
+  inputWrap: { flex: 1, borderRadius: 24, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8, maxHeight: 120, flexDirection: "row", alignItems: "flex-end", gap: 6 },
+  input: { flex: 1, fontSize: 15, lineHeight: 20, paddingBottom: 2 },
+  emojiBtn: { width: 28, height: 28, alignItems: "center", justifyContent: "center", marginBottom: 1 },
+  emojiBtnText: { fontSize: 20 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   emptyChat: { alignItems: "center", paddingTop: 40, paddingHorizontal: 32, gap: 14 },
   emptyChatIcon: { width: 76, height: 76, borderRadius: 38, alignItems: "center", justifyContent: "center" },
