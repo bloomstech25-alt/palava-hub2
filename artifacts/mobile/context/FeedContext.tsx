@@ -232,7 +232,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const stored = await AsyncStorage.getItem("@studentconnect/posts");
+        const stored = await AsyncStorage.getItem("@lafa/posts");
         if (stored) {
           setPosts(JSON.parse(stored));
         } else {
@@ -249,7 +249,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
 
   const savePosts = useCallback(async (newPosts: Post[]) => {
     setPosts(newPosts);
-    await AsyncStorage.setItem("@studentconnect/posts", JSON.stringify(newPosts));
+    await AsyncStorage.setItem("@lafa/posts", JSON.stringify(newPosts));
   }, []);
 
   const addPost = useCallback(async (content: string, tags: string[], author: User, mediaUri?: string, mediaType?: "image" | "video") => {

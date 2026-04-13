@@ -148,7 +148,7 @@ export default function GoLiveScreen() {
           <Text style={styles.endMeta}>
             {formatDuration(duration)} · {viewers} peak viewers
           </Text>
-          <Text style={styles.endSub}>Thanks for going live on Palava 🇱🇷</Text>
+          <Text style={styles.endSub}>Thanks for going live on Lafa 🇱🇷</Text>
         </View>
       </View>
     );

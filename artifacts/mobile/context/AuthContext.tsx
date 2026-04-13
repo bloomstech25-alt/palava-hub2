@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const stored = await AsyncStorage.getItem("@studentconnect/user");
+        const stored = await AsyncStorage.getItem("@lafa/user");
         if (stored) {
           setUser(JSON.parse(stored));
         }
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, _password: string) => {
     const found = MOCK_USERS.find((u) => u.email === email);
     if (found) {
-      await AsyncStorage.setItem("@studentconnect/user", JSON.stringify(found));
+      await AsyncStorage.setItem("@lafa/user", JSON.stringify(found));
       setUser(found);
       return { success: true };
     }
@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         posts: 0,
         joinedAt: new Date().toISOString().split("T")[0],
       };
-      await AsyncStorage.setItem("@studentconnect/user", JSON.stringify(newUser));
+      await AsyncStorage.setItem("@lafa/user", JSON.stringify(newUser));
       setUser(newUser);
       return { success: true };
     }
@@ -120,13 +120,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       posts: 0,
       joinedAt: new Date().toISOString().split("T")[0],
     };
-    await AsyncStorage.setItem("@studentconnect/user", JSON.stringify(newUser));
+    await AsyncStorage.setItem("@lafa/user", JSON.stringify(newUser));
     setUser(newUser);
     return { success: true };
   }, []);
 
   const logout = useCallback(async () => {
-    await AsyncStorage.removeItem("@studentconnect/user");
+    await AsyncStorage.removeItem("@lafa/user");
     setUser(null);
   }, []);
 
@@ -134,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     const updated = { ...user, ...updates };
     setUser(updated);
-    AsyncStorage.setItem("@studentconnect/user", JSON.stringify(updated));
+    AsyncStorage.setItem("@lafa/user", JSON.stringify(updated));
   }, [user]);
 
   return (

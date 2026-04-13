@@ -396,7 +396,7 @@ export default function ChatScreen() {
             </View>
             <Text style={[styles.emptyChatTitle, { color: colors.foreground }]}>Say hi to {name?.split(" ")[0]}!</Text>
             <Text style={[styles.emptyChatSub, { color: colors.mutedForeground }]}>
-              You're both students on Palava. Start the conversation!
+              You're both students on Lafa. Start the conversation!
             </Text>
           </View>
         }

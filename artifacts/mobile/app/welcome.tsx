@@ -466,7 +466,7 @@ export default function WelcomeScreen() {
             <View style={styles.flagStripe2} />
           </View>
 
-          <Text style={styles.appName}>Palava</Text>
+          <Text style={styles.appName}>Lafa</Text>
           <View style={styles.nameDivider}>
             <View style={[styles.divLine, { backgroundColor: "#BF0A30" }]} />
             <Text style={styles.lrBadge}>🇱🇷 LR</Text>
@@ -509,7 +509,7 @@ export default function WelcomeScreen() {
               end={{ x: 1, y: 0 }}
               style={styles.primaryGradient}
             >
-              <Text style={styles.primaryBtnText}>Join Palava</Text>
+              <Text style={styles.primaryBtnText}>Join Lafa</Text>
               <Text style={styles.primaryBtnArrow}>→</Text>
             </LinearGradient>
           </TouchableOpacity>

@@ -1,72 +1,72 @@
 const colors = {
   light: {
-    text: "#0f172a",
-    tint: "#3b82f6",
+    text: "#1A0E06",
+    tint: "#BF0A30",
 
-    background: "#f8fafc",
-    foreground: "#0f172a",
+    background: "#FDF6EF",
+    foreground: "#1A0E06",
 
-    card: "#ffffff",
-    cardForeground: "#0f172a",
+    card: "#FFFFFF",
+    cardForeground: "#1A0E06",
 
-    primary: "#2563eb",
-    primaryForeground: "#ffffff",
+    primary: "#BF0A30",
+    primaryForeground: "#FFFFFF",
 
-    secondary: "#eff6ff",
-    secondaryForeground: "#1e40af",
+    secondary: "#F5EBD8",
+    secondaryForeground: "#6B3A14",
 
-    muted: "#f1f5f9",
-    mutedForeground: "#64748b",
+    muted: "#F0E8DC",
+    mutedForeground: "#7A5C3A",
 
-    accent: "#dbeafe",
-    accentForeground: "#1d4ed8",
+    accent: "#D4A855",
+    accentForeground: "#3D1E06",
 
-    destructive: "#ef4444",
-    destructiveForeground: "#ffffff",
+    destructive: "#C0392B",
+    destructiveForeground: "#FFFFFF",
 
-    border: "#e2e8f0",
-    input: "#e2e8f0",
+    border: "#E5D5C0",
+    input: "#E5D5C0",
 
-    success: "#10b981",
-    warning: "#f59e0b",
+    success: "#27AE60",
+    warning: "#D4A855",
 
-    like: "#ef4444",
-    like_bg: "#fef2f2",
+    like: "#BF0A30",
+    like_bg: "#FDEAEA",
   },
 
   dark: {
-    text: "#f8fafc",
-    tint: "#60a5fa",
+    text: "#F5EBD8",
+    tint: "#D4A855",
 
-    background: "#0f172a",
-    foreground: "#f8fafc",
+    background: "#0D0A08",
+    foreground: "#F5EBD8",
 
-    card: "#1e293b",
-    cardForeground: "#f8fafc",
+    card: "#1A100A",
+    cardForeground: "#F5EBD8",
 
-    primary: "#3b82f6",
-    primaryForeground: "#ffffff",
+    primary: "#BF0A30",
+    primaryForeground: "#FFFFFF",
 
-    secondary: "#1e3a5f",
-    secondaryForeground: "#93c5fd",
+    secondary: "#2A1408",
+    secondaryForeground: "#D4A855",
 
-    muted: "#1e293b",
-    mutedForeground: "#94a3b8",
+    muted: "#1E1008",
+    mutedForeground: "#A0846A",
 
-    accent: "#1e3a5f",
-    accentForeground: "#93c5fd",
+    accent: "#D4A855",
+    accentForeground: "#0D0A08",
 
-    destructive: "#ef4444",
-    destructiveForeground: "#ffffff",
+    destructive: "#C0392B",
+    destructiveForeground: "#FFFFFF",
 
-    border: "#334155",
-    input: "#334155",
+    border: "#2E1A0E",
+    input: "#2E1A0E",
 
-    success: "#10b981",
-    warning: "#f59e0b",
+    success: "#27AE60",
+    warning: "#D4A855",
 
-    like: "#f87171",
-    like_bg: "#2d1414",
+    like: "#BF0A30",
+    like_bg: "#2D0812",
   },
 
   radius: 12,
