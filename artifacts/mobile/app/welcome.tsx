@@ -598,6 +598,12 @@ export default function WelcomeScreen() {
           >
             <Text style={styles.secondaryBtnText}>I already have an account</Text>
           </TouchableOpacity>
+
+          {/* Powered by */}
+          <View style={styles.poweredBy}>
+            <Text style={styles.poweredByText}>Powered by </Text>
+            <Text style={styles.poweredByBrand}>Blooms Technologies</Text>
+          </View>
         </View>
       </Animated.View>
 
@@ -632,6 +638,25 @@ const styles = StyleSheet.create({
 
   kenteTop: { position: "absolute", left: 0, right: 0 },
   kenteBottom: { position: "absolute", left: 0, right: 0 },
+
+  poweredBy: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingBottom: 4,
+  },
+  poweredByText: {
+    fontSize: 10,
+    color: "rgba(255,255,255,0.3)",
+    letterSpacing: 0.3,
+  },
+  poweredByBrand: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#D4A855",
+    opacity: 0.55,
+    letterSpacing: 0.3,
+  },
 
   maskBg1: { position: "absolute", top: height * 0.02, left: -30 },
   maskBg2: { position: "absolute", top: height * 0.04, right: -22 },
