@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "StudentConnect",
+    "name": "Palava",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1e3a8a"
+      "backgroundColor": "#0D0A08"
     },
     "ios": {
       "supportsTablet": false

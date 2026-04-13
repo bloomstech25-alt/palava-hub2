@@ -61,7 +61,7 @@ export default function CreateAdScreen() {
           </View>
           <Text style={[styles.successTitle, { color: colors.foreground }]}>Ad Submitted!</Text>
           <Text style={[styles.successBody, { color: colors.mutedForeground }]}>
-            Your ad is under review by our admin team. Once approved, it will start showing to students across StudentConnect.
+            Your ad is under review by our admin team. Once approved, it will start showing to students across Palava.
           </Text>
           <View style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.reviewRow}>
@@ -232,7 +232,7 @@ export default function CreateAdScreen() {
 
         {/* Terms note */}
         <Text style={[styles.terms, { color: colors.mutedForeground }]}>
-          By submitting, you agree to StudentConnect's advertising guidelines. All ads are reviewed before going live.
+          By submitting, you agree to Palava's advertising guidelines. All ads are reviewed before going live.
         </Text>
       </ScrollView>
     </View>

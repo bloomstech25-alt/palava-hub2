@@ -61,7 +61,7 @@ export default function LoginScreen() {
           <View style={styles.heading}>
             <Text style={[styles.title, { color: colors.foreground }]}>Welcome back</Text>
             <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-              Sign in to your StudentConnect account
+              Sign in to your Palava account
             </Text>
           </View>
 

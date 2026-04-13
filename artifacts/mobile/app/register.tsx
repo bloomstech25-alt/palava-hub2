@@ -85,7 +85,7 @@ export default function RegisterScreen() {
           </TouchableOpacity>
 
           <View style={styles.heading}>
-            <Text style={[styles.title, { color: colors.foreground }]}>Join StudentConnect</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>Join Palava</Text>
             <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
               Connect with students from Liberian universities and high schools
             </Text>
