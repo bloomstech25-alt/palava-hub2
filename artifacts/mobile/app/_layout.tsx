@@ -30,6 +30,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="create-post" options={{ presentation: "modal" }} />
       <Stack.Screen name="create-ad" options={{ presentation: "modal" }} />
+      <Stack.Screen name="go-live" options={{ presentation: "fullScreenModal" }} />
       <Stack.Screen name="post/[id]" />
       <Stack.Screen name="index" />
     </Stack>

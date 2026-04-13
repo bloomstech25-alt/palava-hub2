@@ -80,6 +80,14 @@ export default function FeedScreen() {
         <Text style={[styles.headerTitle, { color: colors.primary }]}>StudentConnect</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
+            onPress={() => router.push("/go-live")}
+            style={[styles.liveBtn, { backgroundColor: "#ef4444" + "15", borderColor: "#ef444440" }]}
+            activeOpacity={0.8}
+          >
+            <View style={styles.liveDotBtn} />
+            <Text style={[styles.liveBtnText, { color: "#ef4444" }]}>Live</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={() => router.push("/create-ad")}
             style={[styles.advertiseBtn, { backgroundColor: colors.accent, borderColor: colors.primary + "30" }]}
             activeOpacity={0.8}
@@ -148,6 +156,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  liveBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  liveDotBtn: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: "#ef4444" },
+  liveBtnText: { fontSize: 13, fontWeight: "700" },
   advertiseBtn: {
     flexDirection: "row",
     alignItems: "center",

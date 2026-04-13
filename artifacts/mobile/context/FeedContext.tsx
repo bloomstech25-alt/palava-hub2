@@ -6,7 +6,8 @@ export interface Post {
   id: string;
   author: User;
   content: string;
-  image?: string;
+  mediaUri?: string;
+  mediaType?: "image" | "video";
   likes: number;
   comments: number;
   shares: number;
@@ -40,7 +41,7 @@ interface FeedContextType {
   notifications: Notification[];
   unreadCount: number;
   isLoading: boolean;
-  addPost: (content: string, tags: string[], author: User) => Promise<void>;
+  addPost: (content: string, tags: string[], author: User, mediaUri?: string, mediaType?: "image" | "video") => Promise<void>;
   toggleLike: (postId: string) => void;
   toggleFollow: (postId: string) => void;
   getPostComments: (postId: string) => Comment[];
@@ -251,11 +252,13 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem("@studentconnect/posts", JSON.stringify(newPosts));
   }, []);
 
-  const addPost = useCallback(async (content: string, tags: string[], author: User) => {
+  const addPost = useCallback(async (content: string, tags: string[], author: User, mediaUri?: string, mediaType?: "image" | "video") => {
     const newPost: Post = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       author,
       content,
+      mediaUri,
+      mediaType,
       likes: 0,
       comments: 0,
       shares: 0,

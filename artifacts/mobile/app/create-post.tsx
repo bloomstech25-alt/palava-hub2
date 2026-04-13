@@ -1,9 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
 import {
+  Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -35,8 +38,10 @@ export default function CreatePostScreen() {
   const [tags, setTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState("");
   const [isPosting, setIsPosting] = useState(false);
+  const [mediaUri, setMediaUri] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
 
-  const charLimit = 280;
+  const charLimit = 500;
 
   const toggleTag = (tag: string) => {
     if (tags.includes(tag)) {
@@ -55,11 +60,52 @@ export default function CreatePostScreen() {
     }
   };
 
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "Allow access to your photo library to attach images.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      quality: 0.85,
+      aspect: [4, 3],
+    });
+    if (!result.canceled && result.assets[0]) {
+      setMediaUri(result.assets[0].uri);
+      setMediaType("image");
+    }
+  };
+
+  const pickVideo = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "Allow access to your photo library to attach videos.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["videos"],
+      allowsEditing: true,
+      videoMaxDuration: 60,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setMediaUri(result.assets[0].uri);
+      setMediaType("video");
+    }
+  };
+
+  const removeMedia = () => {
+    setMediaUri(null);
+    setMediaType(null);
+  };
+
   const handlePost = async () => {
     if (!content.trim() || !user) return;
     setIsPosting(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await addPost(content.trim(), tags, user);
+    await addPost(content.trim(), tags, user, mediaUri ?? undefined, mediaType ?? undefined);
     setIsPosting(false);
     router.back();
   };
@@ -110,6 +156,25 @@ export default function CreatePostScreen() {
             maxLength={charLimit + 50}
           />
 
+          {/* Media preview */}
+          {mediaUri && (
+            <View style={styles.mediaPreviewWrap}>
+              {mediaType === "image" ? (
+                <Image source={{ uri: mediaUri }} style={styles.mediaPreview} resizeMode="cover" />
+              ) : (
+                <View style={[styles.videoPreview, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={[styles.videoPlayIcon, { backgroundColor: colors.primary }]}>
+                    <Feather name="play" size={24} color="#ffffff" />
+                  </View>
+                  <Text style={[styles.videoLabel, { color: colors.mutedForeground }]}>Video selected</Text>
+                </View>
+              )}
+              <TouchableOpacity style={styles.removeMediaBtn} onPress={removeMedia} activeOpacity={0.8}>
+                <Feather name="x-circle" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+          )}
+
           <View style={[styles.charCount, { borderTopColor: colors.border }]}>
             <Text style={[
               styles.charText,
@@ -117,6 +182,29 @@ export default function CreatePostScreen() {
             ]}>
               {remaining} characters remaining
             </Text>
+          </View>
+
+          {/* Media buttons */}
+          <View style={[styles.mediaButtons, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>ADD MEDIA</Text>
+            <View style={styles.mediaButtonRow}>
+              <TouchableOpacity
+                style={[styles.mediaBtn, { backgroundColor: mediaType === "image" ? colors.primary + "20" : colors.card, borderColor: mediaType === "image" ? colors.primary : colors.border }]}
+                onPress={pickImage}
+                activeOpacity={0.8}
+              >
+                <Feather name="image" size={18} color={mediaType === "image" ? colors.primary : colors.mutedForeground} />
+                <Text style={[styles.mediaBtnText, { color: mediaType === "image" ? colors.primary : colors.foreground }]}>Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.mediaBtn, { backgroundColor: mediaType === "video" ? colors.primary + "20" : colors.card, borderColor: mediaType === "video" ? colors.primary : colors.border }]}
+                onPress={pickVideo}
+                activeOpacity={0.8}
+              >
+                <Feather name="video" size={18} color={mediaType === "video" ? colors.primary : colors.mutedForeground} />
+                <Text style={[styles.mediaBtnText, { color: mediaType === "video" ? colors.primary : colors.foreground }]}>Video</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.tagsSection}>
@@ -209,16 +297,61 @@ const styles = StyleSheet.create({
   textInput: {
     fontSize: 17,
     lineHeight: 26,
-    minHeight: 140,
+    minHeight: 120,
     textAlignVertical: "top",
+  },
+  mediaPreviewWrap: { position: "relative", marginBottom: 12, borderRadius: 16, overflow: "hidden" },
+  mediaPreview: { width: "100%", height: 220, borderRadius: 16 },
+  videoPreview: {
+    width: "100%",
+    height: 160,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  videoPlayIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  videoLabel: { fontSize: 14 },
+  removeMediaBtn: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 14,
+    padding: 2,
   },
   charCount: {
     borderTopWidth: 1,
     paddingTop: 10,
-    paddingBottom: 16,
+    paddingBottom: 12,
     alignItems: "flex-end",
   },
   charText: { fontSize: 12 },
+  mediaButtons: {
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    marginBottom: 16,
+    gap: 10,
+  },
+  mediaButtonRow: { flexDirection: "row", gap: 10 },
+  mediaBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  mediaBtnText: { fontSize: 14, fontWeight: "600" },
   tagsSection: { gap: 12 },
   sectionLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 1 },
   tagChips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },

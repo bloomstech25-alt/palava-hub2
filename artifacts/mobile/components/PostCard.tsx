@@ -78,7 +78,28 @@ export function PostCard({ post, onLike, onFollow, onPress }: PostCardProps) {
         </TouchableOpacity>
       </View>
 
-      <Text style={[styles.content, { color: colors.foreground }]}>{post.content}</Text>
+      {post.content ? (
+        <Text style={[styles.content, { color: colors.foreground }]}>{post.content}</Text>
+      ) : null}
+
+      {/* Media display */}
+      {post.mediaUri && post.mediaType === "image" && (
+        <TouchableOpacity onPress={onPress} activeOpacity={0.95} style={styles.mediaWrap}>
+          <Image source={{ uri: post.mediaUri }} style={styles.postImage} resizeMode="cover" />
+        </TouchableOpacity>
+      )}
+
+      {post.mediaUri && post.mediaType === "video" && (
+        <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={[styles.videoThumb, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+          <View style={[styles.playBtn, { backgroundColor: colors.primary }]}>
+            <Feather name="play" size={22} color="#ffffff" />
+          </View>
+          <View style={[styles.videoBadge, { backgroundColor: "rgba(0,0,0,0.55)" }]}>
+            <Feather name="film" size={11} color="#ffffff" />
+            <Text style={styles.videoBadgeText}>Video</Text>
+          </View>
+        </TouchableOpacity>
+      )}
 
       {post.tags.length > 0 && (
         <View style={styles.tags}>
@@ -186,6 +207,45 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 12,
   },
+  mediaWrap: {
+    borderRadius: 14,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  postImage: {
+    width: "100%",
+    height: 220,
+    borderRadius: 14,
+  },
+  videoThumb: {
+    width: "100%",
+    height: 180,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+    position: "relative",
+  },
+  playBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  videoBadge: {
+    position: "absolute",
+    bottom: 10,
+    left: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  videoBadgeText: { color: "#ffffff", fontSize: 11, fontWeight: "700" },
   tags: {
     flexDirection: "row",
     flexWrap: "wrap",
