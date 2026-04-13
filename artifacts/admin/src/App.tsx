@@ -9,6 +9,7 @@ import DashboardPage from "@/pages/dashboard";
 import SchoolsPage from "@/pages/schools";
 import UsersPage from "@/pages/users";
 import PostsPage from "@/pages/posts";
+import AdsPage from "@/pages/ads";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -57,6 +58,13 @@ function Router() {
         <ProtectedRoute>
           <Layout>
             <PostsPage />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/ads">
+        <ProtectedRoute>
+          <Layout>
+            <AdsPage />
           </Layout>
         </ProtectedRoute>
       </Route>

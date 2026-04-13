@@ -15,6 +15,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/context/AuthContext";
 import { FeedProvider } from "@/context/FeedContext";
+import { AdsProvider } from "@/context/AdsContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -28,6 +29,7 @@ function RootLayoutNav() {
       <Stack.Screen name="register" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="create-post" options={{ presentation: "modal" }} />
+      <Stack.Screen name="create-ad" options={{ presentation: "modal" }} />
       <Stack.Screen name="post/[id]" />
       <Stack.Screen name="index" />
     </Stack>
@@ -58,7 +60,9 @@ export default function RootLayout() {
             <KeyboardProvider>
               <AuthProvider>
                 <FeedProvider>
-                  <RootLayoutNav />
+                  <AdsProvider>
+                    <RootLayoutNav />
+                  </AdsProvider>
                 </FeedProvider>
               </AuthProvider>
             </KeyboardProvider>

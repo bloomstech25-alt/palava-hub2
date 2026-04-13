@@ -1,8 +1,7 @@
 import { Feather } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -10,15 +9,19 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PostCard } from "@/components/PostCard";
+import { AdCard } from "@/components/AdCard";
 import { useAuth } from "@/context/AuthContext";
 import { useFeed, type Post } from "@/context/FeedContext";
+import { useAds, type Ad } from "@/context/AdsContext";
 import { useColors } from "@/hooks/useColors";
+import { useState } from "react";
+
+type FeedItem = { type: "post"; data: Post } | { type: "ad"; data: Ad };
 
 export default function FeedScreen() {
   const colors = useColors();
@@ -26,6 +29,7 @@ export default function FeedScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { user } = useAuth();
   const { posts, isLoading, toggleLike, toggleFollow } = useFeed();
+  const { getActiveAds } = useAds();
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = useCallback(async () => {
@@ -34,16 +38,39 @@ export default function FeedScreen() {
     setRefreshing(false);
   }, []);
 
-  const renderPost = useCallback(({ item }: { item: Post }) => (
-    <PostCard
-      post={item}
-      onLike={() => toggleLike(item.id)}
-      onFollow={() => toggleFollow(item.id)}
-      onPress={() => router.push({ pathname: "/post/[id]", params: { id: item.id } })}
-    />
-  ), [toggleLike, toggleFollow]);
+  // Interleave ads into posts — insert an ad every 3 posts
+  const feedItems = useMemo((): FeedItem[] => {
+    const activeAds = getActiveAds();
+    if (activeAds.length === 0) return posts.map((p) => ({ type: "post", data: p }));
+    const items: FeedItem[] = [];
+    let adIndex = 0;
+    posts.forEach((post, i) => {
+      items.push({ type: "post", data: post });
+      if ((i + 1) % 3 === 0 && adIndex < activeAds.length) {
+        items.push({ type: "ad", data: activeAds[adIndex] });
+        adIndex = (adIndex + 1) % activeAds.length;
+      }
+    });
+    return items;
+  }, [posts, getActiveAds]);
 
-  const keyExtractor = useCallback((item: Post) => item.id, []);
+  const renderItem = useCallback(({ item }: { item: FeedItem }) => {
+    if (item.type === "ad") {
+      return <AdCard ad={item.data} />;
+    }
+    return (
+      <PostCard
+        post={item.data}
+        onLike={() => toggleLike(item.data.id)}
+        onFollow={() => toggleFollow(item.data.id)}
+        onPress={() => router.push({ pathname: "/post/[id]", params: { id: item.data.id } })}
+      />
+    );
+  }, [toggleLike, toggleFollow]);
+
+  const keyExtractor = useCallback((item: FeedItem) => {
+    return item.type === "post" ? `post_${item.data.id}` : `ad_${item.data.id}`;
+  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -51,13 +78,23 @@ export default function FeedScreen() {
 
       <View style={[styles.header, { paddingTop: topPad, borderBottomColor: colors.border, backgroundColor: colors.background }]}>
         <Text style={[styles.headerTitle, { color: colors.primary }]}>StudentConnect</Text>
-        <TouchableOpacity
-          onPress={() => router.push("/create-post")}
-          style={[styles.createBtn, { backgroundColor: colors.primary }]}
-          activeOpacity={0.85}
-        >
-          <Feather name="edit-3" size={16} color="#ffffff" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={() => router.push("/create-ad")}
+            style={[styles.advertiseBtn, { backgroundColor: colors.accent, borderColor: colors.primary + "30" }]}
+            activeOpacity={0.8}
+          >
+            <Feather name="zap" size={13} color={colors.primary} />
+            <Text style={[styles.advertiseBtnText, { color: colors.primary }]}>Promote</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push("/create-post")}
+            style={[styles.createBtn, { backgroundColor: colors.primary }]}
+            activeOpacity={0.85}
+          >
+            <Feather name="edit-3" size={16} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {isLoading ? (
@@ -66,9 +103,9 @@ export default function FeedScreen() {
         </View>
       ) : (
         <FlatList
-          data={posts}
+          data={feedItems}
           keyExtractor={keyExtractor}
-          renderItem={renderPost}
+          renderItem={renderItem}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -106,6 +143,21 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: -0.5,
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  advertiseBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  advertiseBtnText: { fontSize: 13, fontWeight: "700" },
   createBtn: {
     width: 36,
     height: 36,
