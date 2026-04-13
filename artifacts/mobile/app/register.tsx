@@ -87,7 +87,7 @@ export default function RegisterScreen() {
           <View style={styles.heading}>
             <Text style={[styles.title, { color: colors.foreground }]}>Join StudentConnect</Text>
             <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-              Connect with students from universities and high schools worldwide
+              Connect with students from Liberian universities and high schools
             </Text>
           </View>
 
