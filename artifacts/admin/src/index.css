@@ -67,7 +67,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* LIGHT MODE */
+/* LIGHT MODE — Liberian Warm Palette */
 :root {
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
@@ -75,41 +75,52 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  /* Deep navy blue palette aligned with StudentConnect brand */
-  --background: 220 25% 97%;
-  --foreground: 222 47% 11%;
-  --border: 220 20% 88%;
+  /* #FDF6EF warm cream background */
+  --background: 31 79% 97%;
+  /* #1A0E06 deep mahogany text */
+  --foreground: 24 62% 7%;
+  /* #E5D5C0 warm sand border */
+  --border: 34 42% 83%;
+  /* #FFFFFF white card */
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --card-border: 220 20% 90%;
-  --sidebar: 222 47% 11%;
-  --sidebar-foreground: 215 30% 80%;
-  --sidebar-border: 222 40% 18%;
-  --sidebar-primary: 217 91% 60%;
+  --card-foreground: 24 62% 7%;
+  --card-border: 34 35% 88%;
+  /* Sidebar uses dark mahogany like mobile dark bg */
+  --sidebar: 24 50% 8%;
+  --sidebar-foreground: 34 50% 78%;
+  --sidebar-border: 23 53% 13%;
+  /* #BF0A30 Liberian red */
+  --sidebar-primary: 347 90% 39%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 222 40% 18%;
-  --sidebar-accent-foreground: 215 30% 85%;
-  --sidebar-ring: 217 91% 60%;
+  /* #2A1408 dark mahogany accent */
+  --sidebar-accent: 21 68% 13%;
+  --sidebar-accent-foreground: 39 60% 75%;
+  --sidebar-ring: 347 90% 39%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --popover-border: 220 20% 88%;
-  --primary: 217 91% 42%;
+  --popover-foreground: 24 62% 7%;
+  --popover-border: 34 42% 83%;
+  /* #BF0A30 Liberian red primary */
+  --primary: 347 90% 39%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 220 20% 93%;
-  --secondary-foreground: 222 47% 20%;
-  --muted: 220 20% 93%;
-  --muted-foreground: 220 13% 50%;
-  --accent: 217 91% 95%;
-  --accent-foreground: 217 91% 30%;
-  --destructive: 0 84% 60%;
+  /* #F5EBD8 warm cream secondary */
+  --secondary: 40 59% 91%;
+  --secondary-foreground: 26 69% 25%;
+  /* #F0E8DC light muted */
+  --muted: 36 40% 92%;
+  --muted-foreground: 32 36% 36%;
+  /* #D4A855 gold accent */
+  --accent: 39 60% 93%;
+  --accent-foreground: 39 60% 25%;
+  --destructive: 6 65% 46%;
   --destructive-foreground: 0 0% 100%;
-  --input: 220 20% 88%;
-  --ring: 217 91% 42%;
-  --chart-1: 217 91% 42%;
-  --chart-2: 160 84% 39%;
-  --chart-3: 37 91% 55%;
-  --chart-4: 292 84% 61%;
-  --chart-5: 0 84% 60%;
+  --input: 34 42% 83%;
+  --ring: 347 90% 39%;
+  /* Charts: red, green, gold, purple, orange */
+  --chart-1: 347 90% 39%;
+  --chart-2: 145 63% 40%;
+  --chart-3: 39 60% 55%;
+  --chart-4: 270 60% 55%;
+  --chart-5: 20 80% 50%;
 
   --app-font-sans: 'Inter', sans-serif;
   --app-font-serif: Georgia, serif;
@@ -142,6 +153,7 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
+/* DARK MODE — Liberian Dark Palette */
 .dark {
   --button-outline: rgba(255,255,255, .10);
   --badge-outline: rgba(255,255,255, .05);
@@ -149,40 +161,50 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 222 47% 8%;
-  --foreground: 215 30% 92%;
-  --border: 222 35% 18%;
-  --card: 222 42% 11%;
-  --card-foreground: 215 30% 92%;
-  --card-border: 222 35% 20%;
-  --sidebar: 222 50% 7%;
-  --sidebar-foreground: 215 25% 75%;
-  --sidebar-border: 222 40% 14%;
-  --sidebar-primary: 217 91% 60%;
+  /* #0D0A08 deep mahogany background */
+  --background: 24 24% 5%;
+  /* #F5EBD8 warm cream foreground */
+  --foreground: 40 59% 91%;
+  /* #2E1A0E warm dark border */
+  --border: 23 53% 12%;
+  /* #1A100A dark card */
+  --card: 23 44% 7%;
+  --card-foreground: 40 59% 91%;
+  --card-border: 23 53% 14%;
+  /* Sidebar even darker */
+  --sidebar: 24 35% 4%;
+  --sidebar-foreground: 34 40% 68%;
+  --sidebar-border: 23 53% 10%;
+  /* #BF0A30 Liberian red */
+  --sidebar-primary: 347 90% 39%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 222 40% 15%;
-  --sidebar-accent-foreground: 215 30% 85%;
-  --sidebar-ring: 217 91% 60%;
-  --popover: 222 42% 11%;
-  --popover-foreground: 215 30% 92%;
-  --popover-border: 222 35% 18%;
-  --primary: 217 91% 60%;
+  --sidebar-accent: 21 68% 10%;
+  --sidebar-accent-foreground: 39 60% 70%;
+  --sidebar-ring: 347 90% 45%;
+  --popover: 23 44% 7%;
+  --popover-foreground: 40 59% 91%;
+  --popover-border: 23 53% 12%;
+  /* #BF0A30 Liberian red primary */
+  --primary: 347 90% 39%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 222 35% 18%;
-  --secondary-foreground: 215 30% 85%;
-  --muted: 222 35% 18%;
-  --muted-foreground: 220 13% 55%;
-  --accent: 217 50% 20%;
-  --accent-foreground: 217 91% 75%;
-  --destructive: 0 84% 55%;
+  /* #2A1408 dark secondary */
+  --secondary: 21 68% 10%;
+  --secondary-foreground: 39 60% 58%;
+  /* #1E1008 dark muted */
+  --muted: 22 58% 8%;
+  --muted-foreground: 29 22% 53%;
+  /* #D4A855 gold accent */
+  --accent: 39 60% 15%;
+  --accent-foreground: 39 60% 65%;
+  --destructive: 6 65% 50%;
   --destructive-foreground: 0 0% 100%;
-  --input: 222 35% 22%;
-  --ring: 217 91% 60%;
-  --chart-1: 217 91% 60%;
-  --chart-2: 160 84% 50%;
-  --chart-3: 37 91% 60%;
-  --chart-4: 292 84% 65%;
-  --chart-5: 0 84% 60%;
+  --input: 23 53% 14%;
+  --ring: 347 90% 45%;
+  --chart-1: 347 90% 50%;
+  --chart-2: 145 63% 48%;
+  --chart-3: 39 60% 58%;
+  --chart-4: 270 60% 65%;
+  --chart-5: 20 80% 55%;
 
   --shadow-2xs: 0px 1px 2px 0px rgba(0,0,0,0.20);
   --shadow-xs: 0px 1px 3px 0px rgba(0,0,0,0.25);

@@ -79,12 +79,20 @@ export default function Layout({ children }: LayoutProps) {
         <div className="px-6 py-5 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
-              <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+              <svg viewBox="0 0 32 32" fill="none" className="w-5 h-5">
+                <circle cx="16" cy="16" r="14" fill="#BF0A30"/>
+                <polygon points="16,6 17.2,10.5 22,10.5 18.2,13.2 19.4,17.8 16,15 12.6,17.8 13.8,13.2 10,10.5 14.8,10.5" fill="#D4A855"/>
+                <circle cx="8" cy="20" r="2" fill="#D4A855"/>
+                <circle cx="24" cy="20" r="2" fill="#D4A855"/>
+                <circle cx="16" cy="25" r="2" fill="#D4A855"/>
+                <line x1="8" y1="20" x2="16" y2="25" stroke="#D4A855" strokeWidth="1"/>
+                <line x1="24" y1="20" x2="16" y2="25" stroke="#D4A855" strokeWidth="1"/>
+                <line x1="8" y1="20" x2="16" y2="16" stroke="#D4A855" strokeWidth="1"/>
+                <line x1="24" y1="20" x2="16" y2="16" stroke="#D4A855" strokeWidth="1"/>
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-white leading-none">StudentConnect</p>
+              <p className="text-sm font-semibold text-white leading-none">Palava Hub</p>
               <p className="text-xs text-sidebar-foreground mt-0.5">Admin Console</p>
             </div>
           </div>

@@ -32,15 +32,23 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "hsl(222, 47%, 11%)" }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: "hsl(24, 24%, 5%)" }}>
       <div className="w-full max-w-md px-8 py-10 bg-card border border-card-border rounded-2xl shadow-2xl">
         <div className="mb-8 text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
-            <svg viewBox="0 0 24 24" fill="white" className="w-7 h-7">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+            <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
+              <circle cx="16" cy="16" r="14" fill="#BF0A30"/>
+              <polygon points="16,6 17.2,10.5 22,10.5 18.2,13.2 19.4,17.8 16,15 12.6,17.8 13.8,13.2 10,10.5 14.8,10.5" fill="#D4A855"/>
+              <circle cx="8" cy="20" r="2.5" fill="#D4A855"/>
+              <circle cx="24" cy="20" r="2.5" fill="#D4A855"/>
+              <circle cx="16" cy="25" r="2.5" fill="#D4A855"/>
+              <line x1="8" y1="20" x2="16" y2="25" stroke="#D4A855" strokeWidth="1"/>
+              <line x1="24" y1="20" x2="16" y2="25" stroke="#D4A855" strokeWidth="1"/>
+              <line x1="8" y1="20" x2="16" y2="16" stroke="#D4A855" strokeWidth="1"/>
+              <line x1="24" y1="20" x2="16" y2="16" stroke="#D4A855" strokeWidth="1"/>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">StudentConnect</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Palava Hub</h1>
           <p className="text-sm text-muted-foreground mt-1">Super Admin Dashboard</p>
         </div>
 

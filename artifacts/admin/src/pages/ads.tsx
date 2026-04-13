@@ -128,7 +128,7 @@ export default function AdsPage() {
     <div className="p-8">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-foreground">Ads Manager</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Review, approve, and manage advertisements running on StudentConnect</p>
+        <p className="text-sm text-muted-foreground mt-0.5">Review, approve, and manage advertisements running on Palava Hub</p>
       </div>
 
       {/* Stats */}

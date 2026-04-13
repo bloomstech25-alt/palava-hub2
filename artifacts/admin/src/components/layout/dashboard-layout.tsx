@@ -22,8 +22,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <div className="min-h-screen flex bg-background">
       {/* Sidebar */}
       <div className="w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border hidden md:flex flex-col">
-        <div className="h-16 flex items-center px-6 font-bold text-xl tracking-tight">
-          StudentConnect
+        <div className="h-16 flex items-center px-6 font-bold text-xl tracking-tight text-sidebar-foreground">
+          Palava Hub
         </div>
         <nav className="flex-1 px-4 py-6 space-y-1">
           {navigation.map((item) => {
