@@ -6,6 +6,7 @@ import React from "react";
 import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 import { useColors } from "@/hooks/useColors";
 import { useFeed } from "@/context/FeedContext";
+import { useMessaging } from "@/context/MessagingContext";
 
 export default function TabLayout() {
   const colors = useColors();
@@ -14,6 +15,7 @@ export default function TabLayout() {
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
   const { unreadCount } = useFeed();
+  const { totalUnread: msgUnread } = useMessaging();
 
   return (
     <Tabs
@@ -76,6 +78,19 @@ export default function TabLayout() {
               <SymbolView name={focused ? "bell.fill" : "bell"} tintColor={color} size={24} />
             ) : (
               <Feather name="bell" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: "Messages",
+          tabBarBadge: msgUnread > 0 ? msgUnread : undefined,
+          tabBarIcon: ({ color, focused }) =>
+            isIOS ? (
+              <SymbolView name={focused ? "message.fill" : "message"} tintColor={color} size={24} />
+            ) : (
+              <Feather name="message-circle" size={22} color={color} />
             ),
         }}
       />

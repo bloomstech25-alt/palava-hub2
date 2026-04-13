@@ -16,6 +16,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/context/AuthContext";
 import { FeedProvider } from "@/context/FeedContext";
 import { AdsProvider } from "@/context/AdsContext";
+import { MessagingProvider } from "@/context/MessagingContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -32,6 +33,7 @@ function RootLayoutNav() {
       <Stack.Screen name="create-ad" options={{ presentation: "modal" }} />
       <Stack.Screen name="go-live" options={{ presentation: "fullScreenModal" }} />
       <Stack.Screen name="post/[id]" />
+      <Stack.Screen name="chat/[userId]" />
       <Stack.Screen name="index" />
     </Stack>
   );
@@ -62,7 +64,9 @@ export default function RootLayout() {
               <AuthProvider>
                 <FeedProvider>
                   <AdsProvider>
-                    <RootLayoutNav />
+                    <MessagingProvider>
+                      <RootLayoutNav />
+                    </MessagingProvider>
                   </AdsProvider>
                 </FeedProvider>
               </AuthProvider>
