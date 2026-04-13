@@ -3,20 +3,28 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: StudentConnect API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: schools
+    description: School management
+  - name: users
+    description: User management
+  - name: posts
+    description: Post management
+  - name: admin
+    description: Admin operations
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +32,262 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /admin/login:
+    post:
+      operationId: adminLogin
+      tags: [admin]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginBody"
+      responses:
+        "200":
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminLoginResponse"
+        "401":
+          description: Unauthorized
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get platform stats
+      responses:
+        "200":
+          description: Platform statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /schools:
+    get:
+      operationId: listSchools
+      tags: [schools]
+      summary: List all schools
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [university, high_school]
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of schools
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/School"
+    post:
+      operationId: createSchool
+      tags: [schools]
+      summary: Create a school
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSchoolBody"
+      responses:
+        "201":
+          description: School created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/School"
+
+  /schools/{id}:
+    get:
+      operationId: getSchool
+      tags: [schools]
+      summary: Get a school by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: School details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/School"
+    put:
+      operationId: updateSchool
+      tags: [schools]
+      summary: Update a school
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSchoolBody"
+      responses:
+        "200":
+          description: Updated school
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/School"
+    delete:
+      operationId: deleteSchool
+      tags: [schools]
+      summary: Delete a school
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: schoolId
+          in: query
+          schema:
+            type: string
+        - name: banned
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminUser"
+
+  /users/{id}/ban:
+    post:
+      operationId: banUser
+      tags: [users]
+      summary: Ban a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User banned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
+  /users/{id}/unban:
+    post:
+      operationId: unbanUser
+      tags: [users]
+      summary: Unban a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User unbanned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
+  /posts:
+    get:
+      operationId: listPosts
+      tags: [posts]
+      summary: List all posts
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: flagged
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminPost"
+
+  /posts/{id}:
+    delete:
+      operationId: deletePost
+      tags: [posts]
+      summary: Delete a post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /posts/{id}/flag:
+    post:
+      operationId: flagPost
+      tags: [posts]
+      summary: Flag a post for review
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Post flagged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPost"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +295,138 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    AdminLoginBody:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required: [username, password]
+
+    AdminLoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        token:
+          type: string
+      required: [success, token]
+
+    AdminStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        totalPosts:
+          type: integer
+        totalSchools:
+          type: integer
+        bannedUsers:
+          type: integer
+        flaggedPosts:
+          type: integer
+        newUsersToday:
+          type: integer
+        newPostsToday:
+          type: integer
+        universities:
+          type: integer
+        highSchools:
+          type: integer
+      required: [totalUsers, totalPosts, totalSchools, bannedUsers, flaggedPosts, newUsersToday, newPostsToday, universities, highSchools]
+
+    School:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [university, high_school]
+        location:
+          type: string
+        county:
+          type: string
+        userCount:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, name, type, location, county]
+
+    CreateSchoolBody:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [university, high_school]
+        location:
+          type: string
+        county:
+          type: string
+      required: [name, type, location, county]
+
+    UpdateSchoolBody:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [university, high_school]
+        location:
+          type: string
+        county:
+          type: string
+
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        schoolName:
+          type: string
+        postCount:
+          type: integer
+        followerCount:
+          type: integer
+        isBanned:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, name, username, email, schoolName, postCount, followerCount, isBanned, createdAt]
+
+    AdminPost:
+      type: object
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        authorName:
+          type: string
+        authorUsername:
+          type: string
+        schoolName:
+          type: string
+        likes:
+          type: integer
+        comments:
+          type: integer
+        isFlagged:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, content, authorName, authorUsername, schoolName, likes, comments, isFlagged, createdAt]
