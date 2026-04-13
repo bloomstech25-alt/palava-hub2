@@ -11,187 +11,361 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Svg, {
+  Circle,
+  Defs,
+  Ellipse,
+  LinearGradient as SvgLinearGradient,
+  Path,
+  RadialGradient,
+  Rect,
+  Stop,
+} from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width, height } = Dimensions.get("window");
 
-// ─── Liberian Dan-style mask (abstract/stylized) ───────────────────────────
-function DanMask({ size = 120, color = "#C17A54", opacity = 0.18 }: { size?: number; color?: string; opacity?: number }) {
-  const faceH = size * 1.4;
-  const eyeW = size * 0.18;
-  const eyeH = size * 0.07;
+// ─── Dan Mask — carved oval wood face, narrow slit eyes ──────────────────────
+function DanMask({ size = 120, opacity = 0.85 }: { size?: number; opacity?: number }) {
+  const s = size / 100;
   return (
-    <View style={{ width: size, height: faceH, alignItems: "center", opacity }}>
-      {/* Crest / topknot */}
-      <View style={{
-        width: size * 0.18, height: size * 0.32, borderRadius: size * 0.09,
-        backgroundColor: color, marginBottom: -size * 0.04,
-      }} />
-      {/* Forehead brow bar */}
-      <View style={{
-        width: size * 0.72, height: size * 0.09, borderTopLeftRadius: size * 0.3,
-        borderTopRightRadius: size * 0.3, backgroundColor: color,
-      }} />
-      {/* Face oval */}
-      <View style={{
-        width: size, height: faceH * 0.65, borderRadius: size * 0.5,
-        backgroundColor: color, alignItems: "center", justifyContent: "center",
-      }}>
-        {/* Eyes */}
-        <View style={{ flexDirection: "row", gap: size * 0.16, marginTop: -size * 0.1 }}>
-          <View style={{
-            width: eyeW, height: eyeH, borderRadius: eyeH / 2,
-            backgroundColor: "rgba(0,0,0,0.6)",
-          }} />
-          <View style={{
-            width: eyeW, height: eyeH, borderRadius: eyeH / 2,
-            backgroundColor: "rgba(0,0,0,0.6)",
-          }} />
-        </View>
-        {/* Nose bridge */}
-        <View style={{
-          width: size * 0.08, height: size * 0.2, borderRadius: size * 0.04,
-          backgroundColor: "rgba(0,0,0,0.2)", marginTop: size * 0.04,
-        }} />
-        {/* Mouth slit */}
-        <View style={{
-          width: size * 0.28, height: size * 0.045, borderRadius: size * 0.02,
-          backgroundColor: "rgba(0,0,0,0.35)", marginTop: size * 0.06,
-        }} />
-        {/* Cheek scarification dots */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", width: size * 0.78, marginTop: size * 0.04 }}>
-          {[0, 1, 2].map((i) => (
-            <View key={i} style={{
-              width: size * 0.07, height: size * 0.07, borderRadius: size * 0.035,
-              backgroundColor: "rgba(0,0,0,0.25)",
-            }} />
-          ))}
-        </View>
-      </View>
+    <Svg width={size} height={size * 1.55} viewBox="0 0 100 155" style={{ opacity }}>
+      <Defs>
+        {/* Main face wood grain gradient — light center, dark edges */}
+        <RadialGradient id="danFace" cx="50%" cy="42%" rx="55%" ry="50%">
+          <Stop offset="0%" stopColor="#C8845A" />
+          <Stop offset="45%" stopColor="#A0622E" />
+          <Stop offset="85%" stopColor="#6B3A14" />
+          <Stop offset="100%" stopColor="#3D1E06" />
+        </RadialGradient>
+        {/* Crest gradient */}
+        <SvgLinearGradient id="danCrest" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0%" stopColor="#7A4018" />
+          <Stop offset="100%" stopColor="#3D1E06" />
+        </SvgLinearGradient>
+        {/* Eye shadow */}
+        <RadialGradient id="danEyeShadow" cx="50%" cy="50%" rx="50%" ry="50%">
+          <Stop offset="0%" stopColor="#1A0800" />
+          <Stop offset="100%" stopColor="#0A0300" />
+        </RadialGradient>
+        {/* Cheek highlight */}
+        <RadialGradient id="danHighlight" cx="50%" cy="30%" rx="50%" ry="60%">
+          <Stop offset="0%" stopColor="rgba(220,160,90,0.5)" />
+          <Stop offset="100%" stopColor="rgba(0,0,0,0)" />
+        </RadialGradient>
+      </Defs>
+
+      {/* Forehead crest / topknot */}
+      <Path
+        d="M 42 18 Q 50 2 58 18 Q 54 8 50 6 Q 46 8 42 18 Z"
+        fill="url(#danCrest)"
+      />
+      {/* Crest base connector */}
+      <Ellipse cx="50" cy="18" rx="10" ry="5" fill="#7A4018" />
+
+      {/* Main face oval */}
+      <Path
+        d="M 14 55 Q 12 32 28 22 Q 38 15 50 14 Q 62 15 72 22 Q 88 32 86 55 Q 88 80 76 95 Q 66 108 50 110 Q 34 108 24 95 Q 12 80 14 55 Z"
+        fill="url(#danFace)"
+      />
+
+      {/* Wood grain texture lines */}
+      <Path d="M 30 35 Q 50 28 70 35" stroke="rgba(0,0,0,0.12)" strokeWidth="0.8" fill="none" />
+      <Path d="M 22 55 Q 50 46 78 55" stroke="rgba(0,0,0,0.10)" strokeWidth="0.6" fill="none" />
+      <Path d="M 24 72 Q 50 64 76 72" stroke="rgba(0,0,0,0.08)" strokeWidth="0.6" fill="none" />
+
+      {/* Brow ridge — thick carved bar casting shadow */}
+      <Path
+        d="M 22 40 Q 50 33 78 40 Q 78 46 50 47 Q 22 46 22 40 Z"
+        fill="rgba(0,0,0,0.28)"
+      />
+      {/* Brow highlight (top edge) */}
+      <Path d="M 24 40 Q 50 33 76 40" stroke="rgba(200,150,80,0.4)" strokeWidth="1" fill="none" />
+
+      {/* Left eye — narrow carved slit with depth */}
+      <Path
+        d="M 30 53 Q 37 50 44 53 Q 37 57 30 53 Z"
+        fill="url(#danEyeShadow)"
+      />
+      <Path d="M 30 53 Q 37 51 44 53" stroke="rgba(180,100,40,0.5)" strokeWidth="0.5" fill="none" />
+      {/* Left eye inner glint */}
+      <Ellipse cx="37" cy="52.5" rx="2" ry="0.8" fill="rgba(255,255,255,0.08)" />
+
+      {/* Right eye */}
+      <Path
+        d="M 56 53 Q 63 50 70 53 Q 63 57 56 53 Z"
+        fill="url(#danEyeShadow)"
+      />
+      <Path d="M 56 53 Q 63 51 70 53" stroke="rgba(180,100,40,0.5)" strokeWidth="0.5" fill="none" />
+      <Ellipse cx="63" cy="52.5" rx="2" ry="0.8" fill="rgba(255,255,255,0.08)" />
+
+      {/* Nose bridge — proud ridge */}
+      <Path
+        d="M 46 60 Q 50 58 54 60 L 55 76 Q 53 80 50 81 Q 47 80 45 76 Z"
+        fill="rgba(0,0,0,0.22)"
+      />
+      {/* Nose highlight */}
+      <Path d="M 49 60 Q 51 58 52 60 L 52 75" stroke="rgba(210,140,70,0.45)" strokeWidth="1" fill="none" />
+      {/* Nostrils */}
+      <Ellipse cx="44.5" cy="79" rx="3.5" ry="2.5" fill="rgba(0,0,0,0.38)" />
+      <Ellipse cx="55.5" cy="79" rx="3.5" ry="2.5" fill="rgba(0,0,0,0.38)" />
+
+      {/* Philtrum */}
+      <Path d="M 47 81 Q 50 83 53 81 L 53 85 Q 50 87 47 85 Z" fill="rgba(0,0,0,0.18)" />
+
+      {/* Mouth — small rounded lips */}
+      <Path
+        d="M 38 90 Q 44 87 50 88 Q 56 87 62 90 Q 56 96 50 96 Q 44 96 38 90 Z"
+        fill="rgba(0,0,0,0.45)"
+      />
+      {/* Upper lip line */}
+      <Path d="M 38 90 Q 50 87 62 90" stroke="rgba(160,80,30,0.6)" strokeWidth="0.8" fill="none" />
+
+      {/* Cheekbone highlights */}
+      <Ellipse cx="30" cy="65" rx="7" ry="5" fill="url(#danHighlight)" />
+      <Ellipse cx="70" cy="65" rx="7" ry="5" fill="url(#danHighlight)" />
+
+      {/* Scarification dots on cheeks — 3 per side */}
+      {[0, 1, 2].map((i) => (
+        <React.Fragment key={i}>
+          <Circle cx={25 + i * 5} cy={70 + i * 2} r="1.8" fill="rgba(0,0,0,0.35)" />
+          <Circle cx={75 - i * 5} cy={70 + i * 2} r="1.8" fill="rgba(0,0,0,0.35)" />
+        </React.Fragment>
+      ))}
+
       {/* Chin */}
-      <View style={{
-        width: size * 0.42, height: size * 0.16, borderBottomLeftRadius: size * 0.2,
-        borderBottomRightRadius: size * 0.2, backgroundColor: color, marginTop: -size * 0.04,
-      }} />
-    </View>
+      <Path
+        d="M 34 105 Q 50 115 66 105 Q 58 120 50 122 Q 42 120 34 105 Z"
+        fill="#6B3A14"
+      />
+
+      {/* Overall shading overlay for depth */}
+      <Path
+        d="M 14 55 Q 12 32 28 22 Q 38 15 50 14 Q 62 15 72 22 Q 88 32 86 55 Q 88 80 76 95 Q 66 108 50 110 Q 34 108 24 95 Q 12 80 14 55 Z"
+        fill="rgba(0,0,0,0)"
+        stroke="rgba(0,0,0,0.5)"
+        strokeWidth="3"
+      />
+    </Svg>
   );
 }
 
-// ─── Sande / Sowei helmet mask ─────────────────────────────────────────────
-function SandeMask({ size = 100, color = "#8B4513", opacity = 0.15 }: { size?: number; color?: string; opacity?: number }) {
+// ─── Sande/Sowei Helmet Mask — black polished dome with neck rings ────────────
+function SandeMask({ size = 100, opacity = 0.85 }: { size?: number; opacity?: number }) {
   return (
-    <View style={{ width: size, height: size * 1.6, alignItems: "center", opacity }}>
-      {/* Elaborate crest / headpiece */}
-      <View style={{ flexDirection: "row", gap: size * 0.06, marginBottom: -size * 0.06 }}>
-        {[0.6, 1, 0.7].map((h, i) => (
-          <View key={i} style={{
-            width: size * 0.14, height: size * 0.28 * h,
-            borderTopLeftRadius: size * 0.07, borderTopRightRadius: size * 0.07,
-            backgroundColor: color,
-          }} />
-        ))}
-      </View>
-      {/* Head dome */}
-      <View style={{
-        width: size * 0.9, height: size * 0.5, borderTopLeftRadius: size * 0.45,
-        borderTopRightRadius: size * 0.45, backgroundColor: color,
-      }} />
-      {/* Face area */}
-      <View style={{
-        width: size * 0.76, height: size * 0.72, borderRadius: size * 0.38,
-        backgroundColor: color, alignItems: "center", justifyContent: "center",
-        marginTop: -size * 0.1,
-      }}>
-        {/* Brow ridge */}
-        <View style={{
-          width: size * 0.55, height: size * 0.07, borderRadius: size * 0.035,
-          backgroundColor: "rgba(0,0,0,0.3)", marginBottom: size * 0.08,
-        }} />
-        {/* Narrow eyes */}
-        <View style={{ flexDirection: "row", gap: size * 0.12 }}>
-          {[0, 1].map((i) => (
-            <View key={i} style={{
-              width: size * 0.15, height: size * 0.045, borderRadius: size * 0.022,
-              backgroundColor: "rgba(0,0,0,0.55)",
-            }} />
-          ))}
-        </View>
-        {/* Rings around neck */}
-        <View style={{ marginTop: size * 0.14, gap: size * 0.04 }}>
-          {[0.52, 0.6, 0.52].map((w, i) => (
-            <View key={i} style={{
-              width: size * w, height: size * 0.048,
-              borderRadius: size * 0.024, backgroundColor: "rgba(0,0,0,0.2)",
-            }} />
-          ))}
-        </View>
-      </View>
-    </View>
+    <Svg width={size} height={size * 1.7} viewBox="0 0 100 170" style={{ opacity }}>
+      <Defs>
+        <RadialGradient id="sandeFace" cx="40%" cy="35%" rx="60%" ry="55%">
+          <Stop offset="0%" stopColor="#5A4030" />
+          <Stop offset="50%" stopColor="#2E1E10" />
+          <Stop offset="100%" stopColor="#0A0604" />
+        </RadialGradient>
+        <SvgLinearGradient id="sandeRing" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0%" stopColor="#6A4A28" />
+          <Stop offset="40%" stopColor="#3A2810" />
+          <Stop offset="100%" stopColor="#1A0E06" />
+        </SvgLinearGradient>
+        <RadialGradient id="sandeShine" cx="35%" cy="25%" rx="45%" ry="40%">
+          <Stop offset="0%" stopColor="rgba(200,160,100,0.35)" />
+          <Stop offset="100%" stopColor="rgba(0,0,0,0)" />
+        </RadialGradient>
+        <SvgLinearGradient id="sandeTop" x1="0.3" y1="0" x2="0.7" y2="1">
+          <Stop offset="0%" stopColor="#4A3020" />
+          <Stop offset="100%" stopColor="#0A0604" />
+        </SvgLinearGradient>
+      </Defs>
+
+      {/* Head crest — three prongs */}
+      <Path d="M 38 22 Q 40 8 44 6 Q 46 4 48 6 Q 50 8 50 22" fill="url(#sandeTop)" />
+      <Path d="M 50 22 Q 50 6 52 4 Q 54 2 56 4 Q 58 6 58 18 Q 55 15 50 22" fill="url(#sandeTop)" />
+      <Path d="M 30 26 Q 32 14 35 12 Q 37 10 38 14 Q 39 18 38 22" fill="url(#sandeTop)" />
+
+      {/* Dome / skull cap */}
+      <Path
+        d="M 10 62 Q 8 38 22 24 Q 34 12 50 12 Q 66 12 78 24 Q 92 38 90 62 Q 90 80 78 90 Q 66 98 50 99 Q 34 98 22 90 Q 10 80 10 62 Z"
+        fill="url(#sandeFace)"
+      />
+      {/* High-polish shine patch */}
+      <Path
+        d="M 10 62 Q 8 38 22 24 Q 34 12 50 12 Q 66 12 78 24 Q 92 38 90 62 Q 90 80 78 90 Q 66 98 50 99 Q 34 98 22 90 Q 10 80 10 62 Z"
+        fill="url(#sandeShine)"
+      />
+
+      {/* Carved brow line across forehead */}
+      <Path d="M 22 50 Q 50 44 78 50" stroke="rgba(0,0,0,0.5)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      {/* Brow highlight */}
+      <Path d="M 22 49 Q 50 43 78 49" stroke="rgba(150,100,50,0.3)" strokeWidth="1" fill="none" strokeLinecap="round" />
+
+      {/* Eyes — tiny, serene, barely-open slits */}
+      <Path d="M 30 60 Q 38 57 44 60 Q 38 63 30 60 Z" fill="rgba(0,0,0,0.9)" />
+      <Path d="M 56 60 Q 62 57 70 60 Q 62 63 56 60 Z" fill="rgba(0,0,0,0.9)" />
+      {/* Eye lid highlights */}
+      <Path d="M 31 59.5 Q 37 57.5 43 59.5" stroke="rgba(160,110,60,0.4)" strokeWidth="0.6" fill="none" />
+      <Path d="M 57 59.5 Q 63 57.5 69 59.5" stroke="rgba(160,110,60,0.4)" strokeWidth="0.6" fill="none" />
+
+      {/* Nose — flat, wide, carved */}
+      <Path
+        d="M 45 66 Q 50 64 55 66 L 57 78 Q 54 82 50 83 Q 46 82 43 78 Z"
+        fill="rgba(0,0,0,0.4)"
+      />
+      {/* Nostrils wide */}
+      <Ellipse cx="43" cy="80" rx="4" ry="3" fill="rgba(0,0,0,0.55)" />
+      <Ellipse cx="57" cy="80" rx="4" ry="3" fill="rgba(0,0,0,0.55)" />
+
+      {/* Mouth — barely open, composed */}
+      <Path d="M 36 88 Q 50 86 64 88 Q 56 93 50 93 Q 44 93 36 88 Z" fill="rgba(0,0,0,0.7)" />
+
+      {/* Neck rings — Sande's signature feature (3 rings) */}
+      {[0, 1, 2].map((i) => (
+        <React.Fragment key={i}>
+          <Path
+            d={`M 20 ${105 + i * 16} Q 50 ${100 + i * 16} 80 ${105 + i * 16} Q 80 ${113 + i * 16} 50 ${115 + i * 16} Q 20 ${113 + i * 16} 20 ${105 + i * 16} Z`}
+            fill="url(#sandeRing)"
+          />
+          {/* Ring highlight */}
+          <Path
+            d={`M 22 ${104 + i * 16} Q 50 ${99 + i * 16} 78 ${104 + i * 16}`}
+            stroke="rgba(150,100,50,0.35)"
+            strokeWidth="1"
+            fill="none"
+          />
+        </React.Fragment>
+      ))}
+
+      {/* Outer edge shadow */}
+      <Path
+        d="M 10 62 Q 8 38 22 24 Q 34 12 50 12 Q 66 12 78 24 Q 92 38 90 62 Q 90 80 78 90 Q 66 98 50 99 Q 34 98 22 90 Q 10 80 10 62 Z"
+        fill="none"
+        stroke="rgba(0,0,0,0.6)"
+        strokeWidth="4"
+      />
+    </Svg>
   );
 }
 
-// ─── Grebo / Kru geometric mask ────────────────────────────────────────────
-function GreboMask({ size = 90, color = "#D4A855", opacity = 0.15 }: { size?: number; color?: string; opacity?: number }) {
+// ─── Grebo/Kru Geometric Mask — tubular eyes, angular face, horns ─────────────
+function GreboMask({ size = 90, opacity = 0.85 }: { size?: number; opacity?: number }) {
   return (
-    <View style={{ width: size, height: size * 1.5, alignItems: "center", opacity }}>
-      {/* Horns */}
-      <View style={{ flexDirection: "row", gap: size * 0.3, marginBottom: -size * 0.05 }}>
-        {[-18, 18].map((rot, i) => (
-          <View key={i} style={{
-            width: size * 0.12, height: size * 0.35, borderTopLeftRadius: size * 0.06,
-            borderTopRightRadius: size * 0.06, backgroundColor: color,
-            transform: [{ rotate: `${rot}deg` }],
-          }} />
-        ))}
-      </View>
-      {/* Rectangular face */}
-      <View style={{
-        width: size, height: size * 1.05, borderRadius: size * 0.12,
-        backgroundColor: color, alignItems: "center",
-      }}>
-        {/* Horizontal brow band */}
-        <View style={{
-          width: size, height: size * 0.12, backgroundColor: "rgba(0,0,0,0.22)", marginTop: size * 0.18,
-        }} />
-        {/* Cylindrical eyes */}
-        <View style={{ flexDirection: "row", gap: size * 0.14, marginTop: size * 0.08 }}>
-          {[0, 1].map((i) => (
-            <View key={i} style={{
-              width: size * 0.2, height: size * 0.2, borderRadius: size * 0.1,
-              backgroundColor: "rgba(0,0,0,0.5)", borderWidth: size * 0.025,
-              borderColor: "rgba(255,255,255,0.15)",
-            }} />
-          ))}
-        </View>
-        {/* Vertical nose slit */}
-        <View style={{
-          width: size * 0.07, height: size * 0.22, borderRadius: size * 0.035,
-          backgroundColor: "rgba(0,0,0,0.3)", marginTop: size * 0.06,
-        }} />
-        {/* Geometric mouth */}
-        <View style={{
-          width: size * 0.5, height: size * 0.08, borderRadius: size * 0.04,
-          backgroundColor: "rgba(0,0,0,0.35)", marginTop: size * 0.06,
-        }} />
-        {/* Side tribal lines */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", width: size * 0.9, marginTop: size * 0.06 }}>
-          {[0, 1].map((side) => (
-            <View key={side} style={{ gap: size * 0.03 }}>
-              {[0, 1, 2].map((line) => (
-                <View key={line} style={{
-                  width: size * 0.14, height: size * 0.025,
-                  borderRadius: size * 0.012, backgroundColor: "rgba(0,0,0,0.2)",
-                }} />
-              ))}
-            </View>
-          ))}
-        </View>
-      </View>
-    </View>
+    <Svg width={size} height={size * 1.6} viewBox="0 0 100 160" style={{ opacity }}>
+      <Defs>
+        <SvgLinearGradient id="greBoFace" x1="0.2" y1="0" x2="0.8" y2="1">
+          <Stop offset="0%" stopColor="#C8A44A" />
+          <Stop offset="40%" stopColor="#A07828" />
+          <Stop offset="100%" stopColor="#5C3E0A" />
+        </SvgLinearGradient>
+        <RadialGradient id="greboEye" cx="50%" cy="30%" rx="50%" ry="60%">
+          <Stop offset="0%" stopColor="#1A0E00" />
+          <Stop offset="70%" stopColor="#0A0600" />
+          <Stop offset="100%" stopColor="#000000" />
+        </RadialGradient>
+        <SvgLinearGradient id="greboHorn" x1="0" y1="1" x2="0" y2="0">
+          <Stop offset="0%" stopColor="#8A6820" />
+          <Stop offset="100%" stopColor="#4A3410" />
+        </SvgLinearGradient>
+        <RadialGradient id="greboHighlight" cx="30%" cy="20%" rx="60%" ry="70%">
+          <Stop offset="0%" stopColor="rgba(240,200,100,0.3)" />
+          <Stop offset="100%" stopColor="rgba(0,0,0,0)" />
+        </RadialGradient>
+      </Defs>
+
+      {/* Left horn */}
+      <Path
+        d="M 28 28 Q 22 10 26 4 Q 29 0 31 4 Q 33 8 32 20 Q 32 24 28 28 Z"
+        fill="url(#greboHorn)"
+        transform="rotate(-12 30 16)"
+      />
+      {/* Right horn */}
+      <Path
+        d="M 72 28 Q 78 10 74 4 Q 71 0 69 4 Q 67 8 68 20 Q 68 24 72 28 Z"
+        fill="url(#greboHorn)"
+        transform="rotate(12 70 16)"
+      />
+      {/* Horn striping */}
+      {[0, 1, 2, 3].map((i) => (
+        <React.Fragment key={i}>
+          <Path
+            d={`M ${23 + i} ${27 - i * 4} Q ${24 + i} ${20 - i * 4} ${25 + i} ${14 - i * 3}`}
+            stroke="rgba(0,0,0,0.2)"
+            strokeWidth="1"
+            fill="none"
+          />
+        </React.Fragment>
+      ))}
+
+      {/* Main rectangular face */}
+      <Path
+        d="M 10 30 Q 8 28 10 26 L 20 24 Q 50 18 80 24 L 90 26 Q 92 28 90 30 L 90 110 Q 90 125 80 130 Q 65 136 50 136 Q 35 136 20 130 Q 10 125 10 110 Z"
+        fill="url(#greBoFace)"
+      />
+      {/* Face highlight */}
+      <Path
+        d="M 10 30 Q 8 28 10 26 L 20 24 Q 50 18 80 24 L 90 26 Q 92 28 90 30 L 90 110 Q 90 125 80 130 Q 65 136 50 136 Q 35 136 20 130 Q 10 125 10 110 Z"
+        fill="url(#greboHighlight)"
+      />
+
+      {/* Forehead carved band */}
+      <Path d="M 10 30 L 90 30 L 90 44 Q 50 38 10 44 Z" fill="rgba(0,0,0,0.22)" />
+      <Path d="M 10 30 L 90 30" stroke="rgba(220,180,80,0.4)" strokeWidth="1.5" fill="none" />
+      <Path d="M 10 44 Q 50 38 90 44" stroke="rgba(0,0,0,0.4)" strokeWidth="1" fill="none" />
+
+      {/* Left eye cylinder — tubular protrusion (Grebo hallmark) */}
+      <Ellipse cx="33" cy="62" rx="13" ry="16" fill="rgba(0,0,0,0.5)" />
+      <Ellipse cx="33" cy="62" rx="10" ry="13" fill="url(#greboEye)" />
+      {/* Eye rim highlight */}
+      <Path d="M 23 55 Q 33 51 43 55" stroke="rgba(200,160,60,0.5)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      {/* Pupil white glint */}
+      <Ellipse cx="30" cy="57" rx="2.5" ry="2" fill="rgba(255,255,255,0.12)" />
+
+      {/* Right eye cylinder */}
+      <Ellipse cx="67" cy="62" rx="13" ry="16" fill="rgba(0,0,0,0.5)" />
+      <Ellipse cx="67" cy="62" rx="10" ry="13" fill="url(#greboEye)" />
+      <Path d="M 57 55 Q 67 51 77 55" stroke="rgba(200,160,60,0.5)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      <Ellipse cx="64" cy="57" rx="2.5" ry="2" fill="rgba(255,255,255,0.12)" />
+
+      {/* Nose — flat vertical ridge */}
+      <Rect x="44" y="82" width="12" height="24" rx="3" fill="rgba(0,0,0,0.28)" />
+      {/* Nose highlight */}
+      <Rect x="46" y="83" width="4" height="22" rx="2" fill="rgba(200,160,60,0.2)" />
+      {/* Nostrils */}
+      <Ellipse cx="42" cy="106" rx="5" ry="3.5" fill="rgba(0,0,0,0.45)" />
+      <Ellipse cx="58" cy="106" rx="5" ry="3.5" fill="rgba(0,0,0,0.45)" />
+
+      {/* Mouth — wide horizontal slit */}
+      <Rect x="25" y="112" width="50" height="7" rx="3.5" fill="rgba(0,0,0,0.5)" />
+      <Path d="M 25 112 L 75 112" stroke="rgba(180,130,40,0.3)" strokeWidth="1" fill="none" />
+
+      {/* Tribal incision lines — sides */}
+      {[0, 1, 2, 3].map((i) => (
+        <React.Fragment key={i}>
+          <Path
+            d={`M 12 ${52 + i * 12} L 20 ${52 + i * 12}`}
+            stroke="rgba(0,0,0,0.38)"
+            strokeWidth="2"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <Path
+            d={`M 80 ${52 + i * 12} L 88 ${52 + i * 12}`}
+            stroke="rgba(0,0,0,0.38)"
+            strokeWidth="2"
+            fill="none"
+            strokeLinecap="round"
+          />
+        </React.Fragment>
+      ))}
+
+      {/* Outer frame border (carved edge) */}
+      <Path
+        d="M 10 30 Q 8 28 10 26 L 20 24 Q 50 18 80 24 L 90 26 Q 92 28 90 30 L 90 110 Q 90 125 80 130 Q 65 136 50 136 Q 35 136 20 130 Q 10 125 10 110 Z"
+        fill="none"
+        stroke="rgba(0,0,0,0.55)"
+        strokeWidth="3.5"
+      />
+    </Svg>
   );
 }
 
-// ─── Kente-inspired geometric strip ───────────────────────────────────────
+// ─── Kente-inspired geometric strip ────────────────────────────────────────────
 function KenteStrip({ width: w, opacity = 0.12 }: { width: number; opacity?: number }) {
   const colors = ["#BF0A30", "#D4A855", "#002868", "#C17A54", "#BF0A30", "#D4A855", "#002868"];
   const blockW = w / colors.length;
@@ -204,7 +378,7 @@ function KenteStrip({ width: w, opacity = 0.12 }: { width: number; opacity?: num
   );
 }
 
-// ─── Welcome screen ────────────────────────────────────────────────────────
+// ─── Welcome screen ─────────────────────────────────────────────────────────────
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -239,11 +413,9 @@ export default function WelcomeScreen() {
         end={{ x: 1, y: 1 }}
       />
 
-      {/* Subtle red glow top-left (Liberian flag red) */}
+      {/* Atmospheric glows */}
       <View style={styles.glowRed} />
-      {/* Blue glow bottom-right (Liberian flag blue) */}
       <View style={styles.glowBlue} />
-      {/* Gold glow center */}
       <View style={styles.glowGold} />
 
       {/* Kente strips top */}
@@ -254,32 +426,40 @@ export default function WelcomeScreen() {
       </View>
 
       {/* ── Decorative Masks (background) ── */}
-      {/* Mask 1 — Dan mask, top-left, tilted */}
+      {/* Mask 1 — Dan mask, top-left */}
       <Animated.View style={[styles.maskBg1, { opacity: mask1Anim }]}>
-        <DanMask size={110} color="#C17A54" opacity={1} />
+        <DanMask size={115} opacity={0.82} />
       </Animated.View>
 
       {/* Mask 2 — Sande mask, top-right */}
       <Animated.View style={[styles.maskBg2, { opacity: mask2Anim }]}>
-        <SandeMask size={95} color="#8B6914" opacity={1} />
+        <SandeMask size={98} opacity={0.75} />
       </Animated.View>
 
       {/* Mask 3 — Grebo mask, bottom-left */}
       <Animated.View style={[styles.maskBg3, { opacity: mask3Anim }]}>
-        <GreboMask size={85} color="#D4A855" opacity={1} />
+        <GreboMask size={88} opacity={0.70} />
       </Animated.View>
 
       {/* Mask 4 — small Dan, bottom-right */}
       <Animated.View style={[styles.maskBg4, { opacity: mask1Anim }]}>
-        <DanMask size={70} color="#BF0A30" opacity={1} />
+        <DanMask size={72} opacity={0.65} />
       </Animated.View>
 
       {/* ── Main Content ── */}
-      <Animated.View style={[styles.content, { paddingTop: topPad + 24, paddingBottom: bottomPad + 16, opacity: fadeIn, transform: [{ translateY: slideUp }] }]}>
-
+      <Animated.View
+        style={[
+          styles.content,
+          {
+            paddingTop: topPad + 24,
+            paddingBottom: bottomPad + 16,
+            opacity: fadeIn,
+            transform: [{ translateY: slideUp }],
+          },
+        ]}
+      >
         {/* Logo section */}
         <View style={styles.logoSection}>
-          {/* Liberian star emblem */}
           <View style={styles.starContainer}>
             <Text style={styles.starEmoji}>⭐</Text>
             <View style={styles.flagStripe1} />
@@ -357,7 +537,6 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, overflow: "hidden" },
 
-  // Atmospheric glows
   glowRed: {
     position: "absolute", top: -80, left: -80,
     width: 320, height: 320, borderRadius: 160,
@@ -374,24 +553,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#D4A855", opacity: 0.05,
   },
 
-  // Kente strips
   kenteTop: { position: "absolute", left: 0, right: 0 },
   kenteBottom: { position: "absolute", left: 0, right: 0 },
 
-  // Mask positions (all very transparent background deco)
-  maskBg1: { position: "absolute", top: height * 0.04, left: -28, opacity: 0.22 },
-  maskBg2: { position: "absolute", top: height * 0.06, right: -20, opacity: 0.18 },
-  maskBg3: { position: "absolute", bottom: height * 0.18, left: -22, opacity: 0.15 },
-  maskBg4: { position: "absolute", bottom: height * 0.12, right: -16, opacity: 0.16 },
+  maskBg1: { position: "absolute", top: height * 0.02, left: -30 },
+  maskBg2: { position: "absolute", top: height * 0.04, right: -22 },
+  maskBg3: { position: "absolute", bottom: height * 0.16, left: -24 },
+  maskBg4: { position: "absolute", bottom: height * 0.10, right: -18 },
 
-  // Content
   content: {
     flex: 1,
     paddingHorizontal: 28,
     justifyContent: "space-between",
   },
 
-  // Logo
   logoSection: { alignItems: "center", paddingTop: 24 },
   starContainer: { alignItems: "center", marginBottom: 18 },
   starEmoji: { fontSize: 36 },
@@ -424,7 +599,6 @@ const styles = StyleSheet.create({
     maxWidth: 280,
   },
 
-  // Pills
   pills: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -445,12 +619,10 @@ const styles = StyleSheet.create({
   pillIcon: { fontSize: 16 },
   pillLabel: { color: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: "600" },
 
-  // Schools
   schoolsRow: { alignItems: "center", gap: 4 },
   schoolsLabel: { color: "rgba(212,168,85,0.8)", fontSize: 12, textAlign: "center", letterSpacing: 0.3 },
   schoolsMore: { color: "rgba(212,168,85,0.5)", fontSize: 11 },
 
-  // Actions
   actions: { gap: 12 },
   primaryBtn: { borderRadius: 18, overflow: "hidden" },
   primaryGradient: {
