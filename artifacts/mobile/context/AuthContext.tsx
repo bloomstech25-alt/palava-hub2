@@ -42,21 +42,7 @@ interface RegisterData {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const MOCK_USERS: User[] = [
-  {
-    id: "u1",
-    name: "Amos Kollie",
-    username: "amoskollie",
-    email: "alex@example.com",
-    school: { id: "u1", name: "University of Liberia", type: "university", location: "Monrovia, Montserrado" },
-    bio: "CS student at UL passionate about tech and community. Building Liberia's digital future 🇱🇷",
-    avatar: "https://i.pravatar.cc/150?img=1",
-    followers: 1240,
-    following: 380,
-    posts: 89,
-    joinedAt: "2024-09-01",
-  },
-];
+const MOCK_USERS: User[] = [];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
