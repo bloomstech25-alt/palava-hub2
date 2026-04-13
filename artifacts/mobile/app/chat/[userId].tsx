@@ -1,9 +1,11 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -18,20 +20,153 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useMessaging, type Message } from "@/context/MessagingContext";
 import { useColors } from "@/hooks/useColors";
+import VoiceCallModal from "@/components/VoiceCallModal";
+import VideoCallModal from "@/components/VideoCallModal";
 
 function formatTime(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 function formatDateHeader(iso: string) {
   const d = new Date(iso);
-  const now = new Date();
-  const diff = now.getTime() - d.getTime();
-  if (diff < 1000 * 60 * 60 * 24) return "Today";
-  if (diff < 1000 * 60 * 60 * 48) return "Yesterday";
+  const diff = Date.now() - d.getTime();
+  if (diff < 86400000) return "Today";
+  if (diff < 172800000) return "Yesterday";
   return d.toLocaleDateString([], { month: "long", day: "numeric" });
 }
+
+// Animated waveform bars for voice messages
+function WaveformBars({ isPlaying, color }: { isPlaying: boolean; color: string }) {
+  const bars = [0.4, 0.7, 1, 0.6, 0.9, 0.5, 0.8, 0.4, 0.7, 1, 0.6, 0.8, 0.5];
+  const anims = useRef(bars.map(() => new Animated.Value(0.4))).current;
+
+  useEffect(() => {
+    if (isPlaying) {
+      const loops = anims.map((a, i) =>
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(a, { toValue: bars[i], duration: 300 + i * 40, useNativeDriver: true }),
+            Animated.timing(a, { toValue: 0.3, duration: 300 + i * 40, useNativeDriver: true }),
+          ])
+        )
+      );
+      loops.forEach((l) => l.start());
+      return () => loops.forEach((l) => l.stop());
+    } else {
+      anims.forEach((a) => a.setValue(0.4));
+    }
+  }, [isPlaying]);
+
+  return (
+    <View style={wfStyles.row}>
+      {anims.map((a, i) => (
+        <Animated.View
+          key={i}
+          style={[wfStyles.bar, { backgroundColor: color, transform: [{ scaleY: a }] }]}
+        />
+      ))}
+    </View>
+  );
+}
+
+const wfStyles = StyleSheet.create({
+  row: { flexDirection: "row", alignItems: "center", gap: 2, height: 28 },
+  bar: { width: 3, height: 20, borderRadius: 2 },
+});
+
+// Voice message bubble
+function VoiceBubble({ msg, isMe, colors }: { msg: Message; isMe: boolean; colors: any }) {
+  const [playing, setPlaying] = useState(false);
+  const progress = useRef(new Animated.Value(0)).current;
+
+  const toggle = () => {
+    if (playing) {
+      setPlaying(false);
+      progress.stopAnimation();
+    } else {
+      setPlaying(true);
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: (msg.audioDuration ?? 5) * 1000,
+        useNativeDriver: false,
+      }).start(({ finished }) => {
+        if (finished) setPlaying(false);
+      });
+    }
+  };
+
+  return (
+    <View style={[vbStyles.container, { backgroundColor: isMe ? colors.primary : colors.card, borderColor: colors.border }]}>
+      <TouchableOpacity onPress={toggle} style={vbStyles.playBtn} activeOpacity={0.8}>
+        <Feather name={playing ? "pause" : "play"} size={16} color={isMe ? "#fff" : colors.primary} />
+      </TouchableOpacity>
+      <WaveformBars isPlaying={playing} color={isMe ? "rgba(255,255,255,0.8)" : colors.primary} />
+      <Text style={[vbStyles.dur, { color: isMe ? "rgba(255,255,255,0.7)" : colors.mutedForeground }]}>
+        {msg.audioDuration ?? 5}s
+      </Text>
+    </View>
+  );
+}
+
+const vbStyles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    minWidth: 160,
+  },
+  playBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
+  dur: { fontSize: 12, fontWeight: "600" },
+});
+
+// Voice recording UI
+function RecordingBar({ duration, onCancel, onSend, colors }: {
+  duration: number; onCancel: () => void; onSend: () => void; colors: any;
+}) {
+  const pulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.2, duration: 500, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 500, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+
+  return (
+    <View style={[recStyles.bar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+      <TouchableOpacity onPress={onCancel} style={recStyles.cancelBtn} activeOpacity={0.8}>
+        <Feather name="x" size={20} color="#ef4444" />
+      </TouchableOpacity>
+      <View style={recStyles.center}>
+        <Animated.View style={[recStyles.dot, { transform: [{ scale: pulse }] }]} />
+        <Text style={[recStyles.durText, { color: colors.foreground }]}>
+          {Math.floor(duration / 60).toString().padStart(2, "0")}:{(duration % 60).toString().padStart(2, "0")}
+        </Text>
+        <Text style={[recStyles.hint, { color: colors.mutedForeground }]}>Recording...</Text>
+      </View>
+      <TouchableOpacity onPress={onSend} style={recStyles.sendBtn} activeOpacity={0.8}>
+        <Feather name="send" size={20} color="#ffffff" />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const recStyles = StyleSheet.create({
+  bar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, gap: 12 },
+  cancelBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(239,68,68,0.12)", alignItems: "center", justifyContent: "center" },
+  center: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#ef4444" },
+  durText: { fontSize: 18, fontWeight: "600", letterSpacing: 1 },
+  hint: { fontSize: 13 },
+  sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#3b82f6", alignItems: "center", justifyContent: "center" },
+});
 
 export default function ChatScreen() {
   const colors = useColors();
@@ -40,41 +175,92 @@ export default function ChatScreen() {
   const bottomPad = Platform.OS === "web" ? 24 : insets.bottom;
 
   const { userId, name, username, avatar, school } = useLocalSearchParams<{
-    userId: string;
-    name: string;
-    username: string;
-    avatar: string;
-    school: string;
+    userId: string; name: string; username: string; avatar: string; school: string;
   }>();
   const { user } = useAuth();
   const { messages, sendMessage, markRead } = useMessaging();
   const [text, setText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [recordDuration, setRecordDuration] = useState(0);
+  const [showVoiceCall, setShowVoiceCall] = useState(false);
+  const [showVideoCall, setShowVideoCall] = useState(false);
   const flatRef = useRef<FlatList>(null);
+  const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const chatMessages = useMemo(() => messages[userId] ?? [], [messages, userId]);
 
-  useEffect(() => {
-    markRead(userId);
-  }, [userId, markRead]);
-
+  useEffect(() => { markRead(userId); }, [userId, markRead]);
   useEffect(() => {
     setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 150);
   }, [chatMessages.length]);
 
-  const handleSend = useCallback(() => {
-    if (!text.trim() || !user) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    sendMessage(userId, name ?? "", username ?? "", avatar ?? "", school ?? "", text.trim(), user.id);
+  const doSend = useCallback((
+    txt: string,
+    media?: { uri: string; type: "image" | "video" | "audio"; duration?: number }
+  ) => {
+    if (!user) return;
+    sendMessage(userId, name ?? "", username ?? "", avatar ?? "", school ?? "", txt, user.id, media);
     setText("");
     setIsTyping(true);
     setTimeout(() => setIsTyping(false), 3500);
-  }, [text, user, userId, name, username, avatar, school, sendMessage]);
+  }, [user, userId, name, username, avatar, school, sendMessage]);
+
+  const handleSend = () => {
+    if (!text.trim()) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    doSend(text.trim());
+  };
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: "images",
+      quality: 0.85,
+    });
+    if (!result.canceled && result.assets[0]) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      doSend("", { uri: result.assets[0].uri, type: "image" });
+    }
+  };
+
+  const pickVideo = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: "videos",
+      quality: 0.85,
+    });
+    if (!result.canceled && result.assets[0]) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      doSend("", { uri: result.assets[0].uri, type: "video" });
+    }
+  };
+
+  const startRecording = () => {
+    setRecording(true);
+    setRecordDuration(0);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    recTimerRef.current = setInterval(() => setRecordDuration((d) => d + 1), 1000);
+  };
+
+  const cancelRecording = () => {
+    setRecording(false);
+    if (recTimerRef.current) clearInterval(recTimerRef.current);
+    setRecordDuration(0);
+  };
+
+  const sendVoice = () => {
+    setRecording(false);
+    if (recTimerRef.current) clearInterval(recTimerRef.current);
+    const dur = Math.max(1, recordDuration);
+    setRecordDuration(0);
+    doSend("", { uri: "audio://voice_" + Date.now(), type: "audio", duration: dur });
+  };
+
+  const isMe = (msg: Message) => msg.fromId === "me" || msg.fromId === user?.id;
 
   const renderMessage = useCallback(({ item, index }: { item: Message; index: number }) => {
-    const isMe = item.fromId === "me" || item.fromId === user?.id;
-    const prevMsg = index > 0 ? chatMessages[index - 1] : null;
-    const showDate = !prevMsg || formatDateHeader(item.createdAt) !== formatDateHeader(prevMsg.createdAt);
+    const mine = isMe(item);
+    const prev = index > 0 ? chatMessages[index - 1] : null;
+    const showDate = !prev || formatDateHeader(item.createdAt) !== formatDateHeader(prev.createdAt);
 
     return (
       <>
@@ -87,24 +273,43 @@ export default function ChatScreen() {
             <View style={[styles.dateLine, { backgroundColor: colors.border }]} />
           </View>
         )}
-        <View style={[styles.msgRow, isMe ? styles.msgRowMe : styles.msgRowThem]}>
-          {!isMe && (
-            <Image source={{ uri: avatar }} style={styles.msgAvatar} />
-          )}
+        <View style={[styles.msgRow, mine ? styles.msgRowMe : styles.msgRowThem]}>
+          {!mine && <Image source={{ uri: avatar }} style={styles.msgAvatar} />}
           <View style={styles.msgContent}>
-            <View style={[
-              styles.bubble,
-              isMe
-                ? [styles.bubbleMe, { backgroundColor: colors.primary }]
-                : [styles.bubbleThem, { backgroundColor: colors.card, borderColor: colors.border }],
-            ]}>
-              <Text style={[styles.bubbleText, { color: isMe ? "#ffffff" : colors.foreground }]}>
-                {item.text}
-              </Text>
+            {/* Message bubble */}
+            {item.mediaType === "audio" ? (
+              <VoiceBubble msg={item} isMe={mine} colors={colors} />
+            ) : item.mediaType === "image" && item.mediaUri ? (
+              <View style={[styles.imageBubble, { borderColor: colors.border }]}>
+                <Image source={{ uri: item.mediaUri }} style={styles.msgImage} />
+              </View>
+            ) : item.mediaType === "video" && item.mediaUri ? (
+              <View style={[styles.imageBubble, { borderColor: colors.border, backgroundColor: "#000" }]}>
+                <Image source={{ uri: item.mediaUri }} style={styles.msgImage} blurRadius={2} />
+                <View style={styles.playOverlay}>
+                  <View style={[styles.playCircle, { backgroundColor: colors.primary }]}>
+                    <Feather name="play" size={18} color="#fff" />
+                  </View>
+                  <Text style={styles.videoLabel}>Video</Text>
+                </View>
+              </View>
+            ) : (
+              <View style={[
+                styles.bubble,
+                mine
+                  ? [styles.bubbleMe, { backgroundColor: colors.primary }]
+                  : [styles.bubbleThem, { backgroundColor: colors.card, borderColor: colors.border }],
+              ]}>
+                <Text style={[styles.bubbleText, { color: mine ? "#fff" : colors.foreground }]}>
+                  {item.text}
+                </Text>
+              </View>
+            )}
+            {/* Time + lock */}
+            <View style={[styles.metaRow, mine && styles.metaRowMe]}>
+              <Feather name="lock" size={9} color={colors.mutedForeground} />
+              <Text style={[styles.msgTime, { color: colors.mutedForeground }]}>{formatTime(item.createdAt)}</Text>
             </View>
-            <Text style={[styles.msgTime, { color: colors.mutedForeground }, isMe && styles.msgTimeMe]}>
-              {formatTime(item.createdAt)}
-            </Text>
           </View>
         </View>
       </>
@@ -115,7 +320,6 @@ export default function ChatScreen() {
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={0}
     >
       <StatusBar style="dark" />
 
@@ -124,22 +328,30 @@ export default function ChatScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
           <Feather name="arrow-left" size={22} color={colors.foreground} />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.headerUser}
-          onPress={() => router.push({ pathname: "/(tabs)/profile", params: { userId } })}
-          activeOpacity={0.8}
-        >
+        <View style={styles.headerUser}>
           <View style={styles.avatarWrap}>
             <Image source={{ uri: avatar }} style={styles.headerAvatar} />
             <View style={[styles.onlineDot, { backgroundColor: "#22c55e", borderColor: colors.background }]} />
           </View>
-          <View>
-            <Text style={[styles.headerName, { color: colors.foreground }]}>{name}</Text>
-            <Text style={[styles.headerSchool, { color: colors.mutedForeground }]}>{school}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.headerName, { color: colors.foreground }]} numberOfLines={1}>{name}</Text>
+            <View style={styles.headerSubRow}>
+              <Feather name="lock" size={10} color="#22c55e" />
+              <Text style={[styles.headerSub, { color: "#22c55e" }]}>End-to-end encrypted</Text>
+            </View>
           </View>
+        </View>
+        <TouchableOpacity
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowVoiceCall(true); }}
+          style={styles.callBtn} activeOpacity={0.7}
+        >
+          <Feather name="phone" size={20} color={colors.primary} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.moreBtn} activeOpacity={0.7}>
-          <Feather name="more-horizontal" size={22} color={colors.mutedForeground} />
+        <TouchableOpacity
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowVideoCall(true); }}
+          style={styles.callBtn} activeOpacity={0.7}
+        >
+          <Feather name="video" size={20} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -149,9 +361,17 @@ export default function ChatScreen() {
         data={chatMessages}
         keyExtractor={(item) => item.id}
         renderItem={renderMessage}
-        contentContainerStyle={[styles.msgList, { paddingBottom: bottomPad + 80 }]}
+        contentContainerStyle={[styles.msgList, { paddingBottom: bottomPad + 90 }]}
         showsVerticalScrollIndicator={false}
         onContentSizeChange={() => flatRef.current?.scrollToEnd({ animated: false })}
+        ListHeaderComponent={
+          <View style={styles.e2eBanner}>
+            <Feather name="lock" size={14} color={colors.mutedForeground} />
+            <Text style={[styles.e2eBannerText, { color: colors.mutedForeground }]}>
+              Messages are end-to-end encrypted. Only you and {name?.split(" ")[0]} can read them.
+            </Text>
+          </View>
+        }
         ListEmptyComponent={
           <View style={styles.emptyChat}>
             <View style={[styles.emptyChatIcon, { backgroundColor: colors.accent }]}>
@@ -175,30 +395,74 @@ export default function ChatScreen() {
         </View>
       )}
 
-      {/* Input bar */}
-      <View style={[styles.inputBar, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: bottomPad + 8 }]}>
-        <View style={[styles.inputWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <TextInput
-            style={[styles.input, { color: colors.foreground }]}
-            placeholder={`Message ${name?.split(" ")[0] ?? ""}...`}
-            placeholderTextColor={colors.mutedForeground}
-            value={text}
-            onChangeText={setText}
-            multiline
-            returnKeyType="send"
-            onSubmitEditing={handleSend}
-            blurOnSubmit={false}
-          />
+      {/* Recording bar */}
+      {recording ? (
+        <RecordingBar
+          duration={recordDuration}
+          onCancel={cancelRecording}
+          onSend={sendVoice}
+          colors={colors}
+        />
+      ) : (
+        /* Input bar */
+        <View style={[styles.inputBar, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: bottomPad + 8 }]}>
+          {/* Media buttons */}
+          <TouchableOpacity onPress={pickImage} style={styles.mediaBtn} activeOpacity={0.7}>
+            <Feather name="image" size={22} color={colors.mutedForeground} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={pickVideo} style={styles.mediaBtn} activeOpacity={0.7}>
+            <Feather name="film" size={22} color={colors.mutedForeground} />
+          </TouchableOpacity>
+
+          {/* Text input */}
+          <View style={[styles.inputWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <TextInput
+              style={[styles.input, { color: colors.foreground }]}
+              placeholder={`Message ${name?.split(" ")[0] ?? ""}...`}
+              placeholderTextColor={colors.mutedForeground}
+              value={text}
+              onChangeText={setText}
+              multiline
+              returnKeyType="send"
+              onSubmitEditing={handleSend}
+              blurOnSubmit={false}
+            />
+          </View>
+
+          {/* Send or mic */}
+          {text.trim() ? (
+            <TouchableOpacity onPress={handleSend} style={[styles.sendBtn, { backgroundColor: colors.primary }]} activeOpacity={0.8}>
+              <Feather name="send" size={18} color="#ffffff" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={startRecording}
+              onLongPress={startRecording}
+              style={[styles.sendBtn, { backgroundColor: colors.accent }]}
+              activeOpacity={0.8}
+            >
+              <Feather name="mic" size={18} color={colors.primary} />
+            </TouchableOpacity>
+          )}
         </View>
-        <TouchableOpacity
-          onPress={handleSend}
-          style={[styles.sendBtn, { backgroundColor: text.trim() ? colors.primary : colors.muted }]}
-          activeOpacity={0.8}
-          disabled={!text.trim()}
-        >
-          <Feather name="send" size={18} color={text.trim() ? "#ffffff" : colors.mutedForeground} />
-        </TouchableOpacity>
-      </View>
+      )}
+
+      {/* Call modals */}
+      <VoiceCallModal
+        visible={showVoiceCall}
+        name={name ?? ""}
+        avatar={avatar ?? ""}
+        school={school ?? ""}
+        onEnd={() => setShowVoiceCall(false)}
+      />
+      <VideoCallModal
+        visible={showVideoCall}
+        name={name ?? ""}
+        avatar={avatar ?? ""}
+        school={school ?? ""}
+        myAvatar={user?.avatar ?? "https://i.pravatar.cc/150?img=1"}
+        onEnd={() => setShowVideoCall(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -208,97 +472,60 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingBottom: 12,
+    paddingHorizontal: 8,
+    paddingBottom: 10,
     borderBottomWidth: 1,
-    gap: 8,
+    gap: 4,
   },
-  backBtn: { padding: 6 },
+  backBtn: { padding: 8 },
   headerUser: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
   avatarWrap: { position: "relative" },
-  headerAvatar: { width: 42, height: 42, borderRadius: 21 },
-  onlineDot: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-  },
+  headerAvatar: { width: 40, height: 40, borderRadius: 20 },
+  onlineDot: { position: "absolute", bottom: 0, right: 0, width: 11, height: 11, borderRadius: 6, borderWidth: 2 },
   headerName: { fontSize: 15, fontWeight: "700" },
-  headerSchool: { fontSize: 12, marginTop: 1 },
-  moreBtn: { padding: 6 },
-  msgList: { paddingTop: 16, paddingHorizontal: 12 },
-  dateDivider: {
+  headerSubRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  headerSub: { fontSize: 11, fontWeight: "600" },
+  callBtn: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  e2eBanner: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 8,
-    marginVertical: 16,
+    marginHorizontal: 24,
+    marginVertical: 20,
+    padding: 12,
   },
+  e2eBannerText: { fontSize: 12, lineHeight: 17, flex: 1, textAlign: "center" },
+  msgList: { paddingHorizontal: 12, paddingTop: 8 },
+  dateDivider: { flexDirection: "row", alignItems: "center", gap: 8, marginVertical: 16 },
   dateLine: { flex: 1, height: 1 },
   dateText: { fontSize: 12, fontWeight: "600", paddingHorizontal: 8 },
   msgRow: { marginBottom: 6, maxWidth: "80%" },
   msgRowMe: { alignSelf: "flex-end", alignItems: "flex-end" },
   msgRowThem: { alignSelf: "flex-start", flexDirection: "row", alignItems: "flex-end", gap: 8 },
-  msgAvatar: { width: 28, height: 28, borderRadius: 14, marginBottom: 14 },
+  msgAvatar: { width: 28, height: 28, borderRadius: 14, marginBottom: 16 },
   msgContent: { gap: 3 },
-  bubble: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
-    maxWidth: 280,
-  },
-  bubbleMe: {
-    borderBottomRightRadius: 6,
-  },
-  bubbleThem: {
-    borderWidth: 1,
-    borderBottomLeftRadius: 6,
-  },
+  bubble: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, maxWidth: 280 },
+  bubbleMe: { borderBottomRightRadius: 6 },
+  bubbleThem: { borderWidth: 1, borderBottomLeftRadius: 6 },
   bubbleText: { fontSize: 15, lineHeight: 21 },
+  imageBubble: { borderRadius: 18, overflow: "hidden", borderWidth: 1, width: 220, height: 180, position: "relative" },
+  msgImage: { width: "100%", height: "100%", resizeMode: "cover" },
+  playOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", gap: 6 },
+  playCircle: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  videoLabel: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+  metaRowMe: { justifyContent: "flex-end" },
   msgTime: { fontSize: 11 },
-  msgTimeMe: { textAlign: "right" },
-  typingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingBottom: 6,
-  },
+  typingRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingBottom: 6 },
   typingAvatar: { width: 28, height: 28, borderRadius: 14 },
-  typingBubble: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderBottomLeftRadius: 6,
-    borderWidth: 1,
-  },
+  typingBubble: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderBottomLeftRadius: 6, borderWidth: 1 },
   typingDots: { fontSize: 16, letterSpacing: 2 },
-  inputBar: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    gap: 10,
-  },
-  inputWrap: {
-    flex: 1,
-    borderRadius: 24,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    maxHeight: 120,
-  },
+  inputBar: { flexDirection: "row", alignItems: "flex-end", paddingHorizontal: 8, paddingTop: 10, borderTopWidth: 1, gap: 6 },
+  mediaBtn: { width: 38, height: 44, alignItems: "center", justifyContent: "center" },
+  inputWrap: { flex: 1, borderRadius: 24, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, maxHeight: 120 },
   input: { fontSize: 15, lineHeight: 20 },
-  sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyChat: { alignItems: "center", paddingTop: 80, paddingHorizontal: 32, gap: 14 },
+  sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  emptyChat: { alignItems: "center", paddingTop: 40, paddingHorizontal: 32, gap: 14 },
   emptyChatIcon: { width: 76, height: 76, borderRadius: 38, alignItems: "center", justifyContent: "center" },
   emptyChatTitle: { fontSize: 18, fontWeight: "700" },
   emptyChatSub: { fontSize: 14, textAlign: "center", lineHeight: 20 },
