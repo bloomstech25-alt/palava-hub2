@@ -1,0 +1,215 @@
+import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { router, useLocalSearchParams } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useMemo } from "react";
+import {
+  FlatList,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { PostCard } from "@/components/PostCard";
+import { useAuth } from "@/context/AuthContext";
+import { useFeed, type Post, SAMPLE_USERS } from "@/context/FeedContext";
+import { useColors } from "@/hooks/useColors";
+
+export default function ProfileScreen() {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const { user, logout } = useAuth();
+  const { posts, toggleLike, toggleFollow } = useFeed();
+  const params = useLocalSearchParams<{ userId?: string }>();
+
+  const profileUser = useMemo(() => {
+    if (params.userId && params.userId !== user?.id) {
+      return SAMPLE_USERS.find((u) => u.id === params.userId) ?? user;
+    }
+    return user;
+  }, [params.userId, user]);
+
+  const isOwnProfile = profileUser?.id === user?.id;
+
+  const userPosts = useMemo(
+    () => posts.filter((p) => p.author.id === profileUser?.id),
+    [posts, profileUser]
+  );
+
+  if (!profileUser) return null;
+
+  const formatCount = (n: number) => {
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return n.toString();
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style="dark" />
+
+      <FlatList
+        data={userPosts}
+        keyExtractor={(p) => p.id}
+        renderItem={({ item }) => (
+          <PostCard
+            post={item}
+            onLike={() => toggleLike(item.id)}
+            onFollow={() => toggleFollow(item.id)}
+            onPress={() => router.push({ pathname: "/post/[id]", params: { id: item.id } })}
+          />
+        )}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <View>
+            <View style={[styles.header, { paddingTop: topPad, borderBottomColor: colors.border }]}>
+              {!isOwnProfile && (
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
+                  <Feather name="arrow-left" size={22} color={colors.foreground} />
+                </TouchableOpacity>
+              )}
+              <Text style={[styles.headerTitle, { color: colors.foreground }]}>
+                {isOwnProfile ? "Profile" : profileUser.name}
+              </Text>
+              {isOwnProfile && (
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    logout();
+                  }}
+                  style={styles.logoutBtn}
+                  activeOpacity={0.7}
+                >
+                  <Feather name="log-out" size={20} color={colors.mutedForeground} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.profileTop}>
+                <Image source={{ uri: profileUser.avatar }} style={styles.avatar} />
+                {!isOwnProfile ? (
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.actionBtnText, { color: colors.primaryForeground }]}>Follow</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { backgroundColor: colors.muted, borderWidth: 1, borderColor: colors.border }]}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.actionBtnText, { color: colors.foreground }]}>Edit Profile</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <Text style={[styles.name, { color: colors.foreground }]}>{profileUser.name}</Text>
+              <Text style={[styles.username, { color: colors.mutedForeground }]}>@{profileUser.username}</Text>
+
+              <View style={[styles.schoolBadge, { backgroundColor: colors.accent }]}>
+                <Feather name="book-open" size={13} color={colors.primary} />
+                <Text style={[styles.schoolText, { color: colors.primary }]}>{profileUser.school.name}</Text>
+                <Text style={[styles.schoolType, { color: colors.mutedForeground }]}>
+                  · {profileUser.school.type === "university" ? "University" : "High School"}
+                </Text>
+              </View>
+
+              {profileUser.bio ? (
+                <Text style={[styles.bio, { color: colors.foreground }]}>{profileUser.bio}</Text>
+              ) : null}
+
+              <View style={[styles.stats, { borderTopColor: colors.border }]}>
+                {[
+                  { label: "Posts", value: userPosts.length || profileUser.posts },
+                  { label: "Followers", value: profileUser.followers },
+                  { label: "Following", value: profileUser.following },
+                ].map((s) => (
+                  <View key={s.label} style={styles.stat}>
+                    <Text style={[styles.statValue, { color: colors.foreground }]}>{formatCount(s.value)}</Text>
+                    <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{s.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <Text style={[styles.postsHeader, { color: colors.mutedForeground }]}>POSTS</Text>
+          </View>
+        }
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Feather name="file-text" size={40} color={colors.mutedForeground} />
+            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No posts yet</Text>
+          </View>
+        }
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+  },
+  backBtn: { marginRight: 12 },
+  headerTitle: { fontSize: 18, fontWeight: "700", flex: 1 },
+  logoutBtn: { padding: 4 },
+  profileCard: {
+    margin: 12,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+  },
+  profileTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  avatar: { width: 72, height: 72, borderRadius: 36 },
+  actionBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 9,
+    borderRadius: 20,
+  },
+  actionBtnText: { fontSize: 14, fontWeight: "600" },
+  name: { fontSize: 20, fontWeight: "700" },
+  username: { fontSize: 14, marginTop: 2 },
+  schoolBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignSelf: "flex-start",
+    marginTop: 10,
+  },
+  schoolText: { fontSize: 13, fontWeight: "600" },
+  schoolType: { fontSize: 12 },
+  bio: { fontSize: 14, lineHeight: 20, marginTop: 10 },
+  stats: {
+    flexDirection: "row",
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+  },
+  stat: { flex: 1, alignItems: "center", gap: 2 },
+  statValue: { fontSize: 18, fontWeight: "700" },
+  statLabel: { fontSize: 12 },
+  postsHeader: { fontSize: 11, fontWeight: "700", letterSpacing: 1, paddingHorizontal: 20, paddingVertical: 10 },
+  listContent: { paddingBottom: 100 },
+  empty: { alignItems: "center", paddingTop: 40, gap: 10 },
+  emptyText: { fontSize: 14 },
+});

@@ -1,0 +1,14 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "d_voqcliZdRGqPp8T3wBM"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "student connect app icon"
+
+[[generated]]
+id = "n_jKPcKC6BpidqVKtUOrx"
+uri = "file://artifacts/mobile/assets/images/placeholder_campus.png"
+type = "image"
+title = "campus placeholder"
