@@ -1,10 +1,11 @@
 import { BlurView } from "expo-blur";
-import { Tabs } from "expo-router";
+import { router, Tabs } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
-import React from "react";
+import React, { useEffect } from "react";
 import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 import { useColors } from "@/hooks/useColors";
+import { useAuth } from "@/context/AuthContext";
 import { useFeed } from "@/context/FeedContext";
 import { useMessaging } from "@/context/MessagingContext";
 
@@ -14,8 +15,16 @@ export default function TabLayout() {
   const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
+  const { isAuthenticated, isLoading } = useAuth();
   const { unreadCount } = useFeed();
   const { totalUnread: msgUnread } = useMessaging();
+
+  // Redirect to welcome if user logs out
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace("/welcome");
+    }
+  }, [isAuthenticated, isLoading]);
 
   return (
     <Tabs

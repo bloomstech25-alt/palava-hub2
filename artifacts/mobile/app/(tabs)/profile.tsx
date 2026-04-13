@@ -78,9 +78,10 @@ export default function ProfileScreen() {
               </Text>
               {isOwnProfile && (
                 <TouchableOpacity
-                  onPress={() => {
+                  onPress={async () => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    logout();
+                    await logout();
+                    router.replace("/welcome");
                   }}
                   style={styles.logoutBtn}
                   activeOpacity={0.7}
