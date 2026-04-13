@@ -16,14 +16,17 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PostCard } from "@/components/PostCard";
 import { useFeed, type Post, SCHOOLS_LIST, SAMPLE_USERS } from "@/context/FeedContext";
+import type { School } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
 const TRENDING_TAGS = [
-  "StudyTips", "AI", "MachineLearning", "Robotics", "StudentLife",
-  "Harvard", "Stanford", "NYU", "UCBerkeley", "MIT", "Film", "STEM",
+  "StudentLife", "STEM", "Liberia", "UL", "Cuttington", "CWA",
+  "Academics", "Research", "Campus", "Sports", "Culture",
 ];
 
 type Tab = "trending" | "schools" | "people";
+
+const TRENDING_PEOPLE = [...SAMPLE_USERS].sort((a, b) => b.followers - a.followers);
 
 export default function ExploreScreen() {
   const colors = useColors();
@@ -32,6 +35,7 @@ export default function ExploreScreen() {
   const { trendingPosts, posts, toggleLike, toggleFollow } = useFeed();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("trending");
+  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
 
   const filteredPosts = useMemo(() => {
     if (!query.trim()) return trendingPosts;
@@ -52,12 +56,20 @@ export default function ExploreScreen() {
   }, [query]);
 
   const filteredPeople = useMemo(() => {
-    if (!query.trim()) return SAMPLE_USERS;
+    const people = TRENDING_PEOPLE;
+    if (!query.trim()) return people;
     const q = query.toLowerCase();
-    return SAMPLE_USERS.filter(
+    return people.filter(
       (u) => u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q) || u.school.name.toLowerCase().includes(q)
     );
   }, [query]);
+
+  const schoolTrendingPosts = useMemo(() => {
+    if (!selectedSchool) return [];
+    return [...posts]
+      .filter((p) => p.author.school.id === selectedSchool.id)
+      .sort((a, b) => b.likes - a.likes);
+  }, [selectedSchool, posts]);
 
   const renderPost = useCallback(({ item }: { item: Post }) => (
     <PostCard
@@ -73,6 +85,62 @@ export default function ExploreScreen() {
     { key: "schools", label: "Schools", icon: "book-open" },
     { key: "people", label: "People", icon: "users" },
   ];
+
+  // School detail view
+  if (selectedSchool) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar style="dark" />
+        <View style={[styles.header, { paddingTop: topPad, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+          <TouchableOpacity
+            onPress={() => setSelectedSchool(null)}
+            style={styles.backRow}
+            activeOpacity={0.7}
+          >
+            <Feather name="arrow-left" size={20} color={colors.primary} />
+            <Text style={[styles.backText, { color: colors.primary }]}>Schools</Text>
+          </TouchableOpacity>
+
+          <View style={styles.schoolDetailHeader}>
+            <View style={[styles.schoolDetailIcon, { backgroundColor: selectedSchool.type === "university" ? colors.accent : colors.secondary }]}>
+              <Feather name={selectedSchool.type === "university" ? "book" : "award"} size={22} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.schoolDetailName, { color: colors.foreground }]} numberOfLines={2}>
+                {selectedSchool.name}
+              </Text>
+              <Text style={[styles.schoolDetailMeta, { color: colors.mutedForeground }]}>
+                {selectedSchool.type === "university" ? "University" : "Senior High School"} · {selectedSchool.location}
+              </Text>
+            </View>
+          </View>
+
+          <View style={[styles.trendingBadge, { backgroundColor: colors.accent }]}>
+            <Feather name="trending-up" size={13} color={colors.primary} />
+            <Text style={[styles.trendingBadgeText, { color: colors.primary }]}>Trending at this school</Text>
+          </View>
+        </View>
+
+        {schoolTrendingPosts.length === 0 ? (
+          <View style={styles.empty}>
+            <Feather name="inbox" size={40} color={colors.mutedForeground} />
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No posts yet</Text>
+            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+              No one from {selectedSchool.name} has posted yet.
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={schoolTrendingPosts}
+            keyExtractor={(item) => item.id}
+            renderItem={renderPost}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+          />
+        )}
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -116,6 +184,7 @@ export default function ExploreScreen() {
         </View>
       </View>
 
+      {/* TRENDING TAB — across all schools */}
       {activeTab === "trending" && (
         <FlatList
           data={filteredPosts}
@@ -126,7 +195,10 @@ export default function ExploreScreen() {
           ListHeaderComponent={
             !query ? (
               <View style={styles.tagsSection}>
-                <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>TRENDING TOPICS</Text>
+                <View style={styles.sectionLabelRow}>
+                  <Feather name="globe" size={12} color={colors.mutedForeground} />
+                  <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>TRENDING ACROSS ALL SCHOOLS</Text>
+                </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tagsRow}>
                   {TRENDING_TAGS.map((tag) => (
                     <TouchableOpacity
@@ -145,62 +217,132 @@ export default function ExploreScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Feather name="search" size={40} color={colors.mutedForeground} />
-              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No results found</Text>
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No results found</Text>
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>Try a different search term</Text>
             </View>
           }
         />
       )}
 
+      {/* SCHOOLS TAB */}
       {activeTab === "schools" && (
         <FlatList
           data={filteredSchools}
           keyExtractor={(s) => s.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            !query ? (
+              <View style={styles.sectionLabelRow2}>
+                <Feather name="map-pin" size={12} color={colors.mutedForeground} />
+                <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>TAP A SCHOOL TO SEE WHAT'S TRENDING</Text>
+              </View>
+            ) : null
+          }
           renderItem={({ item }) => (
-            <View style={[styles.schoolCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <TouchableOpacity
+              style={[styles.schoolCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              activeOpacity={0.75}
+              onPress={() => setSelectedSchool(item)}
+            >
               <View style={[styles.schoolIconWrap, { backgroundColor: item.type === "university" ? colors.accent : colors.secondary }]}>
                 <Feather name={item.type === "university" ? "book" : "award"} size={20} color={colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.schoolName, { color: colors.foreground }]}>{item.name}</Text>
                 <Text style={[styles.schoolMeta, { color: colors.mutedForeground }]}>
-                  {item.type === "university" ? "University" : "High School"} · {item.location}
+                  {item.type === "university" ? "University" : "Senior High School"} · {item.location}
                 </Text>
               </View>
-              <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-            </View>
+              <View style={[styles.schoolArrow, { backgroundColor: colors.accent }]}>
+                <Feather name="trending-up" size={14} color={colors.primary} />
+              </View>
+            </TouchableOpacity>
           )}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Feather name="book-open" size={40} color={colors.mutedForeground} />
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No schools found</Text>
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>Try a different search</Text>
+            </View>
+          }
         />
       )}
 
+      {/* PEOPLE TAB */}
       {activeTab === "people" && (
         <FlatList
           data={filteredPeople}
           keyExtractor={(u) => u.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.personCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-              activeOpacity={0.85}
-              onPress={() => router.push({ pathname: "/(tabs)/profile", params: { userId: item.id } })}
-            >
-              <Image source={{ uri: item.avatar }} style={styles.personAvatar} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.personName, { color: colors.foreground }]}>{item.name}</Text>
-                <Text style={[styles.personMeta, { color: colors.mutedForeground }]}>
-                  @{item.username} · {item.school.name}
-                </Text>
+          ListHeaderComponent={
+            !query ? (
+              <View style={styles.sectionLabelRow2}>
+                <Feather name="trending-up" size={12} color={colors.mutedForeground} />
+                <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>TRENDING STUDENTS</Text>
               </View>
+            ) : null
+          }
+          renderItem={({ item, index }) => {
+            const rank = index + 1;
+            const isTopThree = rank <= 3;
+            const rankColors = ["#FFD700", "#C0C0C0", "#CD7F32"];
+            return (
               <TouchableOpacity
-                style={[styles.followBtn, { backgroundColor: colors.primary }]}
-                activeOpacity={0.8}
+                style={[styles.personCard, { backgroundColor: colors.card, borderColor: isTopThree ? colors.primary + "30" : colors.border }]}
+                activeOpacity={0.85}
+                onPress={() => router.push({ pathname: "/(tabs)/profile", params: { userId: item.id } })}
               >
-                <Text style={[styles.followBtnText, { color: colors.primaryForeground }]}>Follow</Text>
+                {/* Rank badge */}
+                <View style={[styles.rankBadge, { backgroundColor: isTopThree ? rankColors[rank - 1] + "20" : colors.muted }]}>
+                  <Text style={[styles.rankText, { color: isTopThree ? rankColors[rank - 1] : colors.mutedForeground }]}>
+                    #{rank}
+                  </Text>
+                </View>
+
+                <Image source={{ uri: item.avatar }} style={styles.personAvatar} />
+
+                <View style={{ flex: 1 }}>
+                  <View style={styles.personNameRow}>
+                    <Text style={[styles.personName, { color: colors.foreground }]}>{item.name}</Text>
+                    {isTopThree && (
+                      <View style={[styles.hotBadge, { backgroundColor: colors.primary + "15" }]}>
+                        <Feather name="zap" size={10} color={colors.primary} />
+                        <Text style={[styles.hotBadgeText, { color: colors.primary }]}>Trending</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.personMeta, { color: colors.mutedForeground }]}>
+                    @{item.username} · {item.school.name}
+                  </Text>
+                  <View style={styles.personStats}>
+                    <Text style={[styles.personStatVal, { color: colors.foreground }]}>
+                      {item.followers >= 1000 ? `${(item.followers / 1000).toFixed(1)}k` : item.followers}
+                    </Text>
+                    <Text style={[styles.personStatLabel, { color: colors.mutedForeground }]}> followers</Text>
+                    <Text style={[styles.personStatSep, { color: colors.mutedForeground }]}>·</Text>
+                    <Text style={[styles.personStatVal, { color: colors.foreground }]}>{item.posts}</Text>
+                    <Text style={[styles.personStatLabel, { color: colors.mutedForeground }]}> posts</Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.followBtn, { backgroundColor: colors.primary }]}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.followBtnText, { color: colors.primaryForeground }]}>Follow</Text>
+                </TouchableOpacity>
               </TouchableOpacity>
-            </TouchableOpacity>
-          )}
+            );
+          }}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Feather name="users" size={40} color={colors.mutedForeground} />
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No people found</Text>
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>Try a different search</Text>
+            </View>
+          }
         />
       )}
     </View>
@@ -238,13 +380,30 @@ const styles = StyleSheet.create({
   },
   tabText: { fontSize: 13, fontWeight: "600" },
   listContent: { paddingBottom: 100, paddingTop: 8 },
-  tagsSection: { paddingTop: 8, paddingBottom: 4 },
-  sectionLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 1, paddingHorizontal: 16, marginBottom: 10 },
+  tagsSection: { paddingTop: 4, paddingBottom: 4 },
+  sectionLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    marginTop: 8,
+  },
+  sectionLabelRow2: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    marginTop: 8,
+  },
+  sectionLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 1 },
   tagsRow: { paddingHorizontal: 16, gap: 8 },
   tagChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   tagChipText: { fontSize: 13, fontWeight: "600" },
-  empty: { alignItems: "center", paddingTop: 60, gap: 12 },
-  emptyText: { fontSize: 15 },
+  empty: { alignItems: "center", paddingTop: 60, gap: 10 },
+  emptyTitle: { fontSize: 16, fontWeight: "700" },
+  emptyText: { fontSize: 14, textAlign: "center", paddingHorizontal: 32 },
   schoolCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -256,8 +415,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   schoolIconWrap: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  schoolName: { fontSize: 15, fontWeight: "600" },
+  schoolName: { fontSize: 14, fontWeight: "600" },
   schoolMeta: { fontSize: 12, marginTop: 2 },
+  schoolArrow: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   personCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -266,11 +426,65 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
+    gap: 10,
+  },
+  rankBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rankText: { fontSize: 12, fontWeight: "800" },
+  personAvatar: { width: 46, height: 46, borderRadius: 23 },
+  personNameRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  personName: { fontSize: 14, fontWeight: "700" },
+  hotBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  hotBadgeText: { fontSize: 10, fontWeight: "700" },
+  personMeta: { fontSize: 12, marginTop: 1 },
+  personStats: { flexDirection: "row", alignItems: "center", marginTop: 3 },
+  personStatVal: { fontSize: 12, fontWeight: "700" },
+  personStatLabel: { fontSize: 12 },
+  personStatSep: { fontSize: 12, marginHorizontal: 5 },
+  followBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
+  followBtnText: { fontSize: 13, fontWeight: "600" },
+  // School detail view
+  backRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: -4,
+  },
+  backText: { fontSize: 15, fontWeight: "600" },
+  schoolDetailHeader: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
-  personAvatar: { width: 48, height: 48, borderRadius: 24 },
-  personName: { fontSize: 15, fontWeight: "600" },
-  personMeta: { fontSize: 12, marginTop: 2 },
-  followBtn: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20 },
-  followBtnText: { fontSize: 13, fontWeight: "600" },
+  schoolDetailIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  schoolDetailName: { fontSize: 16, fontWeight: "800", letterSpacing: -0.3 },
+  schoolDetailMeta: { fontSize: 12, marginTop: 3 },
+  trendingBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  trendingBadgeText: { fontSize: 12, fontWeight: "700" },
 });
