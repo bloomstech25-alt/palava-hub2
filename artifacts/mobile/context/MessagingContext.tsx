@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
-import { SAMPLE_USERS } from "./FeedContext";
 
 // --- Simple XOR encryption for E2E simulation ---
 function deriveKey(userId1: string, userId2: string): number[] {
@@ -77,41 +76,9 @@ function makeMsg(fromId: string, toId: string, text: string, minsAgo: number, id
   };
 }
 
-const INITIAL_MESSAGES: Record<string, Message[]> = {
-  u2: [
-    makeMsg("u2", "me", "Hey! Did you see the tech fair announcement? Are you going?", 30, "m1"),
-    makeMsg("me", "u2", "Yes! I'm definitely going. I'm actually presenting my bus tracker app.", 28, "m2"),
-    makeMsg("u2", "me", "That's so cool!! I'll make sure to come see your presentation 🙌", 25, "m3"),
-  ],
-  u3: [
-    makeMsg("u3", "me", "Did you finish the public health assignment?", 120, "m4"),
-    makeMsg("me", "u3", "Not yet 😅 I'm still working on the section about community outreach in Sinkor.", 108, "m5"),
-  ],
-  u4: [
-    makeMsg("u4", "me", "That study tip you posted is a lifesaver fr 🔥", 300, "m6"),
-  ],
-};
+const INITIAL_MESSAGES: Record<string, Message[]> = {};
 
-const INITIAL_CONVERSATIONS: Conversation[] = [
-  {
-    userId: "u2", name: "Fatima Kollie", username: "fatima_k",
-    avatar: "https://i.pravatar.cc/150?img=5", school: "University of Liberia",
-    lastMessage: "That's so cool!! I'll make sure to come see your presentation 🙌",
-    lastAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(), unread: 1,
-  },
-  {
-    userId: "u3", name: "Emmanuel Flomo", username: "eflomo",
-    avatar: "https://i.pravatar.cc/150?img=12", school: "Cuttington University",
-    lastMessage: "Not yet 😅 I'm still working on the section about community outreach in Sinkor.",
-    lastAt: new Date(Date.now() - 1000 * 60 * 108).toISOString(), unread: 0,
-  },
-  {
-    userId: "u4", name: "Mary Sumo", username: "marysumo",
-    avatar: "https://i.pravatar.cc/150?img=9", school: "United Methodist University",
-    lastMessage: "That study tip you posted is a lifesaver fr 🔥",
-    lastAt: new Date(Date.now() - 1000 * 60 * 300).toISOString(), unread: 0,
-  },
-];
+const INITIAL_CONVERSATIONS: Conversation[] = [];
 
 interface MessagingContextType {
   conversations: Conversation[];
