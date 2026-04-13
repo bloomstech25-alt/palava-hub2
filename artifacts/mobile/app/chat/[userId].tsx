@@ -179,7 +179,7 @@ export default function ChatScreen() {
     userId: string; name: string; username: string; avatar: string; school: string;
   }>();
   const { user } = useAuth();
-  const { messages, sendMessage, markRead } = useMessaging();
+  const { messages, sendMessage, markRead, subscribeToConversation } = useMessaging();
   const [text, setText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -192,6 +192,12 @@ export default function ChatScreen() {
   const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const chatMessages = useMemo(() => messages[userId] ?? [], [messages, userId]);
+
+  useEffect(() => {
+    if (!user?.id || !userId) return;
+    const unsub = subscribeToConversation(user.id, userId);
+    return unsub;
+  }, [user?.id, userId, subscribeToConversation]);
 
   useEffect(() => { markRead(userId); }, [userId, markRead]);
   useEffect(() => {

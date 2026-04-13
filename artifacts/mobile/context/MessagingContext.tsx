@@ -1,31 +1,24 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import {
+  collection,
+  doc,
+  addDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
+  getDoc,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-// --- Simple XOR encryption for E2E simulation ---
-function deriveKey(userId1: string, userId2: string): number[] {
-  const seed = [userId1, userId2].sort().join("|");
-  const key: number[] = [];
-  for (let i = 0; i < 32; i++) {
-    key.push(seed.charCodeAt(i % seed.length) ^ (i * 7 + 13));
-  }
-  return key;
+export function encryptMessage(text: string, _myId: string, _otherId: string): string {
+  return text;
 }
 
-export function encryptMessage(text: string, myId: string, otherId: string): string {
-  const key = deriveKey(myId, otherId);
-  const bytes = Array.from(new TextEncoder().encode(text));
-  const encrypted = bytes.map((b, i) => b ^ key[i % key.length]);
-  return btoa(String.fromCharCode(...encrypted));
-}
-
-export function decryptMessage(cipher: string, myId: string, otherId: string): string {
-  try {
-    const key = deriveKey(myId, otherId);
-    const bytes = Array.from(atob(cipher)).map((c) => c.charCodeAt(0));
-    const decrypted = bytes.map((b, i) => b ^ key[i % key.length]);
-    return new TextDecoder().decode(new Uint8Array(decrypted));
-  } catch {
-    return "[encrypted message]";
-  }
+export function decryptMessage(cipher: string, _myId: string, _otherId: string): string {
+  return cipher;
 }
 
 export interface Message {
@@ -52,120 +45,163 @@ export interface Conversation {
   unread: number;
 }
 
-const AUTO_REPLIES: string[] = [
-  "That sounds great! 🙌",
-  "Yeah, I totally agree!",
-  "Haha, for real though 😄",
-  "Let me check and get back to you.",
-  "Yep, heard you! When do you want to connect?",
-  "Nice! Thanks for reaching out 🇱🇷",
-  "Sure, we should link up soon!",
-  "Ohh interesting, tell me more!",
-  "100%! Let's make it happen.",
-  "My classes are so busy right now 😅 but I'll manage!",
-  "That picture you sent is fire 🔥",
-  "Wait, is that at campus?",
-];
-
-function makeMsg(fromId: string, toId: string, text: string, minsAgo: number, id: string): Message {
-  return {
-    id, fromId, toId, text,
-    encryptedText: encryptMessage(text, fromId, toId),
-    createdAt: new Date(Date.now() - 1000 * 60 * minsAgo).toISOString(),
-    read: true,
-  };
+function convId(a: string, b: string) {
+  return [a, b].sort().join("_");
 }
 
-const INITIAL_MESSAGES: Record<string, Message[]> = {};
-
-const INITIAL_CONVERSATIONS: Conversation[] = [];
+function tsToString(ts: any): string {
+  if (!ts) return new Date().toISOString();
+  if (typeof ts === "string") return ts;
+  if (ts?.toDate) return ts.toDate().toISOString();
+  return new Date().toISOString();
+}
 
 interface MessagingContextType {
   conversations: Conversation[];
   messages: Record<string, Message[]>;
   totalUnread: number;
+  currentUserId: string | null;
+  setCurrentUserId: (id: string | null) => void;
   sendMessage: (
     toUserId: string, toName: string, toUsername: string,
     toAvatar: string, toSchool: string, text: string, myId: string,
     media?: { uri: string; type: "image" | "video" | "audio"; duration?: number }
-  ) => void;
+  ) => Promise<void>;
   markRead: (userId: string) => void;
   getConversation: (userId: string) => Conversation | undefined;
+  subscribeToConversation: (myId: string, otherId: string) => () => void;
 }
 
 const MessagingContext = createContext<MessagingContextType | null>(null);
 
 export function MessagingProvider({ children }: { children: React.ReactNode }) {
-  const [conversations, setConversations] = useState<Conversation[]>(INITIAL_CONVERSATIONS);
-  const [messages, setMessages] = useState<Record<string, Message[]>>(INITIAL_MESSAGES);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [messages, setMessages] = useState<Record<string, Message[]>>({});
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  const totalUnread = conversations.reduce((s, c) => s + c.unread, 0);
+  useEffect(() => {
+    if (!currentUserId) return;
 
-  const sendMessage = useCallback((
-    toUserId: string, toName: string, toUsername: string, toAvatar: string, toSchool: string,
-    text: string, myId: string,
-    media?: { uri: string; type: "image" | "video" | "audio"; duration?: number }
-  ) => {
-    const displayText = media
-      ? media.type === "image" ? "📷 Photo" : media.type === "video" ? "🎥 Video" : `🎙️ Voice (${media.duration ?? 0}s)`
-      : text;
+    const convRef = collection(db, "users", currentUserId, "conversations");
+    const q = query(convRef, orderBy("lastAt", "desc"));
 
-    const newMsg: Message = {
-      id: "msg_" + Date.now() + Math.random().toString(36).substr(2, 5),
-      fromId: myId,
-      toId: toUserId,
-      text: media ? displayText : text,
-      encryptedText: encryptMessage(media ? displayText : text, myId, toUserId),
-      createdAt: new Date().toISOString(),
-      read: true,
-      mediaUri: media?.uri,
-      mediaType: media?.type,
-      audioDuration: media?.duration,
-    };
-
-    setMessages((prev) => ({
-      ...prev,
-      [toUserId]: [...(prev[toUserId] ?? []), newMsg],
-    }));
-
-    setConversations((prev) => {
-      const existing = prev.find((c) => c.userId === toUserId);
-      const updated = existing
-        ? prev.map((c) => c.userId === toUserId ? { ...c, lastMessage: displayText, lastAt: newMsg.createdAt, unread: 0 } : c)
-        : [{ userId: toUserId, name: toName, username: toUsername, avatar: toAvatar, school: toSchool, lastMessage: displayText, lastAt: newMsg.createdAt, unread: 0 }, ...prev];
-      return updated.sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
+    const unsub = onSnapshot(q, (snap) => {
+      const convs: Conversation[] = snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          userId: d.id,
+          name: data.name ?? "",
+          username: data.username ?? "",
+          avatar: data.avatar ?? "",
+          school: data.school ?? "",
+          lastMessage: data.lastMessage ?? "",
+          lastAt: tsToString(data.lastAt),
+          unread: data.unread ?? 0,
+        };
+      });
+      setConversations(convs);
     });
 
-    // Auto-reply (not for media-only, do it with delay)
-    const delay = 1500 + Math.random() * 2000;
-    setTimeout(() => {
-      const replyText = AUTO_REPLIES[Math.floor(Math.random() * AUTO_REPLIES.length)];
-      const reply: Message = {
-        id: "msg_" + Date.now() + Math.random().toString(36).substr(2, 5),
-        fromId: toUserId, toId: myId, text: replyText,
-        encryptedText: encryptMessage(replyText, toUserId, myId),
-        createdAt: new Date().toISOString(), read: false,
-      };
-      setMessages((prev) => ({ ...prev, [toUserId]: [...(prev[toUserId] ?? []), reply] }));
-      setConversations((prev) =>
-        prev.map((c) => c.userId === toUserId
-          ? { ...c, lastMessage: replyText, lastAt: reply.createdAt, unread: c.unread + 1 }
-          : c)
-      );
-    }, delay);
+    return unsub;
+  }, [currentUserId]);
+
+  const subscribeToConversation = useCallback((myId: string, otherId: string) => {
+    const cid = convId(myId, otherId);
+    const msgsRef = collection(db, "conversations", cid, "messages");
+    const q = query(msgsRef, orderBy("createdAt", "asc"));
+
+    const unsub = onSnapshot(q, (snap) => {
+      const msgs: Message[] = snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          fromId: data.fromId,
+          toId: data.toId,
+          text: data.text,
+          encryptedText: data.text,
+          createdAt: tsToString(data.createdAt),
+          read: data.read ?? false,
+          mediaUri: data.mediaUri,
+          mediaType: data.mediaType,
+          audioDuration: data.audioDuration,
+        };
+      });
+      setMessages((prev) => ({ ...prev, [otherId]: msgs }));
+    });
+
+    return unsub;
+  }, []);
+
+  const sendMessage = useCallback(async (
+    toUserId: string,
+    toName: string,
+    toUsername: string,
+    toAvatar: string,
+    toSchool: string,
+    text: string,
+    myId: string,
+    media?: { uri: string; type: "image" | "video" | "audio"; duration?: number }
+  ) => {
+    const cid = convId(myId, toUserId);
+    const now = serverTimestamp();
+
+    await addDoc(collection(db, "conversations", cid, "messages"), {
+      fromId: myId,
+      toId: toUserId,
+      text,
+      createdAt: now,
+      read: false,
+      mediaUri: media?.uri ?? null,
+      mediaType: media?.type ?? null,
+      audioDuration: media?.duration ?? null,
+    });
+
+    const lastMessagePreview = media ? `📎 ${media.type}` : text;
+
+    await setDoc(
+      doc(db, "users", myId, "conversations", toUserId),
+      { name: toName, username: toUsername, avatar: toAvatar, school: toSchool, lastMessage: lastMessagePreview, lastAt: now, unread: 0 },
+      { merge: true }
+    );
+
+    await setDoc(
+      doc(db, "users", toUserId, "conversations", myId),
+      { name: "", username: "", avatar: "", school: "", lastMessage: lastMessagePreview, lastAt: now, unread: 1 },
+      { merge: true }
+    );
   }, []);
 
   const markRead = useCallback((userId: string) => {
-    setMessages((prev) => ({ ...prev, [userId]: (prev[userId] ?? []).map((m) => ({ ...m, read: true })) }));
-    setConversations((prev) => prev.map((c) => c.userId === userId ? { ...c, unread: 0 } : c));
-  }, []);
+    if (!currentUserId) return;
+    setConversations((prev) =>
+      prev.map((c) => c.userId === userId ? { ...c, unread: 0 } : c)
+    );
+    updateDoc(
+      doc(db, "users", currentUserId, "conversations", userId),
+      { unread: 0 }
+    ).catch(() => {});
+  }, [currentUserId]);
 
   const getConversation = useCallback((userId: string) => {
     return conversations.find((c) => c.userId === userId);
   }, [conversations]);
 
+  const totalUnread = conversations.reduce((s, c) => s + c.unread, 0);
+
   return (
-    <MessagingContext.Provider value={{ conversations, messages, totalUnread, sendMessage, markRead, getConversation }}>
+    <MessagingContext.Provider
+      value={{
+        conversations,
+        messages,
+        totalUnread,
+        currentUserId,
+        setCurrentUserId,
+        sendMessage,
+        markRead,
+        getConversation,
+        subscribeToConversation,
+      }}
+    >
       {children}
     </MessagingContext.Provider>
   );

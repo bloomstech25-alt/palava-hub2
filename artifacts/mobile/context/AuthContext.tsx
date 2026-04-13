@@ -1,5 +1,17 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+} from "firebase/auth";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 
 export interface School {
   id: string;
@@ -29,7 +41,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  updateUser: (updates: Partial<User>) => void;
+  updateUser: (updates: Partial<User>) => Promise<void>;
 }
 
 interface RegisterData {
@@ -42,89 +54,106 @@ interface RegisterData {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const MOCK_USERS: User[] = [];
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const stored = await AsyncStorage.getItem("@palavahub/user");
-        if (stored) {
-          setUser(JSON.parse(stored));
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+          if (snap.exists()) {
+            setUser(snap.data() as User);
+          } else {
+            setUser(null);
+          }
+        } catch {
+          setUser(null);
         }
-      } catch {
-        // ignore
-      } finally {
-        setIsLoading(false);
+      } else {
+        setUser(null);
       }
-    };
-    loadUser();
+      setIsLoading(false);
+    });
+    return unsubscribe;
   }, []);
 
-  const login = useCallback(async (email: string, _password: string) => {
-    const found = MOCK_USERS.find((u) => u.email === email);
-    if (found) {
-      await AsyncStorage.setItem("@palavahub/user", JSON.stringify(found));
-      setUser(found);
-      return { success: true };
+  const login = useCallback(async (email: string, password: string) => {
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      const snap = await getDoc(doc(db, "users", cred.user.uid));
+      if (snap.exists()) {
+        setUser(snap.data() as User);
+        return { success: true };
+      }
+      return { success: false, error: "User profile not found." };
+    } catch (err: any) {
+      const msg = err.code === "auth/invalid-credential" || err.code === "auth/wrong-password"
+        ? "Invalid email or password."
+        : err.code === "auth/user-not-found"
+        ? "No account with that email."
+        : err.message ?? "Login failed.";
+      return { success: false, error: msg };
     }
-    if (email && _password) {
+  }, []);
+
+  const register = useCallback(async (data: RegisterData) => {
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const newUser: User = {
-        id: Date.now().toString(),
-        name: email.split("@")[0],
-        username: email.split("@")[0].toLowerCase(),
-        email,
-        school: { id: "u1", name: "University of Liberia", type: "university", location: "Monrovia, Montserrado" },
+        id: cred.user.uid,
+        name: data.name,
+        username: data.username,
+        email: data.email,
+        school: data.school,
         bio: "",
-        avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70) + 1}`,
+        avatar: `https://i.pravatar.cc/150?u=${cred.user.uid}`,
         followers: 0,
         following: 0,
         posts: 0,
         joinedAt: new Date().toISOString().split("T")[0],
       };
-      await AsyncStorage.setItem("@palavahub/user", JSON.stringify(newUser));
+      await setDoc(doc(db, "users", cred.user.uid), newUser);
       setUser(newUser);
       return { success: true };
+    } catch (err: any) {
+      const msg = err.code === "auth/email-already-in-use"
+        ? "An account with that email already exists."
+        : err.code === "auth/weak-password"
+        ? "Password must be at least 6 characters."
+        : err.message ?? "Registration failed.";
+      return { success: false, error: msg };
     }
-    return { success: false, error: "Invalid credentials" };
-  }, []);
-
-  const register = useCallback(async (data: RegisterData) => {
-    const newUser: User = {
-      id: Date.now().toString(),
-      name: data.name,
-      username: data.username,
-      email: data.email,
-      school: data.school,
-      bio: "",
-      avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70) + 1}`,
-      followers: 0,
-      following: 0,
-      posts: 0,
-      joinedAt: new Date().toISOString().split("T")[0],
-    };
-    await AsyncStorage.setItem("@palavahub/user", JSON.stringify(newUser));
-    setUser(newUser);
-    return { success: true };
   }, []);
 
   const logout = useCallback(async () => {
-    await AsyncStorage.removeItem("@palavahub/user");
+    await signOut(auth);
     setUser(null);
   }, []);
 
-  const updateUser = useCallback((updates: Partial<User>) => {
+  const updateUser = useCallback(async (updates: Partial<User>) => {
     if (!user) return;
     const updated = { ...user, ...updates };
     setUser(updated);
-    AsyncStorage.setItem("@palavahub/user", JSON.stringify(updated));
+    try {
+      await updateDoc(doc(db, "users", user.id), updates as Record<string, unknown>);
+    } catch {
+    }
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, register, logout, updateUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        login,
+        register,
+        logout,
+        updateUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

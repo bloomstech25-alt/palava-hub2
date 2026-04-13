@@ -1,14 +1,32 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  doc,
+  serverTimestamp,
+  arrayUnion,
+  arrayRemove,
+  increment,
+  limit,
+  getDoc,
+  getDocs,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import type { School, User } from "./AuthContext";
 
 export interface Post {
   id: string;
   author: User;
+  authorId: string;
   content: string;
   mediaUri?: string;
   mediaType?: "image" | "video";
   likes: number;
+  likedBy: string[];
   comments: number;
   shares: number;
   isLiked: boolean;
@@ -41,6 +59,8 @@ interface FeedContextType {
   notifications: Notification[];
   unreadCount: number;
   isLoading: boolean;
+  currentUserId: string | null;
+  setCurrentUserId: (id: string | null) => void;
   addPost: (content: string, tags: string[], author: User, mediaUri?: string, mediaType?: "image" | "video") => Promise<void>;
   toggleLike: (postId: string) => void;
   toggleFollow: (postId: string) => void;
@@ -52,7 +72,6 @@ interface FeedContextType {
 const FeedContext = createContext<FeedContextType | null>(null);
 
 export const SCHOOLS_LIST: School[] = [
-  // Liberian Universities
   { id: "u1", name: "University of Liberia", type: "university", location: "Monrovia, Montserrado" },
   { id: "u2", name: "Cuttington University", type: "university", location: "Suakoko, Bong County" },
   { id: "u3", name: "United Methodist University", type: "university", location: "Monrovia, Montserrado" },
@@ -65,7 +84,6 @@ export const SCHOOLS_LIST: School[] = [
   { id: "u10", name: "Telcom University of Liberia", type: "university", location: "Monrovia, Montserrado" },
   { id: "u11", name: "Diaconia University", type: "university", location: "Monrovia, Montserrado" },
   { id: "u12", name: "Lofa Community College", type: "university", location: "Voinjama, Lofa County" },
-  // Liberian Senior High Schools
   { id: "h1", name: "College of West Africa (CWA)", type: "high_school", location: "Monrovia, Montserrado" },
   { id: "h2", name: "Monrovia Consolidated School System (MCSS)", type: "high_school", location: "Monrovia, Montserrado" },
   { id: "h3", name: "Capitol Hill High School", type: "high_school", location: "Monrovia, Montserrado" },
@@ -83,83 +101,106 @@ export const SCHOOLS_LIST: School[] = [
   { id: "h15", name: "Tubmanburg Central High School", type: "high_school", location: "Tubmanburg, Bomi County" },
 ];
 
-const SAMPLE_USERS: User[] = [];
-
-const INITIAL_POSTS: Post[] = [];
-
-const INITIAL_COMMENTS: Record<string, Comment[]> = {};
-
-const INITIAL_NOTIFICATIONS: Notification[] = [];
+function tsToString(ts: any): string {
+  if (!ts) return new Date().toISOString();
+  if (typeof ts === "string") return ts;
+  if (ts?.toDate) return ts.toDate().toISOString();
+  return new Date().toISOString();
+}
 
 export function FeedProvider({ children }: { children: React.ReactNode }) {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [comments, setComments] = useState<Record<string, Comment[]>>(INITIAL_COMMENTS);
-  const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
+  const [comments, setComments] = useState<Record<string, Comment[]>>({});
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const stored = await AsyncStorage.getItem("@palavahub/posts");
-        if (stored) {
-          setPosts(JSON.parse(stored));
-        } else {
-          setPosts(INITIAL_POSTS);
-        }
-      } catch {
-        setPosts(INITIAL_POSTS);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-  }, []);
+    const q = query(
+      collection(db, "posts"),
+      orderBy("createdAt", "desc"),
+      limit(50)
+    );
 
-  const savePosts = useCallback(async (newPosts: Post[]) => {
-    setPosts(newPosts);
-    await AsyncStorage.setItem("@palavahub/posts", JSON.stringify(newPosts));
-  }, []);
+    const unsub = onSnapshot(q, (snap) => {
+      const fetched: Post[] = snap.docs.map((d) => {
+        const data = d.data();
+        const likedBy: string[] = data.likedBy ?? [];
+        return {
+          ...data,
+          id: d.id,
+          authorId: data.authorId ?? data.author?.id ?? "",
+          likedBy,
+          isLiked: currentUserId ? likedBy.includes(currentUserId) : false,
+          isFollowing: false,
+          createdAt: tsToString(data.createdAt),
+        } as Post;
+      });
+      setPosts(fetched);
+      setIsLoading(false);
+    }, () => {
+      setIsLoading(false);
+    });
 
-  const addPost = useCallback(async (content: string, tags: string[], author: User, mediaUri?: string, mediaType?: "image" | "video") => {
-    const newPost: Post = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+    return unsub;
+  }, [currentUserId]);
+
+  const addPost = useCallback(async (
+    content: string,
+    tags: string[],
+    author: User,
+    mediaUri?: string,
+    mediaType?: "image" | "video"
+  ) => {
+    await addDoc(collection(db, "posts"), {
       author,
+      authorId: author.id,
       content,
-      mediaUri,
-      mediaType,
+      mediaUri: mediaUri ?? null,
+      mediaType: mediaType ?? null,
       likes: 0,
+      likedBy: [],
       comments: 0,
       shares: 0,
-      isLiked: false,
       isFollowing: false,
-      createdAt: new Date().toISOString(),
+      createdAt: serverTimestamp(),
       tags,
-    };
-    const updated = [newPost, ...posts];
-    await savePosts(updated);
-  }, [posts, savePosts]);
+    });
+    try {
+      await updateDoc(doc(db, "users", author.id), { posts: increment(1) });
+    } catch {
+    }
+  }, []);
 
   const toggleLike = useCallback((postId: string) => {
-    const updated = posts.map((p) =>
-      p.id === postId
-        ? { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 }
-        : p
-    );
-    savePosts(updated);
-  }, [posts, savePosts]);
+    if (!currentUserId) return;
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return;
+    const ref = doc(db, "posts", postId);
+    if (post.isLiked) {
+      updateDoc(ref, {
+        likes: increment(-1),
+        likedBy: arrayRemove(currentUserId),
+      });
+    } else {
+      updateDoc(ref, {
+        likes: increment(1),
+        likedBy: arrayUnion(currentUserId),
+      });
+    }
+  }, [posts, currentUserId]);
 
   const toggleFollow = useCallback((postId: string) => {
-    const updated = posts.map((p) =>
-      p.id === postId ? { ...p, isFollowing: !p.isFollowing } : p
+    setPosts((prev) =>
+      prev.map((p) => p.id === postId ? { ...p, isFollowing: !p.isFollowing } : p)
     );
-    savePosts(updated);
-  }, [posts, savePosts]);
+  }, []);
 
   const getPostComments = useCallback((postId: string) => {
     return comments[postId] ?? [];
   }, [comments]);
 
-  const addComment = useCallback((postId: string, content: string, author: User) => {
+  const addComment = useCallback(async (postId: string, content: string, author: User) => {
     const newComment: Comment = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       author,
@@ -172,18 +213,19 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       [postId]: [newComment, ...(prev[postId] ?? [])],
     }));
-    setPosts((prev) =>
-      prev.map((p) => p.id === postId ? { ...p, comments: p.comments + 1 } : p)
-    );
+    try {
+      await updateDoc(doc(db, "posts", postId), { comments: increment(1) });
+    } catch {
+    }
   }, []);
 
   const markNotificationsRead = useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
   }, []);
 
-  const trendingPosts = [...posts].sort(
-    (a, b) => (b.likes + b.comments * 2 + b.shares * 3) - (a.likes + a.comments * 2 + a.shares * 3)
-  ).slice(0, 10);
+  const trendingPosts = [...posts]
+    .sort((a, b) => (b.likes + b.comments * 2 + b.shares * 3) - (a.likes + a.comments * 2 + a.shares * 3))
+    .slice(0, 10);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
@@ -195,6 +237,8 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         notifications,
         unreadCount,
         isLoading,
+        currentUserId,
+        setCurrentUserId,
         addPost,
         toggleLike,
         toggleFollow,
@@ -214,4 +258,4 @@ export function useFeed() {
   return ctx;
 }
 
-export { SAMPLE_USERS };
+export const SAMPLE_USERS: User[] = [];
