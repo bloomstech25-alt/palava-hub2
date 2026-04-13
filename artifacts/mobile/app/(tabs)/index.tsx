@@ -77,7 +77,7 @@ export default function FeedScreen() {
       <StatusBar style="dark" />
 
       <View style={[styles.header, { paddingTop: topPad, borderBottomColor: colors.border, backgroundColor: colors.background }]}>
-        <Text style={[styles.headerTitle, { color: colors.primary }]}>Lafa</Text>
+        <Text style={[styles.headerTitle, { color: colors.primary }]}>Palava Hub</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
             onPress={() => router.push("/go-live")}

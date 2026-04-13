@@ -378,6 +378,85 @@ function KenteStrip({ width: w, opacity = 0.12 }: { width: number; opacity?: num
   );
 }
 
+// ─── Palava Hub Logo ────────────────────────────────────────────────────────────
+function PalavaHubLogo({ size = 80 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 100 100">
+      <Defs>
+        <RadialGradient id="logoBg" cx="38%" cy="32%" rx="68%" ry="68%">
+          <Stop offset="0%" stopColor="#2A1408" />
+          <Stop offset="100%" stopColor="#080504" />
+        </RadialGradient>
+        <RadialGradient id="bubbleGrad" cx="38%" cy="30%" rx="65%" ry="65%">
+          <Stop offset="0%" stopColor="#D4202A" />
+          <Stop offset="60%" stopColor="#BF0A30" />
+          <Stop offset="100%" stopColor="#7A0520" />
+        </RadialGradient>
+        <RadialGradient id="nodeGrad" cx="35%" cy="30%" rx="65%" ry="65%">
+          <Stop offset="0%" stopColor="#1A3580" />
+          <Stop offset="100%" stopColor="#002868" />
+        </RadialGradient>
+      </Defs>
+
+      {/* Outer glow ring */}
+      <Circle cx="50" cy="50" r="49" fill="rgba(212,168,85,0.08)" />
+      {/* Main circle */}
+      <Circle cx="50" cy="50" r="46" fill="url(#logoBg)" />
+      {/* Gold outer border */}
+      <Circle cx="50" cy="50" r="46" fill="none" stroke="#D4A855" strokeWidth="2.5" />
+      {/* Inner thin ring */}
+      <Circle cx="50" cy="50" r="41" fill="none" stroke="rgba(212,168,85,0.25)" strokeWidth="0.8" />
+
+      {/* Hub spokes — lines from center to nodes */}
+      {/* Top node */}
+      <Path d="M 50 44 L 50 22" stroke="#D4A855" strokeWidth="1" opacity="0.45" />
+      {/* Right node */}
+      <Path d="M 56 50 L 78 50" stroke="#D4A855" strokeWidth="1" opacity="0.45" />
+      {/* Bottom node */}
+      <Path d="M 50 62 L 50 78" stroke="#D4A855" strokeWidth="1" opacity="0.45" />
+      {/* Left node */}
+      <Path d="M 44 50 L 22 50" stroke="#D4A855" strokeWidth="1" opacity="0.45" />
+
+      {/* Hub nodes (at compass points) */}
+      <Circle cx="50" cy="19" r="5.5" fill="url(#nodeGrad)" stroke="#D4A855" strokeWidth="1.5" />
+      <Circle cx="81" cy="50" r="5.5" fill="url(#nodeGrad)" stroke="#D4A855" strokeWidth="1.5" />
+      <Circle cx="50" cy="81" r="5.5" fill="url(#nodeGrad)" stroke="#D4A855" strokeWidth="1.5" />
+      <Circle cx="19" cy="50" r="5.5" fill="url(#nodeGrad)" stroke="#D4A855" strokeWidth="1.5" />
+      {/* Node inner dots */}
+      <Circle cx="50" cy="19" r="2" fill="#D4A855" />
+      <Circle cx="81" cy="50" r="2" fill="#D4A855" />
+      <Circle cx="50" cy="81" r="2" fill="#D4A855" />
+      <Circle cx="19" cy="50" r="2" fill="#D4A855" />
+
+      {/* Speech bubble — main icon (representing "palava" = talk) */}
+      {/* Bubble body: rounded rect */}
+      <Path
+        d="M 24 30 Q 24 20 34 20 L 66 20 Q 76 20 76 30 L 76 56 Q 76 66 66 66 L 56 66 L 50 74 L 44 66 L 34 66 Q 24 66 24 56 Z"
+        fill="url(#bubbleGrad)"
+      />
+      {/* Bubble inner highlight */}
+      <Path
+        d="M 24 30 Q 24 20 34 20 L 66 20 Q 76 20 76 30"
+        fill="none"
+        stroke="rgba(255,255,255,0.2)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+
+      {/* 5-pointed Liberian star inside bubble — centered at (50, 43) */}
+      {/* Outer radius 15, inner radius 6.4 */}
+      <Path
+        d="M 50 28 L 52.8 36.9 L 62.3 36.9 L 54.9 42.3 L 57.6 51.1 L 50 45.7 L 42.4 51.1 L 45.1 42.3 L 37.7 36.9 L 47.2 36.9 Z"
+        fill="white"
+        opacity="0.96"
+      />
+
+      {/* "PH" monogram faint below star */}
+      <Path d="M 44 53 L 44 60 M 44 56 L 48 56 L 48 53 L 48 60" stroke="rgba(255,255,255,0.0)" strokeWidth="0" fill="none" />
+    </Svg>
+  );
+}
+
 // ─── Welcome screen ─────────────────────────────────────────────────────────────
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
@@ -460,13 +539,11 @@ export default function WelcomeScreen() {
       >
         {/* Logo section */}
         <View style={styles.logoSection}>
-          <View style={styles.starContainer}>
-            <Text style={styles.starEmoji}>⭐</Text>
-            <View style={styles.flagStripe1} />
-            <View style={styles.flagStripe2} />
+          <PalavaHubLogo size={96} />
+          <View style={styles.appNameBlock}>
+            <Text style={styles.appName}>PALAVA</Text>
+            <Text style={styles.appNameSub}>H U B</Text>
           </View>
-
-          <Text style={styles.appName}>Lafa</Text>
           <View style={styles.nameDivider}>
             <View style={[styles.divLine, { backgroundColor: "#BF0A30" }]} />
             <Text style={styles.lrBadge}>🇱🇷 LR</Text>
@@ -509,7 +586,7 @@ export default function WelcomeScreen() {
               end={{ x: 1, y: 0 }}
               style={styles.primaryGradient}
             >
-              <Text style={styles.primaryBtnText}>Join Lafa</Text>
+              <Text style={styles.primaryBtnText}>Join Palava Hub</Text>
               <Text style={styles.primaryBtnArrow}>→</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -567,20 +644,24 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
-  logoSection: { alignItems: "center", paddingTop: 24 },
-  starContainer: { alignItems: "center", marginBottom: 18 },
-  starEmoji: { fontSize: 36 },
-  flagStripe1: { width: 48, height: 3, backgroundColor: "#BF0A30", borderRadius: 2, marginTop: 8 },
-  flagStripe2: { width: 32, height: 3, backgroundColor: "#002868", borderRadius: 2, marginTop: 4 },
+  logoSection: { alignItems: "center", paddingTop: 16, gap: 12 },
 
+  appNameBlock: { alignItems: "center", gap: 2, marginTop: -4 },
   appName: {
-    fontSize: 62,
+    fontSize: 52,
     fontWeight: "900",
     color: "#FFFFFF",
-    letterSpacing: -2,
-    textShadowColor: "rgba(212, 168, 85, 0.4)",
+    letterSpacing: 6,
+    textShadowColor: "rgba(212, 168, 85, 0.45)",
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 20,
+    textShadowRadius: 18,
+  },
+  appNameSub: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#D4A855",
+    letterSpacing: 8,
+    marginTop: -2,
   },
   nameDivider: {
     flexDirection: "row",
