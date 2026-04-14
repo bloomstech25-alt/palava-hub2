@@ -7,6 +7,9 @@ if (!admin.apps.length) {
   });
 }
 
-export const firestore = admin.firestore();
+const fs = admin.firestore();
+fs.settings({ preferRest: true });
+
+export const firestore = fs;
 export const authAdmin = admin.auth();
 export default admin;
