@@ -15,7 +15,8 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Use the named 'default' database (not the system '(default)' database)
+export const db = getFirestore(app, "default");
 export const storage = getStorage(app);
 
 export default app;

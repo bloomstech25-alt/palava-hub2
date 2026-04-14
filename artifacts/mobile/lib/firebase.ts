@@ -25,7 +25,8 @@ try {
 }
 
 export const auth = _auth;
-export const db = getFirestore(app);
+// Use the named 'default' database (not the system '(default)' database)
+export const db = getFirestore(app, "default");
 export const storage = getStorage(app);
 
 export default app;
