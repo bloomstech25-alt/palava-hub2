@@ -28,7 +28,8 @@ export default function FeedScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { user } = useAuth();
-  const { posts, isLoading, toggleLike, toggleFollow } = useFeed();
+
+  const { posts, isLoading, toggleLike, toggleFollow, deletePost } = useFeed();
   const { getActiveAds } = useAds();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -58,15 +59,17 @@ export default function FeedScreen() {
     if (item.type === "ad") {
       return <AdCard ad={item.data} />;
     }
+    const isOwn = user?.id === item.data.authorId;
     return (
       <PostCard
         post={item.data}
         onLike={() => toggleLike(item.data.id)}
         onFollow={() => toggleFollow(item.data.id)}
         onPress={() => router.push({ pathname: "/post/[id]", params: { id: item.data.id } })}
+        onDelete={isOwn ? () => deletePost(item.data.id) : undefined}
       />
     );
-  }, [toggleLike, toggleFollow]);
+  }, [toggleLike, toggleFollow, deletePost, user?.id]);
 
   const keyExtractor = useCallback((item: FeedItem) => {
     return item.type === "post" ? `post_${item.data.id}` : `ad_${item.data.id}`;

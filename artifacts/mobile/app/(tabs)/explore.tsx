@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PostCard } from "@/components/PostCard";
 import { useFeed, type Post, SCHOOLS_LIST, SAMPLE_USERS } from "@/context/FeedContext";
+import { useAuth } from "@/context/AuthContext";
 import type { School } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -32,7 +33,8 @@ export default function ExploreScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const { trendingPosts, posts, toggleLike, toggleFollow } = useFeed();
+  const { user } = useAuth();
+  const { trendingPosts, posts, toggleLike, toggleFollow, deletePost } = useFeed();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("trending");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
@@ -77,8 +79,9 @@ export default function ExploreScreen() {
       onLike={() => toggleLike(item.id)}
       onFollow={() => toggleFollow(item.id)}
       onPress={() => router.push({ pathname: "/post/[id]", params: { id: item.id } })}
+      onDelete={user?.id === item.authorId ? () => deletePost(item.id) : undefined}
     />
-  ), [toggleLike, toggleFollow]);
+  ), [toggleLike, toggleFollow, deletePost, user?.id]);
 
   const tabs: { key: Tab; label: string; icon: string }[] = [
     { key: "trending", label: "Trending", icon: "trending-up" },

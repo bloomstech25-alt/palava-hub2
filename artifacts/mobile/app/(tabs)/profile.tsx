@@ -24,7 +24,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { user, logout } = useAuth();
-  const { posts, toggleLike, toggleFollow } = useFeed();
+  const { posts, toggleLike, toggleFollow, deletePost } = useFeed();
   const params = useLocalSearchParams<{ userId?: string }>();
 
   const profileUser = useMemo(() => {
@@ -61,6 +61,7 @@ export default function ProfileScreen() {
             onLike={() => toggleLike(item.id)}
             onFollow={() => toggleFollow(item.id)}
             onPress={() => router.push({ pathname: "/post/[id]", params: { id: item.id } })}
+            onDelete={isOwnProfile ? () => deletePost(item.id) : undefined}
           />
         )}
         showsVerticalScrollIndicator={false}

@@ -6,6 +6,7 @@ import {
   onSnapshot,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
   serverTimestamp,
   arrayUnion,
@@ -63,6 +64,7 @@ interface FeedContextType {
   currentUserId: string | null;
   setCurrentUserId: (id: string | null) => void;
   addPost: (content: string, tags: string[], author: User, mediaUri?: string, mediaType?: "image" | "video") => Promise<void>;
+  deletePost: (postId: string) => Promise<void>;
   toggleLike: (postId: string) => void;
   toggleFollow: (postId: string) => void;
   getPostComments: (postId: string) => Comment[];
@@ -179,6 +181,10 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const deletePost = useCallback(async (postId: string) => {
+    await deleteDoc(doc(db, "posts", postId));
+  }, []);
+
   const toggleLike = useCallback((postId: string) => {
     if (!currentUserId) return;
     const post = posts.find((p) => p.id === postId);
@@ -247,6 +253,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         currentUserId,
         setCurrentUserId,
         addPost,
+        deletePost,
         toggleLike,
         toggleFollow,
         getPostComments,

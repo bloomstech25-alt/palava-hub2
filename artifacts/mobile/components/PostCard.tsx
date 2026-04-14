@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert,
   Image,
   StyleSheet,
   Text,
@@ -18,9 +19,10 @@ interface PostCardProps {
   onLike: () => void;
   onFollow: () => void;
   onPress?: () => void;
+  onDelete?: () => void;
 }
 
-export function PostCard({ post, onLike, onFollow, onPress }: PostCardProps) {
+export function PostCard({ post, onLike, onFollow, onPress, onDelete }: PostCardProps) {
   const colors = useColors();
   const [likeAnimating, setLikeAnimating] = useState(false);
 
@@ -34,6 +36,18 @@ export function PostCard({ post, onLike, onFollow, onPress }: PostCardProps) {
   const handleFollow = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onFollow();
+  };
+
+  const handleDelete = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      "Delete Post",
+      "Are you sure you want to delete this post? This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: onDelete },
+      ]
+    );
   };
 
   const formatCount = (n: number) => {
@@ -68,21 +82,31 @@ export function PostCard({ post, onLike, onFollow, onPress }: PostCardProps) {
             </Text>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={handleFollow}
-          style={[
-            styles.followBtn,
-            {
-              backgroundColor: post.isFollowing ? colors.muted : colors.primary,
-              borderColor: post.isFollowing ? colors.border : colors.primary,
-            },
-          ]}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.followText, { color: post.isFollowing ? colors.mutedForeground : colors.primaryForeground }]}>
-            {post.isFollowing ? "Following" : "Follow"}
-          </Text>
-        </TouchableOpacity>
+        {onDelete ? (
+          <TouchableOpacity
+            onPress={handleDelete}
+            style={[styles.deleteBtn, { backgroundColor: "rgba(239,68,68,0.1)" }]}
+            activeOpacity={0.7}
+          >
+            <Feather name="trash-2" size={15} color="#ef4444" />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            onPress={handleFollow}
+            style={[
+              styles.followBtn,
+              {
+                backgroundColor: post.isFollowing ? colors.muted : colors.primary,
+                borderColor: post.isFollowing ? colors.border : colors.primary,
+              },
+            ]}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.followText, { color: post.isFollowing ? colors.mutedForeground : colors.primaryForeground }]}>
+              {post.isFollowing ? "Following" : "Follow"}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {post.content ? (
@@ -220,6 +244,14 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
+    marginLeft: 8,
+  },
+  deleteBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
     marginLeft: 8,
   },
   followText: {
