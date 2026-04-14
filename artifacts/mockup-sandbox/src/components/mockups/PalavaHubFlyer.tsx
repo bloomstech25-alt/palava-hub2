@@ -160,7 +160,7 @@ export default function PalavaHubFlyer() {
           margin: "6px 0 0", fontSize: 32, fontWeight: 900, letterSpacing: -1,
           color: "#fff",
         }}>
-          May 4th, 2025
+          May 4th, 2026
         </p>
         <p style={{ margin: "4px 0 0", fontSize: 13, color: "rgba(255,255,255,0.7)" }}>
           Join the movement. Be part of history.
