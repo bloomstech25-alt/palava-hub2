@@ -69,9 +69,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (snap.exists()) {
             setUser(snap.data() as User);
           } else {
-            setUser(null);
+            // Auth user exists but no Firestore profile — create a minimal one
+            // so the user is never stuck with a "profile not found" error
+            const fallback: User = {
+              id: firebaseUser.uid,
+              name: firebaseUser.displayName ?? firebaseUser.email?.split("@")[0] ?? "User",
+              username: (firebaseUser.email?.split("@")[0] ?? "user").toLowerCase().replace(/[^a-z0-9]/g, ""),
+              email: firebaseUser.email ?? "",
+              school: { id: "", name: "Unknown School", type: "university", location: "" },
+              bio: "",
+              avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.displayName ?? "User")}&background=BF0A30&color=fff&size=200`,
+              followers: 0,
+              following: 0,
+              posts: 0,
+              joinedAt: new Date().toISOString().split("T")[0],
+            };
+            try {
+              await setDoc(doc(db, "users", firebaseUser.uid), fallback);
+            } catch {
+              // best effort — still let the user in
+            }
+            setUser(fallback);
           }
         } catch {
+          // Network/permission error — still set null so app doesn't hang
           setUser(null);
         }
       } else {
@@ -83,20 +104,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
+    // Set loading so the tab layout doesn't redirect during the transition
+    setIsLoading(true);
     try {
-      const cred = await signInWithEmailAndPassword(auth, email, password);
-      const snap = await getDoc(doc(db, "users", cred.user.uid));
-      if (snap.exists()) {
-        setUser(snap.data() as User);
-        return { success: true };
-      }
-      return { success: false, error: "User profile not found." };
+      await signInWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged fires after this and handles setting user + isLoading(false)
+      return { success: true };
     } catch (err: any) {
-      const msg = err.code === "auth/invalid-credential" || err.code === "auth/wrong-password"
-        ? "Invalid email or password."
-        : err.code === "auth/user-not-found"
-        ? "No account with that email."
-        : err.message ?? "Login failed.";
+      setIsLoading(false);
+      const code = err.code ?? "";
+      const msg =
+        code === "auth/invalid-credential" || code === "auth/wrong-password"
+          ? "Invalid email or password."
+          : code === "auth/user-not-found"
+          ? "No account with that email."
+          : code === "auth/invalid-email"
+          ? "Please enter a valid email address."
+          : code === "auth/too-many-requests"
+          ? "Too many attempts. Please try again later."
+          : "Login failed. Please check your connection and try again.";
       return { success: false, error: msg };
     }
   }, []);
