@@ -7,6 +7,7 @@ import {
   BanUserResponse,
   UnbanUserParams,
   UnbanUserResponse,
+  DeleteUserParams,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -166,6 +167,36 @@ router.post("/users/:id/unban", async (req, res): Promise<void> => {
   } catch (err) {
     console.error("Error unbanning user:", err);
     res.status(500).json({ error: "Failed to unban user" });
+  }
+});
+
+router.delete("/users/:id", async (req, res): Promise<void> => {
+  const params = DeleteUserParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  try {
+    const ref = firestore.collection("users").doc(params.data.id);
+    const snap = await ref.get();
+
+    if (!snap.exists) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    await ref.delete();
+
+    try {
+      await authAdmin.deleteUser(params.data.id);
+    } catch {
+    }
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("Error deleting user:", err);
+    res.status(500).json({ error: "Failed to delete user" });
   }
 });
 

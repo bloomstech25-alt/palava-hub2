@@ -180,6 +180,13 @@ export const UnbanUserResponse = zod.object({
 });
 
 /**
+ * @summary Delete a user
+ */
+export const DeleteUserParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
  * @summary List all posts
  */
 export const ListPostsQueryParams = zod.object({

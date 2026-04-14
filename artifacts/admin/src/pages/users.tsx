@@ -5,34 +5,42 @@ import {
   getListUsersQueryKey,
   useBanUser,
   useUnbanUser,
+  useDeleteUser,
 } from "@workspace/api-client-react";
 
 export default function UsersPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [bannedFilter, setBannedFilter] = useState<string>("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmDeleteName, setConfirmDeleteName] = useState<string>("");
 
   const params: { search?: string; banned?: boolean } = {};
   if (search) params.search = search;
-  if (bannedFilter === "banned") params.banned = true;
+  if (bannedFilter === "suspended") params.banned = true;
   if (bannedFilter === "active") params.banned = false;
 
   const usersQuery = useListUsers(params, {
     query: { queryKey: getListUsersQueryKey(params) },
   });
 
-  const banMutation = useBanUser({
+  const suspendMutation = useBanUser({
     mutation: {
-      onSuccess: () => {
-        qc.invalidateQueries({ queryKey: getListUsersQueryKey() });
-      },
+      onSuccess: () => qc.invalidateQueries({ queryKey: getListUsersQueryKey() }),
     },
   });
 
-  const unbanMutation = useUnbanUser({
+  const unsuspendMutation = useUnbanUser({
+    mutation: {
+      onSuccess: () => qc.invalidateQueries({ queryKey: getListUsersQueryKey() }),
+    },
+  });
+
+  const deleteMutation = useDeleteUser({
     mutation: {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getListUsersQueryKey() });
+        setConfirmDeleteId(null);
       },
     },
   });
@@ -41,6 +49,11 @@ export default function UsersPage() {
 
   function getInitials(name: string) {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  }
+
+  function openDeleteConfirm(id: string, name: string) {
+    setConfirmDeleteId(id);
+    setConfirmDeleteName(name);
   }
 
   return (
@@ -67,7 +80,7 @@ export default function UsersPage() {
         >
           <option value="">All Users</option>
           <option value="active">Active</option>
-          <option value="banned">Banned</option>
+          <option value="suspended">Suspended</option>
         </select>
       </div>
 
@@ -108,6 +121,7 @@ export default function UsersPage() {
                       <div>
                         <p className="text-sm font-medium text-foreground">{user.name}</p>
                         <p className="text-xs text-muted-foreground">@{user.username}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
                       </div>
                     </div>
                   </td>
@@ -117,32 +131,41 @@ export default function UsersPage() {
                   <td className="px-5 py-3.5">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${
                       user.isBanned
-                        ? "bg-destructive/10 text-destructive"
+                        ? "bg-amber-500/10 text-amber-600"
                         : "bg-chart-2/10 text-chart-2"
                     }`}>
-                      {user.isBanned ? "Banned" : "Active"}
+                      {user.isBanned ? "Suspended" : "Active"}
                     </span>
                   </td>
                   <td className="px-5 py-3.5">
-                    {user.isBanned ? (
+                    <div className="flex items-center gap-2">
+                      {user.isBanned ? (
+                        <button
+                          onClick={() => unsuspendMutation.mutate({ id: user.id })}
+                          disabled={unsuspendMutation.isPending}
+                          data-testid={`button-unban-${user.id}`}
+                          className="px-3 py-1.5 text-xs font-medium bg-chart-2/10 text-chart-2 hover:bg-chart-2/20 rounded-lg transition-colors disabled:opacity-60"
+                        >
+                          Unsuspend
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => suspendMutation.mutate({ id: user.id })}
+                          disabled={suspendMutation.isPending}
+                          data-testid={`button-ban-${user.id}`}
+                          className="px-3 py-1.5 text-xs font-medium bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 rounded-lg transition-colors disabled:opacity-60"
+                        >
+                          Suspend
+                        </button>
+                      )}
                       <button
-                        onClick={() => unbanMutation.mutate({ id: user.id })}
-                        disabled={unbanMutation.isPending}
-                        data-testid={`button-unban-${user.id}`}
-                        className="px-3 py-1.5 text-xs font-medium bg-chart-2/10 text-chart-2 hover:bg-chart-2/20 rounded-lg transition-colors disabled:opacity-60"
+                        onClick={() => openDeleteConfirm(user.id, user.name)}
+                        data-testid={`button-delete-${user.id}`}
+                        className="px-3 py-1.5 text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-lg transition-colors"
                       >
-                        Unban
+                        Delete
                       </button>
-                    ) : (
-                      <button
-                        onClick={() => banMutation.mutate({ id: user.id })}
-                        disabled={banMutation.isPending}
-                        data-testid={`button-ban-${user.id}`}
-                        className="px-3 py-1.5 text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-lg transition-colors disabled:opacity-60"
-                      >
-                        Ban
-                      </button>
-                    )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -150,6 +173,42 @@ export default function UsersPage() {
           </table>
         )}
       </div>
+
+      {/* Delete confirmation modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
+            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6 text-destructive">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                <path d="M10 11v6M14 11v6"/>
+                <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+              </svg>
+            </div>
+            <h2 className="text-base font-bold text-foreground text-center mb-1">Delete Account</h2>
+            <p className="text-sm text-muted-foreground text-center mb-6">
+              Are you sure you want to permanently delete <span className="font-semibold text-foreground">{confirmDeleteName}</span>'s account? This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                disabled={deleteMutation.isPending}
+                className="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg border border-border bg-muted hover:bg-muted/70 text-foreground transition-colors disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteMutation.mutate({ id: confirmDeleteId })}
+                disabled={deleteMutation.isPending}
+                className="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg bg-destructive text-white hover:bg-destructive/90 transition-colors disabled:opacity-60"
+              >
+                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
