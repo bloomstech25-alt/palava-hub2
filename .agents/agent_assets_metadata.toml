@@ -23,3 +23,45 @@ id = "MnSU5iB_ePUi7bgy3Fcpw"
 uri = "file://PalavaHub-Screenshots.tar.gz"
 type = "unspecified"
 title = "Palava Hub – Screenshots (tar.gz)"
+
+[[outputs]]
+id = "ONfNlrHmg0-Al3-QAOvgh"
+uri = "file://screenshots/01-welcome.jpg"
+type = "image"
+title = "1 - Welcome Screen"
+
+[[outputs]]
+id = "JbLXG6dEr75rx3W84IQSF"
+uri = "file://screenshots/02-login.jpg"
+type = "image"
+title = "2 - Login Screen"
+
+[[outputs]]
+id = "pumzuZ-_IKsJsWGBTMojQ"
+uri = "file://screenshots/03-register.jpg"
+type = "image"
+title = "3 - Register Screen"
+
+[[outputs]]
+id = "YXBa70u5i0GiZp_S4JZKC"
+uri = "file://screenshots/04-create-post.jpg"
+type = "image"
+title = "4 - Create Post"
+
+[[outputs]]
+id = "eeIggRz__YtpN2gyMeTqZ"
+uri = "file://screenshots/05-create-ad.jpg"
+type = "image"
+title = "5 - Run an Ad"
+
+[[outputs]]
+id = "SHVUcCNb4btFjpM-_b0ro"
+uri = "file://screenshots/06-go-live.jpg"
+type = "image"
+title = "6 - Go Live"
+
+[[outputs]]
+id = "2Yc4DBZrJ5UG-jrID4vw9"
+uri = "file://screenshots/08-create-page.jpg"
+type = "image"
+title = "7 - Create a Page"
