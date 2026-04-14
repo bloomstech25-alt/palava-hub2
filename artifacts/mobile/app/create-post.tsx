@@ -41,7 +41,7 @@ export default function CreatePostScreen() {
   const [mediaUri, setMediaUri] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
 
-  const charLimit = 500;
+  const charLimit = 1000;
 
   const toggleTag = (tag: string) => {
     if (tags.includes(tag)) {
