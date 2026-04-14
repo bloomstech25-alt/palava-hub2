@@ -29,13 +29,18 @@ router.get("/users", async (req, res): Promise<void> => {
 
     let users = snap.docs.map((d) => {
       const data = d.data();
+      const school = data.school;
+      const schoolName = typeof school === "object" && school !== null
+        ? (school.name ?? "")
+        : (school ?? "");
       return {
         id: d.id,
         name: data.name ?? "",
         email: data.email ?? "",
         username: data.username ?? "",
-        schoolName: data.school ?? "",
-        avatarUrl: data.avatar ?? null,
+        schoolName,
+        postCount: data.posts ?? 0,
+        followerCount: data.followers ?? 0,
         isBanned: data.isBanned ?? false,
         createdAt:
           data.createdAt?.toDate?.()?.toISOString?.() ??
@@ -95,14 +100,17 @@ router.post("/users/:id/ban", async (req, res): Promise<void> => {
     }
 
     const data = snap.data()!;
+    const banSchool = data.school;
+    const banSchoolName = typeof banSchool === "object" && banSchool !== null ? (banSchool.name ?? "") : (banSchool ?? "");
     res.json(
       BanUserResponse.parse({
         id: snap.id,
         name: data.name ?? "",
         email: data.email ?? "",
         username: data.username ?? "",
-        schoolName: data.school ?? "",
-        avatarUrl: data.avatar ?? null,
+        schoolName: banSchoolName,
+        postCount: data.posts ?? 0,
+        followerCount: data.followers ?? 0,
         isBanned: true,
         createdAt:
           data.createdAt?.toDate?.()?.toISOString?.() ??
@@ -138,14 +146,17 @@ router.post("/users/:id/unban", async (req, res): Promise<void> => {
     }
 
     const data = snap.data()!;
+    const unbanSchool = data.school;
+    const unbanSchoolName = typeof unbanSchool === "object" && unbanSchool !== null ? (unbanSchool.name ?? "") : (unbanSchool ?? "");
     res.json(
       UnbanUserResponse.parse({
         id: snap.id,
         name: data.name ?? "",
         email: data.email ?? "",
         username: data.username ?? "",
-        schoolName: data.school ?? "",
-        avatarUrl: data.avatar ?? null,
+        schoolName: unbanSchoolName,
+        postCount: data.posts ?? 0,
+        followerCount: data.followers ?? 0,
         isBanned: false,
         createdAt:
           data.createdAt?.toDate?.()?.toISOString?.() ??
