@@ -45,8 +45,15 @@ export function PostCard({ post, onLike, onFollow, onPress }: PostCardProps) {
     <TouchableOpacity
       activeOpacity={0.95}
       onPress={onPress}
-      style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[styles.card, { backgroundColor: colors.card, borderColor: post.isPinned ? colors.primary : colors.border }]}
     >
+      {post.isPinned && (
+        <View style={[styles.pinnedBanner, { backgroundColor: colors.primary + "18" }]}>
+          <Feather name="bookmark" size={11} color={colors.primary} />
+          <Text style={[styles.pinnedText, { color: colors.primary }]}>Pinned Post</Text>
+        </View>
+      )}
+      <View style={styles.cardContent}>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.push({ pathname: "/(tabs)/profile", params: { userId: post.author.id } })}
@@ -146,6 +153,7 @@ export function PostCard({ post, onLike, onFollow, onPress }: PostCardProps) {
           {formatRelativeTime(post.createdAt)}
         </Text>
       </View>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -155,13 +163,29 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     marginVertical: 6,
     borderRadius: 16,
-    padding: 16,
+    overflow: "hidden",
     borderWidth: 1,
     shadowColor: "#000",
     shadowOpacity: 0.04,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
+  },
+  cardContent: {
+    padding: 16,
+  },
+  pinnedBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  pinnedText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
   },
   header: {
     flexDirection: "row",

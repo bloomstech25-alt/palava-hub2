@@ -12,6 +12,12 @@ uri = "file://artifacts/mobile/assets/images/placeholder_campus.png"
 type = "image"
 title = "campus placeholder"
 
+[[generated]]
+id = "fViy5bz1tIlxaHfZUsX9n"
+uri = "file://attached_assets/palava-hub-launch-flyer.png"
+type = "image"
+title = "palava hub launch flyer"
+
 [[outputs]]
 id = "tB3gYCKTyBPPIw0BCNfpe"
 uri = "file://PalavaHub-Screenshots.zip"
@@ -65,3 +71,9 @@ id = "2Yc4DBZrJ5UG-jrID4vw9"
 uri = "file://screenshots/08-create-page.jpg"
 type = "image"
 title = "7 - Create a Page"
+
+[[outputs]]
+id = "LzBs2ic9YekZJA6ckvP9P"
+uri = "file://attached_assets/palava-hub-launch-flyer.png"
+type = "image"
+title = "Palava Hub — Official Launch Flyer"

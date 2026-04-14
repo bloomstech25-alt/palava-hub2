@@ -203,6 +203,7 @@ export const ListPostsResponseItem = zod.object({
   likes: zod.number(),
   comments: zod.number(),
   isFlagged: zod.boolean(),
+  isPinned: zod.boolean(),
   createdAt: zod.string(),
 });
 export const ListPostsResponse = zod.array(ListPostsResponseItem);
@@ -230,5 +231,18 @@ export const FlagPostResponse = zod.object({
   likes: zod.number(),
   comments: zod.number(),
   isFlagged: zod.boolean(),
+  isPinned: zod.boolean(),
   createdAt: zod.string(),
+});
+
+/**
+ * @summary Pin or unpin a post
+ */
+export const PinPostParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const PinPostResponse = zod.object({
+  id: zod.string(),
+  isPinned: zod.boolean(),
 });

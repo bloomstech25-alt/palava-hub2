@@ -31,6 +31,7 @@ export interface Post {
   shares: number;
   isLiked: boolean;
   isFollowing: boolean;
+  isPinned: boolean;
   createdAt: string;
   tags: string[];
 }
@@ -133,8 +134,14 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
           likedBy,
           isLiked: currentUserId ? likedBy.includes(currentUserId) : false,
           isFollowing: false,
+          isPinned: data.isPinned ?? false,
           createdAt: tsToString(data.createdAt),
         } as Post;
+      });
+      fetched.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
       setPosts(fetched);
       setIsLoading(false);

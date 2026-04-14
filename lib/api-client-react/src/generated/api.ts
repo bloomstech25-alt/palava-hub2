@@ -1315,3 +1315,80 @@ export const useFlagPost = <
 > => {
   return useMutation(getFlagPostMutationOptions(options));
 };
+
+/**
+ * @summary Pin or unpin a post
+ */
+export const getPinPostUrl = (id: string) => {
+  return `/api/posts/${id}/pin`;
+};
+
+export const pinPost = async (
+  id: string,
+  options?: RequestInit,
+): Promise<{ id: string; isPinned: boolean }> => {
+  return customFetch<{ id: string; isPinned: boolean }>(getPinPostUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getPinPostMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pinPost>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof pinPost>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["pinPost"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof pinPost>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+    return pinPost(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PinPostMutationResult = NonNullable<Awaited<ReturnType<typeof pinPost>>>;
+export type PinPostMutationError = ErrorType<unknown>;
+
+export const usePinPost = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pinPost>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof pinPost>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getPinPostMutationOptions(options));
+};

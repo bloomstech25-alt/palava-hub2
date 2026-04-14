@@ -5,6 +5,7 @@ import {
   getListPostsQueryKey,
   useDeletePost,
   useFlagPost,
+  usePinPost,
 } from "@workspace/api-client-react";
 
 export default function PostsPage() {
@@ -32,6 +33,14 @@ export default function PostsPage() {
   });
 
   const flagMutation = useFlagPost({
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: getListPostsQueryKey() });
+      },
+    },
+  });
+
+  const pinMutation = usePinPost({
     mutation: {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getListPostsQueryKey() });
@@ -136,6 +145,21 @@ export default function PostsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => pinMutation.mutate({ id: post.id })}
+                    disabled={pinMutation.isPending}
+                    data-testid={`button-pin-post-${post.id}`}
+                    className={`p-1.5 rounded-lg transition-colors ${
+                      post.isPinned
+                        ? "text-primary bg-primary/10 hover:bg-primary/20"
+                        : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                    }`}
+                    title={post.isPinned ? "Unpin post" : "Pin post to top of feed"}
+                  >
+                    <svg viewBox="0 0 24 24" fill={post.isPinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                      <path d="M12 2l3 7h6l-5 4 2 7-6-4-6 4 2-7-5-4h6z"/>
+                    </svg>
+                  </button>
                   {!post.isFlagged && (
                     <button
                       onClick={() => flagMutation.mutate({ id: post.id })}
