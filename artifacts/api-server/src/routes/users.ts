@@ -186,8 +186,22 @@ router.delete("/users/:id", async (req, res): Promise<void> => {
       return;
     }
 
+    // Delete all posts by this user
+    const postsSnap = await firestore
+      .collection("posts")
+      .where("authorId", "==", params.data.id)
+      .get();
+
+    if (!postsSnap.empty) {
+      const batch = firestore.batch();
+      postsSnap.docs.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
+
+    // Delete Firestore user profile
     await ref.delete();
 
+    // Delete Firebase Auth account
     try {
       await authAdmin.deleteUser(params.data.id);
     } catch {
