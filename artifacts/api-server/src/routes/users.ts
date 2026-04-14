@@ -1,6 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, like, and } from "drizzle-orm";
-import { db, adminUsersTable } from "@workspace/db";
+import { firestore, authAdmin } from "../lib/firebase-admin";
 import {
   ListUsersQueryParams,
   ListUsersResponse,
@@ -19,27 +18,58 @@ router.get("/users", async (req, res): Promise<void> => {
     return;
   }
 
-  const conditions = [];
-  if (query.data.search) {
-    conditions.push(like(adminUsersTable.name, `%${query.data.search}%`));
-  }
-  if (query.data.schoolId) {
-    conditions.push(like(adminUsersTable.schoolName, `%${query.data.schoolId}%`));
-  }
-  if (query.data.banned !== undefined) {
-    conditions.push(eq(adminUsersTable.isBanned, query.data.banned));
-  }
+  try {
+    let ref: FirebaseFirestore.Query = firestore.collection("users");
 
-  const users = await db
-    .select()
-    .from(adminUsersTable)
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(adminUsersTable.createdAt);
+    if (query.data.banned !== undefined) {
+      ref = ref.where("isBanned", "==", query.data.banned);
+    }
 
-  res.json(ListUsersResponse.parse(users.map(u => ({
-    ...u,
-    createdAt: u.createdAt.toISOString(),
-  }))));
+    const snap = await ref.get();
+
+    let users = snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        name: data.name ?? "",
+        email: data.email ?? "",
+        username: data.username ?? "",
+        schoolName: data.school ?? "",
+        avatarUrl: data.avatar ?? null,
+        isBanned: data.isBanned ?? false,
+        createdAt:
+          data.createdAt?.toDate?.()?.toISOString?.() ??
+          new Date().toISOString(),
+      };
+    });
+
+    if (query.data.search) {
+      const s = query.data.search.toLowerCase();
+      users = users.filter(
+        (u) =>
+          u.name.toLowerCase().includes(s) ||
+          u.username.toLowerCase().includes(s) ||
+          u.email.toLowerCase().includes(s)
+      );
+    }
+
+    if (query.data.schoolId) {
+      const s = query.data.schoolId.toLowerCase();
+      users = users.filter((u) =>
+        u.schoolName.toLowerCase().includes(s)
+      );
+    }
+
+    users.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    res.json(ListUsersResponse.parse(users));
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
 });
 
 router.post("/users/:id/ban", async (req, res): Promise<void> => {
@@ -49,21 +79,40 @@ router.post("/users/:id/ban", async (req, res): Promise<void> => {
     return;
   }
 
-  const [user] = await db
-    .update(adminUsersTable)
-    .set({ isBanned: true })
-    .where(eq(adminUsersTable.id, params.data.id))
-    .returning();
+  try {
+    const ref = firestore.collection("users").doc(params.data.id);
+    const snap = await ref.get();
 
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
+    if (!snap.exists) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    await ref.update({ isBanned: true });
+    try {
+      await authAdmin.updateUser(params.data.id, { disabled: true });
+    } catch {
+    }
+
+    const data = snap.data()!;
+    res.json(
+      BanUserResponse.parse({
+        id: snap.id,
+        name: data.name ?? "",
+        email: data.email ?? "",
+        username: data.username ?? "",
+        schoolName: data.school ?? "",
+        avatarUrl: data.avatar ?? null,
+        isBanned: true,
+        createdAt:
+          data.createdAt?.toDate?.()?.toISOString?.() ??
+          new Date().toISOString(),
+      })
+    );
+  } catch (err) {
+    console.error("Error banning user:", err);
+    res.status(500).json({ error: "Failed to ban user" });
   }
-
-  res.json(BanUserResponse.parse({
-    ...user,
-    createdAt: user.createdAt.toISOString(),
-  }));
 });
 
 router.post("/users/:id/unban", async (req, res): Promise<void> => {
@@ -73,21 +122,40 @@ router.post("/users/:id/unban", async (req, res): Promise<void> => {
     return;
   }
 
-  const [user] = await db
-    .update(adminUsersTable)
-    .set({ isBanned: false })
-    .where(eq(adminUsersTable.id, params.data.id))
-    .returning();
+  try {
+    const ref = firestore.collection("users").doc(params.data.id);
+    const snap = await ref.get();
 
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
+    if (!snap.exists) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    await ref.update({ isBanned: false });
+    try {
+      await authAdmin.updateUser(params.data.id, { disabled: false });
+    } catch {
+    }
+
+    const data = snap.data()!;
+    res.json(
+      UnbanUserResponse.parse({
+        id: snap.id,
+        name: data.name ?? "",
+        email: data.email ?? "",
+        username: data.username ?? "",
+        schoolName: data.school ?? "",
+        avatarUrl: data.avatar ?? null,
+        isBanned: false,
+        createdAt:
+          data.createdAt?.toDate?.()?.toISOString?.() ??
+          new Date().toISOString(),
+      })
+    );
+  } catch (err) {
+    console.error("Error unbanning user:", err);
+    res.status(500).json({ error: "Failed to unban user" });
   }
-
-  res.json(UnbanUserResponse.parse({
-    ...user,
-    createdAt: user.createdAt.toISOString(),
-  }));
 });
 
 export default router;

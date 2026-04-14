@@ -85,3 +85,8 @@ externalPort = 3002
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+GOOGLE_APPLICATION_CREDENTIALS = "/home/runner/workspace/attached_assets/Pasted--type-service-account-project-id-palava-hub-private-key_1776162803962.txt"
