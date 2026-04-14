@@ -64,7 +64,8 @@ interface MessagingContextType {
   setCurrentUserId: (id: string | null) => void;
   sendMessage: (
     toUserId: string, toName: string, toUsername: string,
-    toAvatar: string, toSchool: string, text: string, myId: string,
+    toAvatar: string, toSchool: string, text: string,
+    myId: string, myName: string, myUsername: string, myAvatar: string, mySchool: string,
     media?: { uri: string; type: "image" | "video" | "audio"; duration?: number }
   ) => Promise<void>;
   markRead: (userId: string) => void;
@@ -140,6 +141,10 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
     toSchool: string,
     text: string,
     myId: string,
+    myName: string,
+    myUsername: string,
+    myAvatar: string,
+    mySchool: string,
     media?: { uri: string; type: "image" | "video" | "audio"; duration?: number }
   ) => {
     const cid = convId(myId, toUserId);
@@ -156,7 +161,9 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       audioDuration: media?.duration ?? null,
     });
 
-    const lastMessagePreview = media ? `📎 ${media.type}` : text;
+    const lastMessagePreview = media
+      ? media.type === "image" ? "📷 Photo" : media.type === "video" ? "🎥 Video" : "🎤 Voice message"
+      : text;
 
     await setDoc(
       doc(db, "users", myId, "conversations", toUserId),
@@ -166,7 +173,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
 
     await setDoc(
       doc(db, "users", toUserId, "conversations", myId),
-      { name: "", username: "", avatar: "", school: "", lastMessage: lastMessagePreview, lastAt: now, unread: 1 },
+      { name: myName, username: myUsername, avatar: myAvatar, school: mySchool, lastMessage: lastMessagePreview, lastAt: now, unread: 1 },
       { merge: true }
     );
   }, []);

@@ -204,15 +204,24 @@ export default function ChatScreen() {
     setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 150);
   }, [chatMessages.length]);
 
-  const doSend = useCallback((
+  const doSend = useCallback(async (
     txt: string,
     media?: { uri: string; type: "image" | "video" | "audio"; duration?: number }
   ) => {
     if (!user) return;
-    sendMessage(userId, name ?? "", username ?? "", avatar ?? "", school ?? "", txt, user.id, media);
     setText("");
     setIsTyping(true);
     setTimeout(() => setIsTyping(false), 3500);
+    try {
+      await sendMessage(
+        userId, name ?? "", username ?? "", avatar ?? "", school ?? "",
+        txt,
+        user.id, user.name ?? "", user.username ?? "", user.avatar ?? "", user.school?.name ?? "",
+        media
+      );
+    } catch (e) {
+      console.error("sendMessage error:", e);
+    }
   }, [user, userId, name, username, avatar, school, sendMessage]);
 
   const handleSend = () => {
@@ -402,7 +411,7 @@ export default function ChatScreen() {
             </View>
             <Text style={[styles.emptyChatTitle, { color: colors.foreground }]}>Say hi to {name?.split(" ")[0]}!</Text>
             <Text style={[styles.emptyChatSub, { color: colors.mutedForeground }]}>
-              You're both students on Lafa. Start the conversation!
+              You're both students on Palava Hub. Start the conversation!
             </Text>
           </View>
         }
