@@ -18,6 +18,12 @@ uri = "file://attached_assets/palava-hub-launch-flyer.png"
 type = "image"
 title = "palava hub launch flyer"
 
+[[generated]]
+id = "qJa056lMn_a0cbrx886kH"
+uri = "file://attached_assets/palava-hub-logo-icon.png"
+type = "image"
+title = "palava hub app icon"
+
 [[outputs]]
 id = "tB3gYCKTyBPPIw0BCNfpe"
 uri = "file://PalavaHub-Screenshots.zip"
@@ -77,3 +83,9 @@ id = "LzBs2ic9YekZJA6ckvP9P"
 uri = "file://attached_assets/palava-hub-launch-flyer.png"
 type = "image"
 title = "Palava Hub — Official Launch Flyer"
+
+[[outputs]]
+id = "pjNZaF_RgguRr5saUgpMV"
+uri = "file://attached_assets/palava-hub-launch-flyer.jpg"
+type = "image"
+title = "Palava Hub — Official Launch Flyer (with real app screenshot)"

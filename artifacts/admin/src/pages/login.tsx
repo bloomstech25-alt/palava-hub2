@@ -35,19 +35,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center" style={{ background: "hsl(24, 24%, 5%)" }}>
       <div className="w-full max-w-md px-8 py-10 bg-card border border-card-border rounded-2xl shadow-2xl">
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
-            <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
-              <circle cx="16" cy="16" r="14" fill="#BF0A30"/>
-              <polygon points="16,6 17.2,10.5 22,10.5 18.2,13.2 19.4,17.8 16,15 12.6,17.8 13.8,13.2 10,10.5 14.8,10.5" fill="#D4A855"/>
-              <circle cx="8" cy="20" r="2.5" fill="#D4A855"/>
-              <circle cx="24" cy="20" r="2.5" fill="#D4A855"/>
-              <circle cx="16" cy="25" r="2.5" fill="#D4A855"/>
-              <line x1="8" y1="20" x2="16" y2="25" stroke="#D4A855" strokeWidth="1"/>
-              <line x1="24" y1="20" x2="16" y2="25" stroke="#D4A855" strokeWidth="1"/>
-              <line x1="8" y1="20" x2="16" y2="16" stroke="#D4A855" strokeWidth="1"/>
-              <line x1="24" y1="20" x2="16" y2="16" stroke="#D4A855" strokeWidth="1"/>
-            </svg>
-          </div>
+          <img src="/logo.png" alt="Palava Hub" className="w-14 h-14 rounded-2xl mb-4" />
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Palava Hub</h1>
           <p className="text-sm text-muted-foreground mt-1">Super Admin Dashboard</p>
         </div>
