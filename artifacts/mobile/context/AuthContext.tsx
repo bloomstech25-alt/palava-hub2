@@ -11,7 +11,8 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth, db, storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export interface School {
   id: string;
@@ -50,6 +51,8 @@ interface RegisterData {
   email: string;
   password: string;
   school: School;
+  bio?: string;
+  avatarUri?: string;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -101,20 +104,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = useCallback(async (data: RegisterData) => {
     try {
       const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const uid = cred.user.uid;
+
+      let avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=BF0A30&color=fff&size=200`;
+      if (data.avatarUri) {
+        try {
+          const response = await fetch(data.avatarUri);
+          const blob = await response.blob();
+          const storageRef = ref(storage, `avatars/${uid}`);
+          await uploadBytes(storageRef, blob);
+          avatarUrl = await getDownloadURL(storageRef);
+        } catch {
+          // keep generated avatar on upload failure
+        }
+      }
+
       const newUser: User = {
-        id: cred.user.uid,
+        id: uid,
         name: data.name,
         username: data.username,
         email: data.email,
         school: data.school,
-        bio: "",
-        avatar: `https://i.pravatar.cc/150?u=${cred.user.uid}`,
+        bio: data.bio?.trim() ?? "",
+        avatar: avatarUrl,
         followers: 0,
         following: 0,
         posts: 0,
         joinedAt: new Date().toISOString().split("T")[0],
       };
-      await setDoc(doc(db, "users", cred.user.uid), newUser);
+      await setDoc(doc(db, "users", uid), newUser);
       setUser(newUser);
       return { success: true };
     } catch (err: any) {

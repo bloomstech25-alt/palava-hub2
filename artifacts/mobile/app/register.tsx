@@ -1,9 +1,14 @@
 import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -30,6 +35,8 @@ export default function RegisterScreen() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [bio, setBio] = useState("");
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const [schoolQuery, setSchoolQuery] = useState("");
   const [showSchoolPicker, setShowSchoolPicker] = useState(false);
@@ -41,9 +48,27 @@ export default function RegisterScreen() {
     s.name.toLowerCase().includes(schoolQuery.toLowerCase())
   );
 
+  const pickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "Allow access to your photos to set a profile picture.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setAvatarUri(result.assets[0].uri);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  };
+
   const handleRegister = async () => {
     if (!name.trim() || !username.trim() || !email.trim() || !password.trim() || !selectedSchool) {
-      setError("Please fill in all fields");
+      setError("Please fill in all required fields");
       return;
     }
     if (username.length < 3) {
@@ -62,6 +87,8 @@ export default function RegisterScreen() {
       email: email.trim(),
       password,
       school: selectedSchool,
+      bio: bio.trim(),
+      avatarUri: avatarUri ?? undefined,
     });
     setIsLoading(false);
     if (result.success) {
@@ -70,6 +97,8 @@ export default function RegisterScreen() {
       setError(result.error ?? "Registration failed");
     }
   };
+
+  const avatarPlaceholder = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=BF0A30&color=fff&size=200`;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -88,6 +117,28 @@ export default function RegisterScreen() {
             <Text style={[styles.title, { color: colors.foreground }]}>Join Palava Hub</Text>
             <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
               Connect with students from Liberian universities and high schools
+            </Text>
+          </View>
+
+          {/* Profile Photo Picker */}
+          <View style={styles.avatarSection}>
+            <TouchableOpacity onPress={pickAvatar} activeOpacity={0.85} style={styles.avatarWrap}>
+              <Image
+                source={{ uri: avatarUri ?? avatarPlaceholder }}
+                style={styles.avatar}
+              />
+              <View style={[styles.avatarOverlay, { backgroundColor: avatarUri ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.5)" }]}>
+                <Feather name="camera" size={22} color="#ffffff" />
+                <Text style={styles.avatarOverlayText}>{avatarUri ? "Change" : "Add Photo"}</Text>
+              </View>
+              {!avatarUri && (
+                <View style={[styles.avatarBadge, { backgroundColor: colors.primary }]}>
+                  <Feather name="plus" size={12} color="#ffffff" />
+                </View>
+              )}
+            </TouchableOpacity>
+            <Text style={[styles.avatarHint, { color: colors.mutedForeground }]}>
+              Tap to add a profile photo
             </Text>
           </View>
 
@@ -112,6 +163,28 @@ export default function RegisterScreen() {
                   <Feather name={showPw ? "eye-off" : "eye"} size={18} color={colors.mutedForeground} />
                 </TouchableOpacity>
               </View>
+            </View>
+
+            {/* Bio Field */}
+            <View style={styles.field}>
+              <View style={styles.labelRow}>
+                <Text style={[styles.label, { color: colors.foreground }]}>Bio</Text>
+                <Text style={[styles.optionalTag, { color: colors.mutedForeground }]}>Optional</Text>
+              </View>
+              <View style={[styles.bioWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                <Feather name="edit-3" size={16} color={colors.mutedForeground} style={[styles.inputIcon, { alignSelf: "flex-start", marginTop: 14 }]} />
+                <TextInput
+                  style={[styles.bioInput, { color: colors.foreground }]}
+                  placeholder="Tell people about yourself..."
+                  placeholderTextColor={colors.mutedForeground}
+                  value={bio}
+                  onChangeText={setBio}
+                  multiline
+                  maxLength={160}
+                  textAlignVertical="top"
+                />
+              </View>
+              <Text style={[styles.charCount, { color: colors.mutedForeground }]}>{bio.length}/160</Text>
             </View>
 
             <View style={styles.field}>
@@ -147,9 +220,14 @@ export default function RegisterScreen() {
               activeOpacity={0.85}
               disabled={isLoading}
             >
-              <Text style={[styles.registerBtnText, { color: colors.primaryForeground }]}>
-                {isLoading ? "Creating account..." : "Create Account"}
-              </Text>
+              {isLoading ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <ActivityIndicator size="small" color="#ffffff" />
+                  <Text style={[styles.registerBtnText, { color: colors.primaryForeground }]}>Creating account...</Text>
+                </View>
+              ) : (
+                <Text style={[styles.registerBtnText, { color: colors.primaryForeground }]}>Create Account</Text>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -236,13 +314,37 @@ function InputField({ label, icon, value, onChangeText, placeholder, colors, key
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { flexGrow: 1, paddingHorizontal: 24 },
-  backBtn: { marginBottom: 28, width: 40 },
-  heading: { marginBottom: 32 },
+  backBtn: { marginBottom: 20, width: 40 },
+  heading: { marginBottom: 24 },
   title: { fontSize: 28, fontWeight: "700", letterSpacing: -0.5 },
   subtitle: { fontSize: 15, marginTop: 8, lineHeight: 22 },
+  avatarSection: { alignItems: "center", marginBottom: 28, gap: 10 },
+  avatarWrap: { width: 100, height: 100, borderRadius: 50, overflow: "hidden", position: "relative" },
+  avatar: { width: 100, height: 100, borderRadius: 50 },
+  avatarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    borderRadius: 50,
+  },
+  avatarOverlayText: { color: "#ffffff", fontSize: 11, fontWeight: "700" },
+  avatarBadge: {
+    position: "absolute",
+    bottom: 2,
+    right: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarHint: { fontSize: 13 },
   form: { gap: 18 },
   field: { gap: 8 },
   label: { fontSize: 14, fontWeight: "600" },
+  labelRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  optionalTag: { fontSize: 12, fontStyle: "italic" },
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -251,8 +353,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 52,
   },
+  bioWrap: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    minHeight: 100,
+  },
   inputIcon: { marginRight: 10 },
   input: { flex: 1, fontSize: 15 },
+  bioInput: { flex: 1, fontSize: 15, paddingVertical: 12, lineHeight: 22 },
+  charCount: { fontSize: 12, textAlign: "right", marginTop: 2 },
   eyeBtn: { padding: 4 },
   schoolSub: { fontSize: 12, marginTop: 4, marginLeft: 2 },
   errorBox: {
