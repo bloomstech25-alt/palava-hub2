@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import {
   Alert,
   Image,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -20,9 +21,10 @@ interface PostCardProps {
   onFollow: () => void;
   onPress?: () => void;
   onDelete?: () => void;
+  onShare?: () => void;
 }
 
-export function PostCard({ post, onLike, onFollow, onPress, onDelete }: PostCardProps) {
+export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }: PostCardProps) {
   const colors = useColors();
   const [likeAnimating, setLikeAnimating] = useState(false);
 
@@ -48,6 +50,21 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete }: PostCard
         { text: "Delete", style: "destructive", onPress: onDelete },
       ]
     );
+  };
+
+  const handleShare = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      const message = post.content
+        ? `${post.content}\n\n— ${post.author.name} on Palava Hub`
+        : `Check out this post by ${post.author.name} on Palava Hub`;
+      const result = await Share.share({ message });
+      if (result.action === Share.sharedAction) {
+        onShare?.();
+      }
+    } catch {
+      // share cancelled or failed
+    }
   };
 
   const formatCount = (n: number) => {
@@ -166,7 +183,7 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete }: PostCard
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.action} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.action} activeOpacity={0.7} onPress={handleShare}>
           <Feather name="repeat" size={18} color={colors.mutedForeground} />
           <Text style={[styles.actionCount, { color: colors.mutedForeground }]}>
             {formatCount(post.shares)}

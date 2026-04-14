@@ -34,7 +34,7 @@ export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { user } = useAuth();
-  const { trendingPosts, posts, toggleLike, toggleFollow, deletePost } = useFeed();
+  const { trendingPosts, posts, toggleLike, toggleFollow, deletePost, sharePost } = useFeed();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("trending");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
@@ -80,8 +80,9 @@ export default function ExploreScreen() {
       onFollow={() => toggleFollow(item.id)}
       onPress={() => router.push({ pathname: "/post/[id]", params: { id: item.id } })}
       onDelete={user?.id === item.authorId ? () => deletePost(item.id) : undefined}
+      onShare={() => sharePost(item.id)}
     />
-  ), [toggleLike, toggleFollow, deletePost, user?.id]);
+  ), [toggleLike, toggleFollow, deletePost, sharePost, user?.id]);
 
   const tabs: { key: Tab; label: string; icon: string }[] = [
     { key: "trending", label: "Trending", icon: "trending-up" },

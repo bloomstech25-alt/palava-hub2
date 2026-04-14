@@ -65,6 +65,7 @@ interface FeedContextType {
   setCurrentUserId: (id: string | null) => void;
   addPost: (content: string, tags: string[], author: User, mediaUri?: string, mediaType?: "image" | "video") => Promise<void>;
   deletePost: (postId: string) => Promise<void>;
+  sharePost: (postId: string) => void;
   toggleLike: (postId: string) => void;
   toggleFollow: (postId: string) => void;
   getPostComments: (postId: string) => Comment[];
@@ -185,6 +186,10 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     await deleteDoc(doc(db, "posts", postId));
   }, []);
 
+  const sharePost = useCallback((postId: string) => {
+    updateDoc(doc(db, "posts", postId), { shares: increment(1) }).catch(() => {});
+  }, []);
+
   const toggleLike = useCallback((postId: string) => {
     if (!currentUserId) return;
     const post = posts.find((p) => p.id === postId);
@@ -254,6 +259,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         setCurrentUserId,
         addPost,
         deletePost,
+        sharePost,
         toggleLike,
         toggleFollow,
         getPostComments,
