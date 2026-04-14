@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "d_voqcliZdRGqPp8T3wBM"
@@ -12,3 +11,15 @@ id = "n_jKPcKC6BpidqVKtUOrx"
 uri = "file://artifacts/mobile/assets/images/placeholder_campus.png"
 type = "image"
 title = "campus placeholder"
+
+[[outputs]]
+id = "tB3gYCKTyBPPIw0BCNfpe"
+uri = "file://PalavaHub-Screenshots.zip"
+type = "unspecified"
+title = "Palava Hub – Promotional Screenshots"
+
+[[outputs]]
+id = "MnSU5iB_ePUi7bgy3Fcpw"
+uri = "file://PalavaHub-Screenshots.tar.gz"
+type = "unspecified"
+title = "Palava Hub – Screenshots (tar.gz)"
