@@ -46,8 +46,11 @@ function RootLayoutNav() {
         <Stack.Screen name="create-post" options={{ presentation: "modal" }} />
         <Stack.Screen name="create-ad" options={{ presentation: "modal" }} />
         <Stack.Screen name="go-live" options={{ presentation: "fullScreenModal" }} />
+        <Stack.Screen name="edit-profile" options={{ presentation: "modal" }} />
+        <Stack.Screen name="create-page" options={{ presentation: "modal" }} />
         <Stack.Screen name="post/[id]" />
         <Stack.Screen name="chat/[userId]" />
+        <Stack.Screen name="page/[pageId]" />
         <Stack.Screen name="index" />
       </Stack>
     </>

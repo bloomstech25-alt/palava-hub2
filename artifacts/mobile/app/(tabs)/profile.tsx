@@ -105,6 +105,10 @@ export default function ProfileScreen() {
                   <TouchableOpacity
                     style={[styles.actionBtn, { backgroundColor: colors.muted, borderWidth: 1, borderColor: colors.border }]}
                     activeOpacity={0.85}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      router.push("/edit-profile");
+                    }}
                   >
                     <Text style={[styles.actionBtnText, { color: colors.foreground }]}>Edit Profile</Text>
                   </TouchableOpacity>
@@ -139,6 +143,26 @@ export default function ProfileScreen() {
                 ))}
               </View>
             </View>
+
+            {isOwnProfile && (
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/create-page");
+                }}
+                style={[styles.createPageBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.createPageIcon, { backgroundColor: colors.primary + "18" }]}>
+                  <Feather name="flag" size={18} color={colors.primary} />
+                </View>
+                <View style={styles.createPageText}>
+                  <Text style={[styles.createPageTitle, { color: colors.foreground }]}>Create a Page</Text>
+                  <Text style={[styles.createPageSub, { color: colors.mutedForeground }]}>Start a business, club, or community page</Text>
+                </View>
+                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            )}
 
             <Text style={[styles.postsHeader, { color: colors.mutedForeground }]}>POSTS</Text>
           </View>
@@ -213,4 +237,24 @@ const styles = StyleSheet.create({
   listContent: { paddingBottom: 100 },
   empty: { alignItems: "center", paddingTop: 40, gap: 10 },
   emptyText: { fontSize: 14 },
+  createPageBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginHorizontal: 12,
+    marginBottom: 6,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  createPageIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  createPageText: { flex: 1 },
+  createPageTitle: { fontSize: 15, fontWeight: "600" },
+  createPageSub: { fontSize: 12, marginTop: 2 },
 });
