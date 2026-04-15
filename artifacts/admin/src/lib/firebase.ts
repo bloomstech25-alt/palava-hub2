@@ -18,14 +18,18 @@ export const auth = getAuth(app);
 
 // Force long-polling so Firestore works reliably in proxied environments
 // (Replit's proxy blocks WebSocket upgrades, causing 600ms timeout errors).
-let _db: ReturnType<typeof getFirestore>;
-try {
-  _db = initializeFirestore(app, { experimentalForceLongPolling: true }, "default");
-} catch {
-  _db = getFirestore(app, "default");
+function buildDb() {
+  try {
+    return initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+      useFetchStreams: false,
+    }, "default");
+  } catch {
+    return getFirestore(app, "default");
+  }
 }
 
-export const db = _db;
+export const db = buildDb();
 export const storage = getStorage(app);
 
 export default app;

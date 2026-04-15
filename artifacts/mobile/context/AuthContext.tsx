@@ -8,6 +8,7 @@ import {
 import {
   doc,
   setDoc,
+  getDoc,
   onSnapshot,
   updateDoc,
   arrayUnion,
@@ -78,6 +79,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (userUnsub) { userUnsub(); userUnsub = null; }
 
       if (firebaseUser) {
+        // Build a minimal user profile from Firebase Auth data alone,
+        // used as fallback when Firestore is temporarily unreachable.
+        const buildFallback = (): User => ({
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName ?? firebaseUser.email?.split("@")[0] ?? "User",
+          username: (firebaseUser.email?.split("@")[0] ?? "user").toLowerCase().replace(/[^a-z0-9]/g, ""),
+          email: firebaseUser.email ?? "",
+          school: { id: "", name: "Unknown School", type: "university", location: "" },
+          bio: "",
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.displayName ?? "User")}&background=BF0A30&color=fff&size=200`,
+          followers: 0,
+          following: 0,
+          followingIds: [],
+          posts: 0,
+          joinedAt: new Date().toISOString().split("T")[0],
+        });
+
         // Subscribe to real-time updates on this user's Firestore doc so that
         // any write (following, being followed, posting) instantly updates the UI
         userUnsub = onSnapshot(
@@ -87,27 +105,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setUser({ ...(snap.data() as User), id: snap.id });
             } else {
               // No Firestore profile yet — create a minimal fallback
-              const fallback: User = {
-                id: firebaseUser.uid,
-                name: firebaseUser.displayName ?? firebaseUser.email?.split("@")[0] ?? "User",
-                username: (firebaseUser.email?.split("@")[0] ?? "user").toLowerCase().replace(/[^a-z0-9]/g, ""),
-                email: firebaseUser.email ?? "",
-                school: { id: "", name: "Unknown School", type: "university", location: "" },
-                bio: "",
-                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.displayName ?? "User")}&background=BF0A30&color=fff&size=200`,
-                followers: 0,
-                following: 0,
-                followingIds: [],
-                posts: 0,
-                joinedAt: new Date().toISOString().split("T")[0],
-              };
+              const fallback = buildFallback();
               try { await setDoc(doc(db, "users", firebaseUser.uid), fallback); } catch { /* best effort */ }
               setUser(fallback);
             }
             setIsLoading(false);
           },
-          () => {
-            setUser(null);
+          async () => {
+            // Firestore connection error (e.g. 600ms timeout in proxied env).
+            // Don't immediately log the user out — they ARE still authenticated.
+            // Try a one-shot getDoc as fallback; if that also fails, use Auth data.
+            try {
+              const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+              if (snap.exists()) {
+                setUser({ ...(snap.data() as User), id: snap.id });
+              } else {
+                const fallback = buildFallback();
+                try { await setDoc(doc(db, "users", firebaseUser.uid), fallback); } catch { /* best effort */ }
+                setUser(fallback);
+              }
+            } catch {
+              // Even getDoc failed — keep the user logged in with Auth-only data
+              setUser(buildFallback());
+            }
             setIsLoading(false);
           }
         );
