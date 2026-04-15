@@ -162,22 +162,6 @@ export default function CreatePalavaScreen() {
           </Text>
         </View>
 
-        {/* Rules */}
-        <View style={[styles.rulesBox, { backgroundColor: colors.muted + "60", borderColor: colors.border }]}>
-          <Text style={[styles.rulesTitle, { color: colors.mutedForeground }]}>Palava Room Rules</Text>
-          {[
-            "No names — keep it anonymous",
-            "No hate speech or bullying",
-            "Keep it school-related or lighthearted",
-            "Posts are reviewed if reported",
-          ].map((rule) => (
-            <View key={rule} style={styles.ruleRow}>
-              <Feather name="check" size={12} color={colors.mutedForeground} />
-              <Text style={[styles.ruleText, { color: colors.mutedForeground }]}>{rule}</Text>
-            </View>
-          ))}
-        </View>
-
         {/* Prompt ideas */}
         <Text style={[styles.ideasTitle, { color: colors.mutedForeground }]}>Need ideas? Tap one:</Text>
         <View style={styles.ideas}>
@@ -255,15 +239,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontWeight: "500",
   },
-  rulesBox: {
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 8,
-  },
-  rulesTitle: { fontSize: 12, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 2 },
-  ruleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  ruleText: { fontSize: 13 },
   ideasTitle: { fontSize: 12, fontWeight: "600", letterSpacing: 0.5, textTransform: "uppercase" },
   ideas: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   ideaChip: {
