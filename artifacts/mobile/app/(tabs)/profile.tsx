@@ -2,8 +2,9 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   Platform,
@@ -14,25 +15,40 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { PostCard } from "@/components/PostCard";
 import { useAuth } from "@/context/AuthContext";
-import { useFeed, type Post, SAMPLE_USERS } from "@/context/FeedContext";
+import type { User } from "@/context/AuthContext";
+import { useFeed, type Post } from "@/context/FeedContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const { user, logout } = useAuth();
+  const { user, logout, followUser, unfollowUser } = useAuth();
   const { posts, toggleLike, toggleFollow, deletePost, sharePost } = useFeed();
   const params = useLocalSearchParams<{ userId?: string }>();
 
-  const profileUser = useMemo(() => {
-    if (params.userId && params.userId !== user?.id) {
-      return SAMPLE_USERS.find((u) => u.id === params.userId) ?? user;
-    }
-    return user;
-  }, [params.userId, user]);
+  const [otherUser, setOtherUser] = useState<User | null>(null);
+  const [otherLoading, setOtherLoading] = useState(false);
+
+  const isViewingOther = !!params.userId && params.userId !== user?.id;
+
+  useEffect(() => {
+    if (!isViewingOther || !params.userId) { setOtherUser(null); return; }
+    setOtherLoading(true);
+    getDoc(doc(db, "users", params.userId))
+      .then((snap) => {
+        if (snap.exists()) setOtherUser({ ...(snap.data() as User), id: snap.id });
+        else setOtherUser(null);
+      })
+      .catch(() => setOtherUser(null))
+      .finally(() => setOtherLoading(false));
+  }, [params.userId, isViewingOther]);
+
+  const profileUser = isViewingOther ? otherUser : user;
 
   const isOwnProfile = profileUser?.id === user?.id;
 
@@ -40,6 +56,15 @@ export default function ProfileScreen() {
     () => posts.filter((p) => p.author.id === profileUser?.id),
     [posts, profileUser]
   );
+
+  if (isViewingOther && otherLoading) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }]}>
+        <StatusBar style="dark" />
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
 
   if (!profileUser) return null;
 
@@ -97,12 +122,49 @@ export default function ProfileScreen() {
               <View style={styles.profileTop}>
                 <Image source={{ uri: profileUser.avatar }} style={styles.avatar} />
                 {!isOwnProfile ? (
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: colors.primary }]}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={[styles.actionBtnText, { color: colors.primaryForeground }]}>Follow</Text>
-                  </TouchableOpacity>
+                  <View style={styles.profileActions}>
+                    <TouchableOpacity
+                      style={[
+                        styles.actionBtn,
+                        {
+                          backgroundColor: (user?.followingIds ?? []).includes(profileUser.id) ? colors.muted : colors.primary,
+                          borderWidth: (user?.followingIds ?? []).includes(profileUser.id) ? 1 : 0,
+                          borderColor: colors.border,
+                        },
+                      ]}
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        if ((user?.followingIds ?? []).includes(profileUser.id)) {
+                          unfollowUser(profileUser.id);
+                        } else {
+                          followUser(profileUser.id);
+                        }
+                      }}
+                    >
+                      <Text style={[styles.actionBtnText, {
+                        color: (user?.followingIds ?? []).includes(profileUser.id) ? colors.foreground : colors.primaryForeground
+                      }]}>
+                        {(user?.followingIds ?? []).includes(profileUser.id) ? "Following" : "Follow"}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: colors.muted, borderWidth: 1, borderColor: colors.border }]}
+                      activeOpacity={0.85}
+                      onPress={() => router.push({
+                        pathname: "/chat/[userId]",
+                        params: {
+                          userId: profileUser.id,
+                          name: profileUser.name,
+                          username: profileUser.username,
+                          avatar: profileUser.avatar,
+                          school: profileUser.school.name,
+                        }
+                      })}
+                    >
+                      <Text style={[styles.actionBtnText, { color: colors.foreground }]}>Message</Text>
+                    </TouchableOpacity>
+                  </View>
                 ) : (
                   <TouchableOpacity
                     style={[styles.actionBtn, { backgroundColor: colors.muted, borderWidth: 1, borderColor: colors.border }]}
@@ -205,6 +267,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   avatar: { width: 72, height: 72, borderRadius: 36 },
+  profileActions: { flexDirection: "row", gap: 8, alignItems: "center" },
   actionBtn: {
     paddingHorizontal: 20,
     paddingVertical: 9,

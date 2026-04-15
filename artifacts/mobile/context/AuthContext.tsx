@@ -10,6 +10,9 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  arrayUnion,
+  arrayRemove,
+  increment,
 } from "firebase/firestore";
 import { auth, db, storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -31,6 +34,7 @@ export interface User {
   avatar: string;
   followers: number;
   following: number;
+  followingIds: string[];
   posts: number;
   joinedAt: string;
 }
@@ -43,6 +47,8 @@ interface AuthContextType {
   register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
+  followUser: (targetId: string) => Promise<void>;
+  unfollowUser: (targetId: string) => Promise<void>;
 }
 
 interface RegisterData {
@@ -81,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.displayName ?? "User")}&background=BF0A30&color=fff&size=200`,
               followers: 0,
               following: 0,
+              followingIds: [],
               posts: 0,
               joinedAt: new Date().toISOString().split("T")[0],
             };
@@ -155,6 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         avatar: avatarUrl,
         followers: 0,
         following: 0,
+        followingIds: [],
         posts: 0,
         joinedAt: new Date().toISOString().split("T")[0],
       };
@@ -186,6 +194,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  const followUser = useCallback(async (targetId: string) => {
+    if (!user || targetId === user.id) return;
+    if ((user.followingIds ?? []).includes(targetId)) return;
+    const updatedIds = [...(user.followingIds ?? []), targetId];
+    setUser({ ...user, followingIds: updatedIds, following: user.following + 1 });
+    try {
+      await updateDoc(doc(db, "users", user.id), {
+        followingIds: arrayUnion(targetId),
+        following: increment(1),
+      });
+      await updateDoc(doc(db, "users", targetId), {
+        followers: increment(1),
+      });
+    } catch {
+      setUser({ ...user });
+    }
+  }, [user]);
+
+  const unfollowUser = useCallback(async (targetId: string) => {
+    if (!user) return;
+    if (!(user.followingIds ?? []).includes(targetId)) return;
+    const updatedIds = (user.followingIds ?? []).filter((id) => id !== targetId);
+    setUser({ ...user, followingIds: updatedIds, following: Math.max(0, user.following - 1) });
+    try {
+      await updateDoc(doc(db, "users", user.id), {
+        followingIds: arrayRemove(targetId),
+        following: increment(-1),
+      });
+      await updateDoc(doc(db, "users", targetId), {
+        followers: increment(-1),
+      });
+    } catch {
+      setUser({ ...user });
+    }
+  }, [user]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -196,6 +240,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         updateUser,
+        followUser,
+        unfollowUser,
       }}
     >
       {children}
