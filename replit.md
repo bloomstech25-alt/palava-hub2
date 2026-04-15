@@ -51,9 +51,10 @@ pnpm workspace monorepo using TypeScript. **Palava Hub** — a Liberian student 
 - Direct messaging via Firestore (conversations subcollection per user)
 - Notification center with unread badge
 - User profiles with followers/following stats
-- Go Live camera screen (requires native Expo Go for camera access)
+- Go Live camera screen (requires native Expo Go for camera access; web shows "Open in Expo Go" message)
 - Create Page / Brand Pages
 - Ads system via AdsContext
+- **Palava Room** — anonymous 24-hour confessions wall (🔥 tab); posts stored in `palavaroomPosts` Firestore collection; 4 emoji reactions (Wahala/Funny/Real Talk/Spill More); posts auto-expire after 24 hours; only school name shown (100% anonymous)
 
 #### Key Files
 - `app/_layout.tsx` — root layout with all providers + FirebaseSyncBridge (syncs userId to FeedContext/MessagingContext)
@@ -66,6 +67,8 @@ pnpm workspace monorepo using TypeScript. **Palava Hub** — a Liberian student 
 - `constants/colors.ts` — design tokens (dark Liberian palette)
 - `app/welcome.tsx` — landing/onboarding screen
 - `app/login.tsx` / `app/register.tsx` — auth screens
+- `app/(tabs)/palava-room.tsx` — Palava Room anonymous feed (real-time, 24h expiry)
+- `app/create-palava.tsx` — create anonymous palava post (modal, 300 char limit, prompt suggestions)
 - `app.json` — camera + media library permissions declared
 
 #### Schools (Liberian Only)

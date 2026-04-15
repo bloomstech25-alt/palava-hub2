@@ -16,8 +16,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-const IS_WEB = Platform.OS === "web";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   collection,
@@ -32,6 +30,8 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+
+const IS_WEB = Platform.OS === "web";
 
 const { height } = Dimensions.get("window");
 
@@ -213,7 +213,15 @@ export default function GoLiveScreen() {
         <View style={[styles.previewScreen, { paddingTop: topPad }]}>
           {/* Camera preview or placeholder */}
           <View style={styles.cameraPreviewWrap}>
-            {hasPermission ? (
+            {IS_WEB ? (
+              <View style={styles.permissionBox}>
+                <Feather name="smartphone" size={36} color="rgba(255,255,255,0.5)" />
+                <Text style={styles.permissionText}>Open in Expo Go to use camera</Text>
+                <Text style={styles.permissionSub}>
+                  Scan the QR code in the mobile preview{"\n"}with the Expo Go app on your phone
+                </Text>
+              </View>
+            ) : hasPermission ? (
               <>
                 <CameraView
                   style={StyleSheet.absoluteFill}
@@ -235,7 +243,7 @@ export default function GoLiveScreen() {
               >
                 <Feather name="camera" size={36} color="rgba(255,255,255,0.5)" />
                 <Text style={styles.permissionText}>Tap to enable camera</Text>
-                <Text style={styles.permissionSub}>Camera access lets viewers see you</Text>
+                <Text style={styles.permissionSub}>Allow camera access to go live</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -290,7 +298,14 @@ export default function GoLiveScreen() {
 
       {/* Live camera view */}
       <View style={[styles.cameraView, { height: height * 0.52 }]}>
-        {permission?.granted ? (
+        {IS_WEB ? (
+          <View style={[styles.cameraFallback, { gap: 8 }]}>
+            <Feather name="radio" size={28} color="#ef4444" />
+            <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, textAlign: "center" }}>
+              Camera unavailable in browser{"\n"}Use Expo Go on your phone
+            </Text>
+          </View>
+        ) : permission?.granted ? (
           <CameraView style={StyleSheet.absoluteFill} facing={facing} />
         ) : (
           <View style={styles.cameraFallback}>

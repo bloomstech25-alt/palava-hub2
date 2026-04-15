@@ -3,7 +3,7 @@ import { router, Tabs } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
 import React, { useEffect } from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, StyleSheet, Text, View, useColorScheme } from "react-native";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/context/AuthContext";
 import { useFeed } from "@/context/FeedContext";
@@ -75,6 +75,15 @@ export default function TabLayout() {
             ) : (
               <Feather name="search" size={22} color={color} />
             ),
+        }}
+      />
+      <Tabs.Screen
+        name="palava-room"
+        options={{
+          title: "Palava",
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.55 }}>🔥</Text>
+          ),
         }}
       />
       <Tabs.Screen
