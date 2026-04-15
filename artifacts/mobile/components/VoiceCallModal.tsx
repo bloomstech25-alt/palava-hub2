@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -9,13 +10,21 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  Vibration,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  doc,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
+  onSnapshot,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 interface Props {
   visible: boolean;
+  callId: string;
   name: string;
   avatar: string;
   school: string;
@@ -28,75 +37,163 @@ function fmtDuration(s: number) {
   return `${m}:${sec}`;
 }
 
-export default function VoiceCallModal({ visible, name, avatar, school, onEnd }: Props) {
+export default function VoiceCallModal({ visible, callId, name, avatar, school, onEnd }: Props) {
   const insets = useSafeAreaInsets();
   const [duration, setDuration] = useState(0);
   const [muted, setMuted] = useState(false);
   const [speaker, setSpeaker] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [status, setStatus] = useState<"ringing" | "connected" | "declined" | "ended">("ringing");
   const pulse1 = useRef(new Animated.Value(1)).current;
   const pulse2 = useRef(new Animated.Value(1)).current;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const connectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const unsubRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (visible) {
-      setDuration(0);
-      setConnected(false);
-      setMuted(false);
-      setSpeaker(false);
+    if (!visible) return;
 
-      // Connecting animation pulses
-      const loop = Animated.loop(
-        Animated.sequence([
-          Animated.parallel([
-            Animated.timing(pulse1, { toValue: 1.4, duration: 800, useNativeDriver: true }),
-            Animated.timing(pulse2, { toValue: 1.8, duration: 800, useNativeDriver: true }),
-          ]),
-          Animated.parallel([
-            Animated.timing(pulse1, { toValue: 1, duration: 800, useNativeDriver: true }),
-            Animated.timing(pulse2, { toValue: 1, duration: 800, useNativeDriver: true }),
-          ]),
-        ])
-      );
-      loop.start();
+    setDuration(0);
+    setConnected(false);
+    setMuted(false);
+    setSpeaker(false);
+    setStatus("ringing");
 
-      // Connect after 2s
-      connectRef.current = setTimeout(() => {
-        setConnected(true);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
-      }, 2000);
+    // Pulse animation while ringing/connecting
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(pulse1, { toValue: 1.4, duration: 800, useNativeDriver: true }),
+          Animated.timing(pulse2, { toValue: 1.8, duration: 800, useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(pulse1, { toValue: 1, duration: 800, useNativeDriver: true }),
+          Animated.timing(pulse2, { toValue: 1, duration: 800, useNativeDriver: true }),
+        ]),
+      ])
+    );
+    loop.start();
 
-      return () => {
-        loop.stop();
-        if (connectRef.current) clearTimeout(connectRef.current);
-        if (timerRef.current) clearInterval(timerRef.current);
-      };
+    // Request mic and set earpiece audio mode
+    const setupAudio = async () => {
+      try {
+        const { granted } = await Audio.requestPermissionsAsync();
+        if (!granted) return;
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+          shouldDuckAndroid: false,
+          playThroughEarpieceAndroid: true,
+        });
+        // Start capturing mic so the OS shows "in call" indicator
+        const { recording } = await Audio.Recording.createAsync(
+          Audio.RecordingOptionsPresets.LOW_QUALITY,
+          undefined,
+          100,
+        );
+        recordingRef.current = recording;
+      } catch { /* permission denied or device unsupported */ }
+    };
+    setupAudio();
+
+    // Listen to call document — callee accepts = connected, declines = ended
+    if (callId) {
+      unsubRef.current = onSnapshot(doc(db, "calls", callId), (snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        if (data.status === "connected" && !connected) {
+          setConnected(true);
+          setStatus("connected");
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
+        }
+        if (data.status === "ended" || data.status === "declined") {
+          setStatus(data.status);
+          cleanup();
+          setTimeout(onEnd, 1200);
+        }
+      });
     }
-  }, [visible]);
 
-  const handleEnd = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (connectRef.current) clearTimeout(connectRef.current);
+    return () => {
+      loop.stop();
+      cleanup();
+    };
+  }, [visible, callId]);
+
+  const cleanup = async () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
+    if (recordingRef.current) {
+      try {
+        await recordingRef.current.stopAndUnloadAsync();
+      } catch { /* already stopped */ }
+      recordingRef.current = null;
+    }
+    try {
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playThroughEarpieceAndroid: false });
+    } catch { /* ignore */ }
+  };
+
+  const toggleMute = async () => {
+    const next = !muted;
+    setMuted(next);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (recordingRef.current) {
+      try {
+        if (next) {
+          await recordingRef.current.pauseAsync();
+        } else {
+          await recordingRef.current.startAsync();
+        }
+      } catch { /* ignore */ }
+    }
+  };
+
+  const toggleSpeaker = async () => {
+    const next = !speaker;
+    setSpeaker(next);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: !next,
+      });
+    } catch { /* ignore */ }
+  };
+
+  const handleEnd = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    if (callId) {
+      try { await updateDoc(doc(db, "calls", callId), { status: "ended", endedAt: serverTimestamp() }); } catch { /* ignore */ }
+    }
+    await cleanup();
     onEnd();
   };
+
+  const statusLabel = status === "ringing"
+    ? "Calling..."
+    : status === "declined"
+    ? "Call declined"
+    : status === "ended"
+    ? "Call ended"
+    : fmtDuration(duration);
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <View style={styles.container}>
-        {/* Background gradient effect */}
         <View style={[styles.bg, { backgroundColor: "#0f172a" }]} />
         <View style={[styles.bgOverlay, { backgroundColor: "#1e3a5f" }]} />
 
         <View style={[styles.content, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }]}>
-          {/* Status */}
           <Text style={styles.statusText}>
             {connected ? "🔒 Encrypted Voice Call" : "Connecting..."}
           </Text>
 
-          {/* Avatar with pulse rings */}
           <View style={styles.avatarSection}>
             <Animated.View style={[styles.ring2, { transform: [{ scale: pulse2 }] }]} />
             <Animated.View style={[styles.ring1, { transform: [{ scale: pulse1 }] }]} />
@@ -105,22 +202,17 @@ export default function VoiceCallModal({ visible, name, avatar, school, onEnd }:
 
           <Text style={styles.name}>{name}</Text>
           <Text style={styles.school}>{school}</Text>
+          <Text style={styles.timer}>{statusLabel}</Text>
 
-          <Text style={styles.timer}>
-            {connected ? fmtDuration(duration) : "Calling..."}
-          </Text>
-
-          {/* E2E badge */}
           <View style={styles.e2eBadge}>
             <Feather name="lock" size={12} color="#22c55e" />
             <Text style={styles.e2eText}>End-to-end encrypted</Text>
           </View>
 
-          {/* Controls */}
           <View style={styles.controls}>
             <TouchableOpacity
               style={[styles.ctrlBtn, muted && styles.ctrlBtnActive]}
-              onPress={() => { setMuted(!muted); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+              onPress={toggleMute}
               activeOpacity={0.8}
             >
               <Feather name={muted ? "mic-off" : "mic"} size={22} color="#ffffff" />
@@ -133,7 +225,7 @@ export default function VoiceCallModal({ visible, name, avatar, school, onEnd }:
 
             <TouchableOpacity
               style={[styles.ctrlBtn, speaker && styles.ctrlBtnActive]}
-              onPress={() => { setSpeaker(!speaker); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+              onPress={toggleSpeaker}
               activeOpacity={0.8}
             >
               <Feather name="volume-2" size={22} color="#ffffff" />

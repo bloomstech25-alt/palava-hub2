@@ -20,8 +20,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useMessaging, type Message } from "@/context/MessagingContext";
 import { useColors } from "@/hooks/useColors";
-import { storage } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import VoiceCallModal from "@/components/VoiceCallModal";
 import VideoCallModal from "@/components/VideoCallModal";
 import EmojiPicker from "@/components/EmojiPicker";
@@ -189,6 +190,7 @@ export default function ChatScreen() {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [activeCallId, setActiveCallId] = useState("");
   const textInputRef = useRef<TextInput>(null);
   const flatRef = useRef<FlatList>(null);
   const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -205,6 +207,28 @@ export default function ChatScreen() {
   useEffect(() => {
     setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 150);
   }, [chatMessages.length]);
+
+  const startCall = useCallback(async (type: "voice" | "video") => {
+    if (!user?.id || !userId) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const callId = `${user.id}_${userId}_${Date.now()}`;
+    try {
+      await setDoc(doc(db, "calls", callId), {
+        callId,
+        callerId: user.id,
+        callerName: user.name,
+        callerAvatar: user.avatar,
+        calleeId: userId,
+        calleeName: name ?? "",
+        type,
+        status: "ringing",
+        startedAt: serverTimestamp(),
+      });
+    } catch { /* Firestore unavailable — call still opens locally */ }
+    setActiveCallId(callId);
+    if (type === "voice") setShowVoiceCall(true);
+    else setShowVideoCall(true);
+  }, [user, userId, name]);
 
   const doSend = useCallback(async (
     txt: string,
@@ -391,13 +415,13 @@ export default function ChatScreen() {
           </View>
         </View>
         <TouchableOpacity
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowVoiceCall(true); }}
+          onPress={() => startCall("voice")}
           style={styles.callBtn} activeOpacity={0.7}
         >
           <Feather name="phone" size={20} color={colors.primary} />
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowVideoCall(true); }}
+          onPress={() => startCall("video")}
           style={styles.callBtn} activeOpacity={0.7}
         >
           <Feather name="video" size={20} color={colors.primary} />
@@ -514,18 +538,20 @@ export default function ChatScreen() {
       {/* Call modals */}
       <VoiceCallModal
         visible={showVoiceCall}
+        callId={activeCallId}
         name={name ?? ""}
         avatar={avatar ?? ""}
         school={school ?? ""}
-        onEnd={() => setShowVoiceCall(false)}
+        onEnd={() => { setShowVoiceCall(false); setActiveCallId(""); }}
       />
       <VideoCallModal
         visible={showVideoCall}
+        callId={activeCallId}
         name={name ?? ""}
         avatar={avatar ?? ""}
         school={school ?? ""}
-        myAvatar={user?.avatar ?? "https://i.pravatar.cc/150?img=1"}
-        onEnd={() => setShowVideoCall(false)}
+        myAvatar={user?.avatar ?? ""}
+        onEnd={() => { setShowVideoCall(false); setActiveCallId(""); }}
       />
     </KeyboardAvoidingView>
   );
