@@ -224,6 +224,7 @@ export default function GoLiveScreen() {
             ) : hasPermission ? (
               <>
                 <CameraView
+                  key={facing}
                   style={StyleSheet.absoluteFill}
                   facing={facing}
                 />
@@ -306,7 +307,7 @@ export default function GoLiveScreen() {
             </Text>
           </View>
         ) : permission?.granted ? (
-          <CameraView style={StyleSheet.absoluteFill} facing={facing} />
+          <CameraView key={facing} style={StyleSheet.absoluteFill} facing={facing} />
         ) : (
           <View style={styles.cameraFallback}>
             <Feather name="video" size={32} color="rgba(255,255,255,0.25)" />
