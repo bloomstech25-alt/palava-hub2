@@ -20,7 +20,6 @@ import {
   collection,
   getDocs,
   limit,
-  orderBy,
   query,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -55,17 +54,17 @@ export default function ExploreScreen() {
     if (activeTab !== "people") return;
     let cancelled = false;
     setUsersLoading(true);
-    const q = query(
-      collection(db, "users"),
-      orderBy("followers", "desc"),
-      limit(80)
-    );
+    // Fetch without orderBy so users missing the "followers" field aren't silently excluded.
+    // Sort client-side instead, treating missing followers as 0.
+    const q = query(collection(db, "users"), limit(200));
     getDocs(q)
       .then((snap) => {
         if (cancelled) return;
         const fetched: User[] = snap.docs
           .map((d) => ({ ...(d.data() as User), id: d.id }))
-          .filter((u) => u.id !== user?.id);
+          .filter((u) => u.id !== user?.id)
+          .sort((a, b) => (b.followers ?? 0) - (a.followers ?? 0))
+          .slice(0, 80);
         setFirestoreUsers(fetched);
       })
       .catch(() => {})
