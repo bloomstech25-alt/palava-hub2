@@ -20,6 +20,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useMessaging, type Message } from "@/context/MessagingContext";
 import { useColors } from "@/hooks/useColors";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import VoiceCallModal from "@/components/VoiceCallModal";
 import VideoCallModal from "@/components/VideoCallModal";
 import EmojiPicker from "@/components/EmojiPicker";
@@ -244,6 +246,19 @@ export default function ChatScreen() {
     }
   };
 
+  const uploadMediaToStorage = async (localUri: string, mediaType: "image" | "video"): Promise<string | null> => {
+    try {
+      const response = await fetch(localUri);
+      const blob = await response.blob();
+      const ext = mediaType === "video" ? "mp4" : "jpg";
+      const storageRef = ref(storage, `chats/${user?.id}/${Date.now()}.${ext}`);
+      await uploadBytes(storageRef, blob);
+      return await getDownloadURL(storageRef);
+    } catch {
+      return null;
+    }
+  };
+
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: "images",
@@ -251,7 +266,8 @@ export default function ChatScreen() {
     });
     if (!result.canceled && result.assets[0]) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      doSend("", { uri: result.assets[0].uri, type: "image" });
+      const uploadedUri = await uploadMediaToStorage(result.assets[0].uri, "image");
+      if (uploadedUri) doSend("", { uri: uploadedUri, type: "image" });
     }
   };
 
@@ -262,7 +278,8 @@ export default function ChatScreen() {
     });
     if (!result.canceled && result.assets[0]) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      doSend("", { uri: result.assets[0].uri, type: "video" });
+      const uploadedUri = await uploadMediaToStorage(result.assets[0].uri, "video");
+      if (uploadedUri) doSend("", { uri: uploadedUri, type: "video" });
     }
   };
 

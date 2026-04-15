@@ -16,7 +16,8 @@ import {
   getDoc,
   getDocs,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import type { School, User } from "./AuthContext";
 
 export interface Post {
@@ -163,12 +164,29 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     mediaUri?: string,
     mediaType?: "image" | "video"
   ) => {
+    // Upload media to Firebase Storage so we store a permanent HTTPS URL
+    // (not a local blob: or file: URI which breaks for other users)
+    let finalMediaUri: string | null = null;
+    if (mediaUri) {
+      try {
+        const response = await fetch(mediaUri);
+        const blob = await response.blob();
+        const ext = mediaType === "video" ? "mp4" : "jpg";
+        const storageRef = ref(storage, `posts/${author.id}/${Date.now()}.${ext}`);
+        await uploadBytes(storageRef, blob);
+        finalMediaUri = await getDownloadURL(storageRef);
+      } catch {
+        // If upload fails, post without media rather than storing a broken local URI
+        finalMediaUri = null;
+      }
+    }
+
     await addDoc(collection(db, "posts"), {
       author,
       authorId: author.id,
       content,
-      mediaUri: mediaUri ?? null,
-      mediaType: mediaType ?? null,
+      mediaUri: finalMediaUri,
+      mediaType: finalMediaUri ? (mediaType ?? null) : null,
       likes: 0,
       likedBy: [],
       comments: 0,

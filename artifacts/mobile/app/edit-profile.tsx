@@ -2,6 +2,8 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
 import {
@@ -71,11 +73,26 @@ export default function EditProfileScreen() {
     setIsSaving(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
+      // If the avatar has changed and is a local URI (blob: or file:), upload to Firebase Storage
+      let finalAvatar = avatar;
+      const isLocalUri = avatar !== user?.avatar && (avatar.startsWith("blob:") || avatar.startsWith("file:"));
+      if (isLocalUri && user?.id) {
+        try {
+          const response = await fetch(avatar);
+          const blob = await response.blob();
+          const storageRef = ref(storage, `avatars/${user.id}`);
+          await uploadBytes(storageRef, blob);
+          finalAvatar = await getDownloadURL(storageRef);
+        } catch {
+          // Keep original avatar if upload fails
+          finalAvatar = user?.avatar ?? avatar;
+        }
+      }
       await updateUser({
         name: name.trim(),
         username: cleanUsername,
         bio: bio.trim(),
-        avatar,
+        avatar: finalAvatar,
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
