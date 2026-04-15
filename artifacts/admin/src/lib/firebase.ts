@@ -1,6 +1,6 @@
 import { getApps, getApp, initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore, getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -15,8 +15,17 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
-// Use the named 'default' database (not the system '(default)' database)
-export const db = getFirestore(app, "default");
+
+// Force long-polling so Firestore works reliably in proxied environments
+// (Replit's proxy blocks WebSocket upgrades, causing 600ms timeout errors).
+let _db: ReturnType<typeof getFirestore>;
+try {
+  _db = initializeFirestore(app, { experimentalForceLongPolling: true }, "default");
+} catch {
+  _db = getFirestore(app, "default");
+}
+
+export const db = _db;
 export const storage = getStorage(app);
 
 export default app;
