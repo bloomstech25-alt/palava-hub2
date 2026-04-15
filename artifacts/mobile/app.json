@@ -14,9 +14,24 @@
       "backgroundColor": "#0D0A08"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Palava Hub needs camera access to let you go live and post photos.",
+        "NSMicrophoneUsageDescription": "Palava Hub needs microphone access for live video sessions.",
+        "NSPhotoLibraryAddUsageDescription": "Palava Hub needs access to save photos to your camera roll.",
+        "NSPhotoLibraryUsageDescription": "Palava Hub needs access to your photos to let you share images."
+      }
     },
-    "android": {},
+    "android": {
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO"
+      ]
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
@@ -28,7 +43,23 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Palava Hub needs camera access to let you go live.",
+          "microphonePermission": "Palava Hub needs microphone access for live sessions.",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Palava Hub needs access to save photos to your library.",
+          "savePhotosPermission": "Palava Hub needs permission to save photos.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

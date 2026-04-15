@@ -16,6 +16,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+const IS_WEB = Platform.OS === "web";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   collection,

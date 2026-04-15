@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Image,
@@ -28,10 +28,17 @@ export default function PostDetailScreen() {
 
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
-  const { posts, toggleLike, toggleFollow, getPostComments, addComment } = useFeed();
+  const { posts, toggleLike, toggleFollow, getPostComments, addComment, subscribeToComments } = useFeed();
 
   const post = useMemo(() => posts.find((p) => p.id === id), [posts, id]);
   const comments = useMemo(() => getPostComments(id ?? ""), [getPostComments, id]);
+
+  // Subscribe to real-time Firestore comments for this post
+  useEffect(() => {
+    if (!id) return;
+    const unsub = subscribeToComments(id);
+    return unsub;
+  }, [id, subscribeToComments]);
 
   const [comment, setComment] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);

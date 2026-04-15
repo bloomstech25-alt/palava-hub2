@@ -70,6 +70,7 @@ interface FeedContextType {
   toggleFollow: (postId: string) => void;
   getPostComments: (postId: string) => Comment[];
   addComment: (postId: string, content: string, author: User) => void;
+  subscribeToComments: (postId: string) => () => void;
   markNotificationsRead: () => void;
 }
 
@@ -227,14 +228,49 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
       isLiked: false,
       createdAt: new Date().toISOString(),
     };
+    // Optimistic update
     setComments((prev) => ({
       ...prev,
       [postId]: [newComment, ...(prev[postId] ?? [])],
     }));
     try {
+      // Persist to Firestore subcollection
+      await addDoc(collection(db, "posts", postId, "comments"), {
+        author,
+        content,
+        likes: 0,
+        likedBy: [],
+        createdAt: serverTimestamp(),
+      });
       await updateDoc(doc(db, "posts", postId), { comments: increment(1) });
     } catch {
     }
+  }, []);
+
+  const subscribeToComments = useCallback((postId: string) => {
+    const q = query(
+      collection(db, "posts", postId, "comments"),
+      orderBy("createdAt", "asc")
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const fetched: Comment[] = snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          author: data.author as User,
+          content: data.content ?? "",
+          likes: Array.isArray(data.likedBy) ? data.likedBy.length : (data.likes ?? 0),
+          isLiked: false,
+          createdAt: tsToString(data.createdAt),
+        };
+      });
+      // Sort newest first for display
+      const sorted = [...fetched].reverse();
+      setComments((prev) => ({ ...prev, [postId]: sorted }));
+    }, () => {
+      // Ignore errors (e.g., no subcollection yet)
+    });
+    return unsub;
   }, []);
 
   const markNotificationsRead = useCallback(() => {
@@ -264,6 +300,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         toggleFollow,
         getPostComments,
         addComment,
+        subscribeToComments,
         markNotificationsRead,
       }}
     >
