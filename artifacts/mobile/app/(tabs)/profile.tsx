@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { PostCard } from "@/components/PostCard";
 import { useAuth } from "@/context/AuthContext";
@@ -39,13 +39,16 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (!isViewingOther || !params.userId) { setOtherUser(null); return; }
     setOtherLoading(true);
-    getDoc(doc(db, "users", params.userId))
-      .then((snap) => {
+    const unsub = onSnapshot(
+      doc(db, "users", params.userId),
+      (snap) => {
         if (snap.exists()) setOtherUser({ ...(snap.data() as User), id: snap.id });
         else setOtherUser(null);
-      })
-      .catch(() => setOtherUser(null))
-      .finally(() => setOtherLoading(false));
+        setOtherLoading(false);
+      },
+      () => { setOtherUser(null); setOtherLoading(false); }
+    );
+    return unsub;
   }, [params.userId, isViewingOther]);
 
   const profileUser = isViewingOther ? otherUser : user;

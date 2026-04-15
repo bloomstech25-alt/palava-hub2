@@ -7,8 +7,8 @@ import {
 } from "firebase/auth";
 import {
   doc,
-  getDoc,
   setDoc,
+  onSnapshot,
   updateDoc,
   arrayUnion,
   arrayRemove,
@@ -68,46 +68,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let userUnsub: (() => void) | null = null;
+
+    const authUnsub = onAuthStateChanged(auth, (firebaseUser) => {
+      // Clean up previous user listener whenever auth state changes
+      if (userUnsub) { userUnsub(); userUnsub = null; }
+
       if (firebaseUser) {
-        try {
-          const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-          if (snap.exists()) {
-            setUser(snap.data() as User);
-          } else {
-            // Auth user exists but no Firestore profile — create a minimal one
-            // so the user is never stuck with a "profile not found" error
-            const fallback: User = {
-              id: firebaseUser.uid,
-              name: firebaseUser.displayName ?? firebaseUser.email?.split("@")[0] ?? "User",
-              username: (firebaseUser.email?.split("@")[0] ?? "user").toLowerCase().replace(/[^a-z0-9]/g, ""),
-              email: firebaseUser.email ?? "",
-              school: { id: "", name: "Unknown School", type: "university", location: "" },
-              bio: "",
-              avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.displayName ?? "User")}&background=BF0A30&color=fff&size=200`,
-              followers: 0,
-              following: 0,
-              followingIds: [],
-              posts: 0,
-              joinedAt: new Date().toISOString().split("T")[0],
-            };
-            try {
-              await setDoc(doc(db, "users", firebaseUser.uid), fallback);
-            } catch {
-              // best effort — still let the user in
+        // Subscribe to real-time updates on this user's Firestore doc so that
+        // any write (following, being followed, posting) instantly updates the UI
+        userUnsub = onSnapshot(
+          doc(db, "users", firebaseUser.uid),
+          async (snap) => {
+            if (snap.exists()) {
+              setUser({ ...(snap.data() as User), id: snap.id });
+            } else {
+              // No Firestore profile yet — create a minimal fallback
+              const fallback: User = {
+                id: firebaseUser.uid,
+                name: firebaseUser.displayName ?? firebaseUser.email?.split("@")[0] ?? "User",
+                username: (firebaseUser.email?.split("@")[0] ?? "user").toLowerCase().replace(/[^a-z0-9]/g, ""),
+                email: firebaseUser.email ?? "",
+                school: { id: "", name: "Unknown School", type: "university", location: "" },
+                bio: "",
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.displayName ?? "User")}&background=BF0A30&color=fff&size=200`,
+                followers: 0,
+                following: 0,
+                followingIds: [],
+                posts: 0,
+                joinedAt: new Date().toISOString().split("T")[0],
+              };
+              try { await setDoc(doc(db, "users", firebaseUser.uid), fallback); } catch { /* best effort */ }
+              setUser(fallback);
             }
-            setUser(fallback);
+            setIsLoading(false);
+          },
+          () => {
+            setUser(null);
+            setIsLoading(false);
           }
-        } catch {
-          // Network/permission error — still set null so app doesn't hang
-          setUser(null);
-        }
+        );
       } else {
         setUser(null);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
-    return unsubscribe;
+
+    return () => {
+      if (userUnsub) userUnsub();
+      authUnsub();
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
