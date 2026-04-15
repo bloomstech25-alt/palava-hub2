@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -18,7 +18,7 @@ import { useColors } from "@/hooks/useColors";
 
 export default function LoginScreen() {
   const colors = useColors();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -29,6 +29,15 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Navigate only once Firebase has confirmed the user — avoids the race
+  // condition where router.replace("/(tabs)") fires before onAuthStateChanged
+  // has set isAuthenticated, causing the tab guard to boot the user back out.
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/(tabs)");
+    }
+  }, [isAuthenticated]);
+
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       setError("Please fill in all fields");
@@ -38,11 +47,10 @@ export default function LoginScreen() {
     setError("");
     const result = await login(email.trim(), password);
     setIsLoading(false);
-    if (result.success) {
-      router.replace("/(tabs)");
-    } else {
+    if (!result.success) {
       setError(result.error ?? "Login failed");
     }
+    // Navigation is handled by the useEffect above once isAuthenticated flips to true
   };
 
   return (
