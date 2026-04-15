@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { PalavaStar } from "@/components/PalavaStar";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -335,6 +336,7 @@ export default function ExploreScreen() {
                 <View style={{ flex: 1 }}>
                   <View style={styles.personNameRow}>
                     <Text style={[styles.personName, { color: colors.foreground }]} numberOfLines={1}>{item.name}</Text>
+                    {item.verificationStatus === "approved" && <PalavaStar size={14} />}
                     {isTopThree && (
                       <View style={[styles.hotBadge, { backgroundColor: colors.primary + "15" }]}>
                         <Feather name="zap" size={10} color={colors.primary} />

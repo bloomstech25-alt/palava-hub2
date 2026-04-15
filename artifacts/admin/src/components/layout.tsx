@@ -61,6 +61,16 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    href: "/verifications",
+    label: "Verifications",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4">
+        <path d="M12 2L4 5.5V12c0 4.8 3.5 9.1 8 10.5C16.5 21.1 20 16.8 20 12V5.5L12 2z" fill="#BF0A30"/>
+        <polygon points="12,7 13.1,10.3 16.5,10.3 13.9,12.3 14.9,15.5 12,13.5 9.1,15.5 10.1,12.3 7.5,10.3 10.9,10.3" fill="#D4A855"/>
+      </svg>
+    ),
+  },
 ];
 
 export default function Layout({ children }: LayoutProps) {

@@ -13,6 +13,7 @@ import {
   arrayUnion,
   arrayRemove,
   increment,
+  serverTimestamp,
 } from "firebase/firestore";
 import { auth, db, storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -37,6 +38,7 @@ export interface User {
   followingIds: string[];
   posts: number;
   joinedAt: string;
+  verificationStatus?: "none" | "pending" | "approved" | "rejected";
 }
 
 interface AuthContextType {
@@ -49,6 +51,7 @@ interface AuthContextType {
   updateUser: (updates: Partial<User>) => Promise<void>;
   followUser: (targetId: string) => Promise<void>;
   unfollowUser: (targetId: string) => Promise<void>;
+  applyForVerification: () => Promise<{ success: boolean; error?: string }>;
 }
 
 interface RegisterData {
@@ -240,6 +243,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  const applyForVerification = useCallback(async () => {
+    if (!user) return { success: false, error: "Not logged in." };
+    const REQUIRED_FOLLOWERS = 50;
+    if ((user.followers ?? 0) < REQUIRED_FOLLOWERS) {
+      return { success: false, error: `You need at least ${REQUIRED_FOLLOWERS} followers to apply.` };
+    }
+    const existing = user.verificationStatus;
+    if (existing === "pending") return { success: false, error: "Your application is already under review." };
+    if (existing === "approved") return { success: false, error: "You are already verified." };
+    try {
+      await setDoc(doc(db, "verificationRequests", user.id), {
+        userId: user.id,
+        userName: user.name,
+        userUsername: user.username,
+        userAvatar: user.avatar,
+        userSchool: user.school.name,
+        followers: user.followers,
+        appliedAt: serverTimestamp(),
+        status: "pending",
+      });
+      await updateDoc(doc(db, "users", user.id), { verificationStatus: "pending" });
+      return { success: true };
+    } catch {
+      return { success: false, error: "Failed to submit application. Please try again." };
+    }
+  }, [user]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -252,6 +282,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateUser,
         followUser,
         unfollowUser,
+        applyForVerification,
       }}
     >
       {children}

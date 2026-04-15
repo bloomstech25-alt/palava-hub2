@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Platform,
@@ -18,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { PostCard } from "@/components/PostCard";
+import { PalavaStar } from "@/components/PalavaStar";
 import { useAuth } from "@/context/AuthContext";
 import type { User } from "@/context/AuthContext";
 import { useFeed, type Post } from "@/context/FeedContext";
@@ -27,12 +29,13 @@ export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const { user, logout, followUser, unfollowUser } = useAuth();
+  const { user, logout, followUser, unfollowUser, applyForVerification } = useAuth();
   const { posts, toggleLike, toggleFollow, deletePost, sharePost } = useFeed();
   const params = useLocalSearchParams<{ userId?: string }>();
 
   const [otherUser, setOtherUser] = useState<User | null>(null);
   const [otherLoading, setOtherLoading] = useState(false);
+  const [applying, setApplying] = useState(false);
 
   const isViewingOther = !!params.userId && params.userId !== user?.id;
 
@@ -182,7 +185,10 @@ export default function ProfileScreen() {
                 )}
               </View>
 
-              <Text style={[styles.name, { color: colors.foreground }]}>{profileUser.name}</Text>
+              <View style={styles.nameRow}>
+                <Text style={[styles.name, { color: colors.foreground }]}>{profileUser.name}</Text>
+                {profileUser.verificationStatus === "approved" && <PalavaStar size={22} />}
+              </View>
               <Text style={[styles.username, { color: colors.mutedForeground }]}>@{profileUser.username}</Text>
 
               <View style={[styles.schoolBadge, { backgroundColor: colors.accent }]}>
@@ -210,6 +216,69 @@ export default function ProfileScreen() {
                 ))}
               </View>
             </View>
+
+            {/* Verification section — own profile only */}
+            {isOwnProfile && (() => {
+              const status = profileUser.verificationStatus ?? "none";
+              if (status === "approved") return (
+                <View style={[styles.verifyBox, { backgroundColor: "#D4A85518", borderColor: "#D4A855" }]}>
+                  <PalavaStar size={20} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.verifyTitle, { color: "#D4A855" }]}>Palava Star Verified</Text>
+                    <Text style={[styles.verifySub, { color: colors.mutedForeground }]}>Your account is officially verified on Palava Hub</Text>
+                  </View>
+                </View>
+              );
+              if (status === "pending") return (
+                <View style={[styles.verifyBox, { backgroundColor: colors.muted + "80", borderColor: colors.border }]}>
+                  <Feather name="clock" size={20} color={colors.mutedForeground} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.verifyTitle, { color: colors.foreground }]}>Verification Under Review</Text>
+                    <Text style={[styles.verifySub, { color: colors.mutedForeground }]}>Admin will review your application soon</Text>
+                  </View>
+                </View>
+              );
+              const canApply = (profileUser.followers ?? 0) >= 50;
+              return (
+                <TouchableOpacity
+                  style={[styles.verifyBox, {
+                    backgroundColor: canApply ? "#BF0A3010" : colors.muted + "40",
+                    borderColor: canApply ? "#BF0A30" : colors.border,
+                    opacity: applying ? 0.6 : 1,
+                  }]}
+                  activeOpacity={canApply ? 0.8 : 1}
+                  disabled={!canApply || applying}
+                  onPress={async () => {
+                    if (!canApply) return;
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    setApplying(true);
+                    const result = await applyForVerification();
+                    setApplying(false);
+                    if (result.success) {
+                      Alert.alert("Application Submitted! 🌟", "We'll review your application and get back to you soon.");
+                    } else if (result.error) {
+                      Alert.alert("Not Eligible", result.error);
+                    }
+                  }}
+                >
+                  {applying
+                    ? <ActivityIndicator size={20} color="#BF0A30" />
+                    : <View style={styles.starIconBox}><PalavaStar size={20} /></View>
+                  }
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.verifyTitle, { color: canApply ? colors.foreground : colors.mutedForeground }]}>
+                      {status === "rejected" ? "Re-apply for Palava Star" : "Apply for Palava Star"}
+                    </Text>
+                    <Text style={[styles.verifySub, { color: colors.mutedForeground }]}>
+                      {canApply
+                        ? "You're eligible! Tap to apply for verification"
+                        : `Need ${50 - (profileUser.followers ?? 0)} more followers to apply`}
+                    </Text>
+                  </View>
+                  {canApply && <Feather name="chevron-right" size={16} color={colors.mutedForeground} />}
+                </TouchableOpacity>
+              );
+            })()}
 
             {isOwnProfile && (
               <TouchableOpacity
@@ -277,8 +346,22 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   actionBtnText: { fontSize: 14, fontWeight: "600" },
+  nameRow: { flexDirection: "row", alignItems: "center" },
   name: { fontSize: 20, fontWeight: "700" },
   username: { fontSize: 14, marginTop: 2 },
+  verifyBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginHorizontal: 12,
+    marginBottom: 8,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  verifyTitle: { fontSize: 14, fontWeight: "700" },
+  verifySub: { fontSize: 12, marginTop: 2 },
+  starIconBox: { width: 20, height: 20 },
   schoolBadge: {
     flexDirection: "row",
     alignItems: "center",

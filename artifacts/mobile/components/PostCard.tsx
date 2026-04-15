@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { PalavaStar } from "@/components/PalavaStar";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
 import * as MediaLibrary from "expo-media-library";
@@ -181,7 +182,10 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
           >
             <Image source={{ uri: post.author.avatar }} style={styles.avatar} />
             <View style={styles.authorInfo}>
-              <Text style={[styles.authorName, { color: colors.foreground }]}>{post.author.name}</Text>
+              <View style={styles.authorNameRow}>
+                <Text style={[styles.authorName, { color: colors.foreground }]}>{post.author.name}</Text>
+                {post.author.verificationStatus === "approved" && <PalavaStar size={15} />}
+              </View>
               <Text style={[styles.authorMeta, { color: colors.mutedForeground }]}>
                 @{post.author.username} · {post.author.school.name}
               </Text>
@@ -343,6 +347,10 @@ const styles = StyleSheet.create({
   },
   authorInfo: {
     flex: 1,
+  },
+  authorNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   authorName: {
     fontSize: 15,
