@@ -33,7 +33,6 @@ function buildDb() {
   try {
     return initializeFirestore(app, {
       experimentalAutoDetectLongPolling: true,
-      useFetchStreams: false,
     }, "default");
   } catch {
     return getFirestore(app, "default");

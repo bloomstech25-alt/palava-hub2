@@ -1,10 +1,11 @@
 import { Feather } from "@expo/vector-icons";
 import { PalavaStar } from "@/components/PalavaStar";
+import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
 import * as MediaLibrary from "expo-media-library";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -249,6 +250,14 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
           </TouchableOpacity>
         )}
 
+        {post.mediaUri && post.mediaType === "audio" && (
+          <AudioPlayerInline
+            uri={post.mediaUri}
+            durationSec={post.audioDurationSec}
+            colors={colors}
+          />
+        )}
+
         {post.tags.length > 0 && (
           <View style={styles.tags}>
             {post.tags.slice(0, 3).map((tag) => (
@@ -466,4 +475,110 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: "auto",
   },
+});
+
+// ─── Inline audio player used by audio posts ─────────────────────────────────
+function AudioPlayerInline({
+  uri,
+  durationSec,
+  colors,
+}: {
+  uri: string;
+  durationSec?: number;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [position, setPosition] = useState(0);
+  const [total, setTotal] = useState(durationSec ?? 0);
+
+  useEffect(() => {
+    return () => {
+      soundRef.current?.unloadAsync().catch(() => {});
+      soundRef.current = null;
+    };
+  }, []);
+
+  async function toggle() {
+    try {
+      if (!soundRef.current) {
+        const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
+        soundRef.current = sound;
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (!status.isLoaded) return;
+          if (status.durationMillis) setTotal(Math.round(status.durationMillis / 1000));
+          setPosition(Math.round((status.positionMillis ?? 0) / 1000));
+          setIsPlaying(status.isPlaying);
+          if (status.didJustFinish) {
+            setIsPlaying(false);
+            setPosition(0);
+            sound.setPositionAsync(0).catch(() => {});
+          }
+        });
+        setIsPlaying(true);
+        return;
+      }
+      const status = await soundRef.current.getStatusAsync();
+      if (status.isLoaded && status.isPlaying) {
+        await soundRef.current.pauseAsync();
+        setIsPlaying(false);
+      } else {
+        await soundRef.current.playAsync();
+        setIsPlaying(true);
+      }
+    } catch {
+      Alert.alert("Playback failed", "Could not play this audio clip.");
+    }
+  }
+
+  function fmt(s: number) {
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m}:${r.toString().padStart(2, "0")}`;
+  }
+
+  const pct = total > 0 ? Math.min(100, (position / total) * 100) : 0;
+
+  return (
+    <View style={[audioStyles.wrap, { backgroundColor: colors.accent, borderColor: colors.border }]}>
+      <TouchableOpacity
+        onPress={toggle}
+        style={[audioStyles.playBtn, { backgroundColor: colors.primary }]}
+        activeOpacity={0.85}
+      >
+        <Feather name={isPlaying ? "pause" : "play"} size={16} color={colors.primaryForeground} />
+      </TouchableOpacity>
+      <View style={{ flex: 1 }}>
+        <View style={[audioStyles.bar, { backgroundColor: colors.border }]}>
+          <View style={[audioStyles.barFill, { width: `${pct}%`, backgroundColor: colors.primary }]} />
+        </View>
+        <View style={audioStyles.metaRow}>
+          <Feather name="mic" size={11} color={colors.primary} />
+          <Text style={[audioStyles.metaText, { color: colors.primary }]}>
+            Audio clip · {fmt(total || 0)}
+          </Text>
+          <Text style={[audioStyles.metaText, { color: colors.mutedForeground, marginLeft: "auto" }]}>
+            {fmt(position)}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const audioStyles = StyleSheet.create({
+  wrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginVertical: 6,
+  },
+  playBtn: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  bar: { height: 5, borderRadius: 3, overflow: "hidden" },
+  barFill: { height: "100%", borderRadius: 3 },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 6 },
+  metaText: { fontSize: 11, fontWeight: "600" },
 });

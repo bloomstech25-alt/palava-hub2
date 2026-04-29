@@ -111,15 +111,14 @@ export default function ProfileScreen() {
               </Text>
               {isOwnProfile && (
                 <TouchableOpacity
-                  onPress={async () => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    await logout();
-                    router.replace("/welcome");
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push("/settings");
                   }}
                   style={styles.logoutBtn}
                   activeOpacity={0.7}
                 >
-                  <Feather name="log-out" size={20} color={colors.mutedForeground} />
+                  <Feather name="settings" size={20} color={colors.mutedForeground} />
                 </TouchableOpacity>
               )}
             </View>

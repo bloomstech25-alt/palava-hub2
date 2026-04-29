@@ -135,6 +135,14 @@ export default function CreateAdScreen() {
           </Text>
         </View>
 
+        {/* Free during launch — payment will be enabled once Paystack is wired. */}
+        <View style={[styles.freeBanner, { backgroundColor: "#16A34A15", borderColor: "#16A34A" }]}>
+          <Feather name="gift" size={14} color="#16A34A" />
+          <Text style={[styles.freeText, { color: "#16A34A" }]}>
+            Free during launch · Paid plans coming soon. Just submit and our team will review.
+          </Text>
+        </View>
+
         {/* Sponsor Name */}
         <View style={styles.section}>
           <Text style={[styles.label, { color: colors.foreground }]}>Business / Organization Name</Text>
@@ -279,6 +287,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   infoText: { fontSize: 13, fontWeight: "600", flex: 1 },
+  freeBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  freeText: { fontSize: 12, fontWeight: "600", flex: 1, lineHeight: 17 },
   section: { marginBottom: 20, gap: 6 },
   label: { fontSize: 15, fontWeight: "700" },
   hint: { fontSize: 12, marginTop: -2 },

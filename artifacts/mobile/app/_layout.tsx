@@ -54,6 +54,11 @@ function RootLayoutNav() {
         <Stack.Screen name="post/[id]" />
         <Stack.Screen name="chat/[userId]" />
         <Stack.Screen name="page/[pageId]" />
+        <Stack.Screen name="settings" options={{ presentation: "modal" }} />
+        <Stack.Screen name="legal/privacy" options={{ presentation: "modal" }} />
+        <Stack.Screen name="legal/guidelines" options={{ presentation: "modal" }} />
+        <Stack.Screen name="legal/report-help" options={{ presentation: "modal" }} />
+        <Stack.Screen name="campus-jams" options={{ presentation: "modal" }} />
         <Stack.Screen name="index" />
       </Stack>
     </>

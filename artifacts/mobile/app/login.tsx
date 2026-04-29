@@ -23,11 +23,25 @@ export default function LoginScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
+  // Mirrors register.tsx — users can sign in with the same identifier
+  // they signed up with. Phone gets converted to the synthetic email
+  // (lr{e164digits}@palavahub.lr) that backs Firebase Auth.
+  const [method, setMethod] = useState<"email" | "phone">("email");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  function phoneToSyntheticEmail(raw: string): string | null {
+    // Strip everything except digits, then prepend Liberia country code if missing.
+    const digits = raw.replace(/\D/g, "");
+    if (!digits) return null;
+    const e164 = digits.startsWith("231") ? digits : `231${digits.replace(/^0+/, "")}`;
+    if (e164.length < 11 || e164.length > 13) return null;
+    return `lr${e164}@palavahub.lr`;
+  }
 
   // Navigate only once Firebase has confirmed the user — avoids the race
   // condition where router.replace("/(tabs)") fires before onAuthStateChanged
@@ -39,13 +53,28 @@ export default function LoginScreen() {
   }, [isAuthenticated]);
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      setError("Please fill in all fields");
-      return;
+    let identifier = "";
+    if (method === "email") {
+      if (!email.trim() || !password.trim()) {
+        setError("Please fill in all fields");
+        return;
+      }
+      identifier = email.trim();
+    } else {
+      if (!phone.trim() || !password.trim()) {
+        setError("Please fill in all fields");
+        return;
+      }
+      const synth = phoneToSyntheticEmail(phone.trim());
+      if (!synth) {
+        setError("Please enter a valid Liberian phone number.");
+        return;
+      }
+      identifier = synth;
     }
     setIsLoading(true);
     setError("");
-    const result = await login(email.trim(), password);
+    const result = await login(identifier, password);
     setIsLoading(false);
     if (!result.success) {
       setError(result.error ?? "Login failed");
@@ -74,22 +103,73 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.form}>
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.foreground }]}>Email</Text>
-              <View style={[styles.inputWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                <Feather name="mail" size={18} color={colors.mutedForeground} style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, { color: colors.foreground }]}
-                  placeholder="your@email.com"
-                  placeholderTextColor={colors.mutedForeground}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  autoComplete="email"
-                />
-              </View>
+            {/* Email / Phone toggle — must mirror register.tsx so phone-signup
+                users can actually sign back in. */}
+            <View style={[styles.toggleRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <TouchableOpacity
+                style={[
+                  styles.toggleBtn,
+                  method === "email" && { backgroundColor: colors.primary },
+                ]}
+                onPress={() => setMethod("email")}
+                activeOpacity={0.8}
+              >
+                <Feather name="mail" size={14} color={method === "email" ? colors.primaryForeground : colors.mutedForeground} />
+                <Text style={[
+                  styles.toggleText,
+                  { color: method === "email" ? colors.primaryForeground : colors.mutedForeground },
+                ]}>Email</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.toggleBtn,
+                  method === "phone" && { backgroundColor: colors.primary },
+                ]}
+                onPress={() => setMethod("phone")}
+                activeOpacity={0.8}
+              >
+                <Feather name="phone" size={14} color={method === "phone" ? colors.primaryForeground : colors.mutedForeground} />
+                <Text style={[
+                  styles.toggleText,
+                  { color: method === "phone" ? colors.primaryForeground : colors.mutedForeground },
+                ]}>Phone</Text>
+              </TouchableOpacity>
             </View>
+
+            {method === "email" ? (
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.foreground }]}>Email</Text>
+                <View style={[styles.inputWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                  <Feather name="mail" size={18} color={colors.mutedForeground} style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, { color: colors.foreground }]}
+                    placeholder="your@email.com"
+                    placeholderTextColor={colors.mutedForeground}
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    autoComplete="email"
+                  />
+                </View>
+              </View>
+            ) : (
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.foreground }]}>Phone number</Text>
+                <View style={[styles.inputWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                  <Text style={[styles.prefix, { color: colors.mutedForeground }]}>+231</Text>
+                  <TextInput
+                    style={[styles.input, { color: colors.foreground }]}
+                    placeholder="77 000 0000"
+                    placeholderTextColor={colors.mutedForeground}
+                    value={phone}
+                    onChangeText={setPhone}
+                    keyboardType="phone-pad"
+                    autoComplete="tel"
+                  />
+                </View>
+              </View>
+            )}
 
             <View style={styles.field}>
               <Text style={[styles.label, { color: colors.foreground }]}>Password</Text>
@@ -160,8 +240,26 @@ const styles = StyleSheet.create({
     height: 52,
   },
   inputIcon: { marginRight: 10 },
+  prefix: { fontSize: 15, fontWeight: "600", marginRight: 8 },
   input: { flex: 1, fontSize: 15 },
   eyeBtn: { padding: 4 },
+  toggleRow: {
+    flexDirection: "row",
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 4,
+    gap: 4,
+  },
+  toggleBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  toggleText: { fontSize: 14, fontWeight: "600" },
   errorBox: {
     flexDirection: "row",
     alignItems: "center",

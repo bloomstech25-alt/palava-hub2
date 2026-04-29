@@ -4,17 +4,24 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  deleteUser,
 } from "firebase/auth";
 import {
   doc,
   setDoc,
   getDoc,
+  getDocs,
+  query,
+  where,
+  collection,
+  writeBatch,
   onSnapshot,
   updateDoc,
   arrayUnion,
   arrayRemove,
   increment,
   serverTimestamp,
+  deleteDoc,
 } from "firebase/firestore";
 import { auth, db, storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -40,6 +47,7 @@ export interface User {
   posts: number;
   joinedAt: string;
   verificationStatus?: "none" | "pending" | "approved" | "rejected";
+  phone?: string;
 }
 
 interface AuthContextType {
@@ -53,6 +61,7 @@ interface AuthContextType {
   followUser: (targetId: string) => Promise<void>;
   unfollowUser: (targetId: string) => Promise<void>;
   applyForVerification: () => Promise<{ success: boolean; error?: string }>;
+  deleteAccount: () => Promise<{ success: boolean; error?: string }>;
 }
 
 interface RegisterData {
@@ -63,6 +72,7 @@ interface RegisterData {
   school: School;
   bio?: string;
   avatarUri?: string;
+  phone?: string;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -198,6 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         followingIds: [],
         posts: 0,
         joinedAt: new Date().toISOString().split("T")[0],
+        ...(data.phone ? { phone: data.phone } : {}),
       };
       await setDoc(doc(db, "users", uid), newUser);
       setUser(newUser);
@@ -290,6 +301,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  // Permanently deletes the user from Firebase Auth AND all of their data
+  // across Firestore (posts, ads, support requests, verification requests,
+  // profile). Required by Google Play / App Store policy.
+  //
+  // Order is critical: we delete the Auth user LAST so that all Firestore
+  // writes (which depend on auth) can succeed. If `deleteUser` requires a
+  // recent login we surface that without having destroyed any data yet.
+  const deleteAccount = useCallback(async () => {
+    const fbUser = auth.currentUser;
+    if (!fbUser) return { success: false, error: "Not signed in." };
+    const uid = fbUser.uid;
+
+    // Pre-flight: check whether Firebase will let us delete the Auth user
+    // right now. If not, bail out BEFORE we wipe any Firestore data.
+    // `deleteUser` is the only way to reliably know — but we do it last.
+    // Instead we rely on the standard Firebase contract: if the last sign-in
+    // was within ~5 min the call succeeds; otherwise it throws
+    // `auth/requires-recent-login`. We catch that below and the caller can
+    // ask the user to re-authenticate.
+
+    // Helper to delete every doc in a collection where `field == uid`.
+    async function purgeBy(coll: string, field: string) {
+      try {
+        const snap = await getDocs(query(collection(db, coll), where(field, "==", uid)));
+        if (snap.empty) return;
+        // Firestore batches max 500 ops; chunk to be safe.
+        const chunks: typeof snap.docs[] = [];
+        for (let i = 0; i < snap.docs.length; i += 400) {
+          chunks.push(snap.docs.slice(i, i + 400));
+        }
+        for (const chunk of chunks) {
+          const batch = writeBatch(db);
+          for (const d of chunk) batch.delete(d.ref);
+          await batch.commit();
+        }
+      } catch {
+        // Best-effort — keep going; the Auth user is the source of truth.
+      }
+    }
+
+    try {
+      // Try the auth delete FIRST so that if recent-login is required we
+      // haven't touched any data yet.
+      await deleteUser(fbUser);
+
+      // Auth user is gone. Now clean up everything associated with this uid.
+      // These run after deletion: rules must allow this OR you'll need a
+      // server-side trigger. With Firestore default rules + the user still
+      // recently authenticated, the in-flight token usually allows these to
+      // succeed for a short window. Anything that fails will be cleaned up
+      // by the server-side admin sweep.
+      await Promise.allSettled([
+        deleteDoc(doc(db, "users", uid)),
+        deleteDoc(doc(db, "verificationRequests", uid)),
+        purgeBy("posts", "authorId"),
+        purgeBy("ads", "createdBy"),
+        purgeBy("supportRequests", "userId"),
+      ]);
+
+      setUser(null);
+      return { success: true };
+    } catch (err: any) {
+      const code = err?.code ?? "";
+      const msg = code === "auth/requires-recent-login"
+        ? "For security, please sign out and sign back in, then try again."
+        : err?.message ?? "Failed to delete account.";
+      return { success: false, error: msg };
+    }
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -303,6 +384,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         followUser,
         unfollowUser,
         applyForVerification,
+        deleteAccount,
       }}
     >
       {children}

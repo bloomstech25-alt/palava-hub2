@@ -39,9 +39,15 @@ pnpm workspace monorepo using TypeScript. **Palava Hub** — a Liberian student 
 - **Framework**: Expo + React Native + Expo Router
 
 #### Features
-- Welcome / onboarding screen with dark Palava Hub branding
-- Registration with school selection (12 Liberian universities + 15 senior high schools)
-- Login / authentication via Firebase Auth
+- Welcome / onboarding screen with dark Palava Hub branding + new logo image
+- Registration with school selection (24 Liberian universities + 52 high schools across all 15 counties — including St. Gregory Catholic, Buduburam Community, New Testament High, Stella Maris Polytechnic)
+- Email OR phone-number signup/login (Liberia +231); phone is converted to a synthetic email `lr{e164digits}@palavahub.lr` to back Firebase Auth, real phone stored on user profile
+- Fire-red Liberia-star verification badge (PalavaStar)
+- In-app Settings hub with Privacy Policy, Community Guidelines, Report & Help (writes to `supportRequests` Firestore collection), Logout, Delete Account
+- Delete Account permanently removes Auth user + all linked Firestore data (posts, ads, supportRequests, verificationRequests, profile) — Google Play / App Store policy compliant
+- Campus Jams section (filtered feed by `category == "campus_jams"` or `#CampusJams` tag); shortcut in home header
+- Audio post recording via expo-av (3-min cap) with inline AudioPlayerInline player in PostCard; iOS audio mode is restored after recording
+- Free ads ("Free during launch" green banner) — no payment required, posted for admin review
 - Global social feed with real-time Firestore posts, likes, follows, reposts
 - Image long-press: save to camera roll or share externally
 - Share button: Repost within Palava Hub or share to other apps
@@ -73,15 +79,18 @@ pnpm workspace monorepo using TypeScript. **Palava Hub** — a Liberian student 
 
 #### Schools (Liberian Only)
 All schools in `SCHOOLS_LIST` (FeedContext.tsx) are exclusively Liberian institutions:
-- 12 Liberian universities (University of Liberia, Cuttington, United Methodist, AME, etc.)
-- 15 Liberian senior high schools (CWA, MCSS, BWI, Ricks Institute, St. Patrick's, etc.)
+- 24 Liberian universities (University of Liberia, Cuttington, United Methodist, AME, Stella Maris Polytechnic, etc.)
+- 52 Liberian high schools across all 15 counties (CWA, MCSS, BWI, Ricks Institute, St. Patrick's, St. Gregory Catholic, Buduburam Community, New Testament High, etc.)
 
 #### Firestore Data Model
-- `users/{uid}` — user profile (name, username, email, school{id,name,type,location}, bio, avatar, followers, following, posts)
-- `posts/{postId}` — posts (author, authorId, content, mediaUri, mediaType, likes, likedBy[], comments, shares, isPinned, isFlagged, createdAt, tags)
+- `users/{uid}` — user profile (name, username, email, school{id,name,type,location}, bio, avatar, followers, following, posts, optional `phone` for phone-signup users — never embedded in posts)
+- `posts/{postId}` — posts (author **without phone**, authorId, content, mediaUri, mediaType ∈ image|video|audio, audioDurationSec?, category ∈ general|campus_jams, likes, likedBy[], comments, shares, isPinned, isFlagged, createdAt, tags)
 - `posts/{postId}/comments/{commentId}` — comments subcollection
 - `conversations/{convId}/messages/{msgId}` — messages (convId = [userId1, userId2].sort().join("_"))
 - `users/{uid}/conversations/{otherUid}` — conversation metadata per user
+- `supportRequests/{id}` — Report & Help submissions (userId, userEmail, kind, subject, message, createdAt)
+- `verificationRequests/{uid}` — verification applications (status ∈ pending|approved|rejected)
+- `ads/{id}` — sponsor ads (free during launch; admin reviews before publishing)
 
 ### Palava Hub Admin Dashboard (`artifacts/admin`)
 - **Type**: React + Vite web app

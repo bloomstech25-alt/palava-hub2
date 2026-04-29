@@ -1,9 +1,10 @@
 import { Feather } from "@expo/vector-icons";
+import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -34,12 +35,30 @@ export default function CreatePostScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
+  const params = useLocalSearchParams<{ category?: string }>();
+  const isCampusJam = params.category === "campus_jams";
+
   const [content, setContent] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>(isCampusJam ? ["CampusJams"] : []);
   const [customTag, setCustomTag] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [mediaUri, setMediaUri] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
+  const [mediaType, setMediaType] = useState<"image" | "video" | "audio" | null>(null);
+
+  // Audio recording state — uses expo-av (already in deps).
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSecs, setRecordSecs] = useState(0);
+  const [audioDurationSec, setAudioDurationSec] = useState<number | undefined>();
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Cleanup any in-flight recording when the modal closes.
+  useEffect(() => {
+    return () => {
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+      recordingRef.current?.stopAndUnloadAsync().catch(() => {});
+    };
+  }, []);
 
   const charLimit = 1000;
 
@@ -99,13 +118,98 @@ export default function CreatePostScreen() {
   const removeMedia = () => {
     setMediaUri(null);
     setMediaType(null);
+    setAudioDurationSec(undefined);
+    setRecordSecs(0);
   };
+
+  // ─── Audio recording ───────────────────────────────────────────────────────
+  async function startRecording() {
+    try {
+      const perm = await Audio.requestPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("Microphone needed", "Allow microphone access to record audio posts.");
+        return;
+      }
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+      const rec = new Audio.Recording();
+      await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await rec.startAsync();
+      recordingRef.current = rec;
+      setIsRecording(true);
+      setRecordSecs(0);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      recordTimerRef.current = setInterval(() => {
+        setRecordSecs((s) => {
+          // Cap to 3 minutes for posts.
+          if (s >= 180) {
+            stopRecording();
+            return s;
+          }
+          return s + 1;
+        });
+      }, 1000);
+    } catch (e) {
+      Alert.alert("Recording failed", "Could not start audio recording. Please try again.");
+    }
+  }
+
+  async function stopRecording() {
+    const rec = recordingRef.current;
+    if (!rec) return;
+    if (recordTimerRef.current) {
+      clearInterval(recordTimerRef.current);
+      recordTimerRef.current = null;
+    }
+    try {
+      await rec.stopAndUnloadAsync();
+      const uri = rec.getURI();
+      const status = await rec.getStatusAsync();
+      const dur = status?.durationMillis ? Math.round(status.durationMillis / 1000) : recordSecs;
+      if (uri) {
+        setMediaUri(uri);
+        setMediaType("audio");
+        setAudioDurationSec(dur);
+      }
+    } catch {
+      Alert.alert("Recording failed", "Could not finish recording. Please try again.");
+    } finally {
+      recordingRef.current = null;
+      setIsRecording(false);
+      // Restore default audio session — without this iOS stays in record-mode
+      // and other apps' audio (and the inline player) get silenced/muffled.
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+        });
+      } catch { /* best effort */ }
+    }
+  }
+
+  function fmtSecs(s: number) {
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m}:${r.toString().padStart(2, "0")}`;
+  }
 
   const handlePost = async () => {
     if (!content.trim() || !user) return;
     setIsPosting(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await addPost(content.trim(), tags, user, mediaUri ?? undefined, mediaType ?? undefined);
+    await addPost(
+      content.trim(),
+      tags,
+      user,
+      mediaUri ?? undefined,
+      mediaType ?? undefined,
+      {
+        category: isCampusJam ? "campus_jams" : "general",
+        audioDurationSec,
+      },
+    );
     setIsPosting(false);
     router.back();
   };
@@ -161,12 +265,21 @@ export default function CreatePostScreen() {
             <View style={styles.mediaPreviewWrap}>
               {mediaType === "image" ? (
                 <Image source={{ uri: mediaUri }} style={styles.mediaPreview} resizeMode="cover" />
-              ) : (
+              ) : mediaType === "video" ? (
                 <View style={[styles.videoPreview, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <View style={[styles.videoPlayIcon, { backgroundColor: colors.primary }]}>
                     <Feather name="play" size={24} color="#ffffff" />
                   </View>
                   <Text style={[styles.videoLabel, { color: colors.mutedForeground }]}>Video selected</Text>
+                </View>
+              ) : (
+                <View style={[styles.videoPreview, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={[styles.videoPlayIcon, { backgroundColor: colors.primary }]}>
+                    <Feather name="mic" size={22} color="#ffffff" />
+                  </View>
+                  <Text style={[styles.videoLabel, { color: colors.mutedForeground }]}>
+                    Audio clip {audioDurationSec ? `· ${fmtSecs(audioDurationSec)}` : ""}
+                  </Text>
                 </View>
               )}
               <TouchableOpacity style={styles.removeMediaBtn} onPress={removeMedia} activeOpacity={0.8}>
@@ -192,6 +305,7 @@ export default function CreatePostScreen() {
                 style={[styles.mediaBtn, { backgroundColor: mediaType === "image" ? colors.primary + "20" : colors.card, borderColor: mediaType === "image" ? colors.primary : colors.border }]}
                 onPress={pickImage}
                 activeOpacity={0.8}
+                disabled={isRecording}
               >
                 <Feather name="image" size={18} color={mediaType === "image" ? colors.primary : colors.mutedForeground} />
                 <Text style={[styles.mediaBtnText, { color: mediaType === "image" ? colors.primary : colors.foreground }]}>Photo</Text>
@@ -200,9 +314,47 @@ export default function CreatePostScreen() {
                 style={[styles.mediaBtn, { backgroundColor: mediaType === "video" ? colors.primary + "20" : colors.card, borderColor: mediaType === "video" ? colors.primary : colors.border }]}
                 onPress={pickVideo}
                 activeOpacity={0.8}
+                disabled={isRecording}
               >
                 <Feather name="video" size={18} color={mediaType === "video" ? colors.primary : colors.mutedForeground} />
                 <Text style={[styles.mediaBtnText, { color: mediaType === "video" ? colors.primary : colors.foreground }]}>Video</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.mediaBtn,
+                  {
+                    backgroundColor: isRecording
+                      ? "#DC262620"
+                      : mediaType === "audio"
+                      ? colors.primary + "20"
+                      : colors.card,
+                    borderColor: isRecording
+                      ? "#DC2626"
+                      : mediaType === "audio"
+                      ? colors.primary
+                      : colors.border,
+                  },
+                ]}
+                onPress={isRecording ? stopRecording : startRecording}
+                activeOpacity={0.8}
+              >
+                <Feather
+                  name={isRecording ? "square" : "mic"}
+                  size={18}
+                  color={isRecording ? "#DC2626" : mediaType === "audio" ? colors.primary : colors.mutedForeground}
+                />
+                <Text style={[
+                  styles.mediaBtnText,
+                  {
+                    color: isRecording
+                      ? "#DC2626"
+                      : mediaType === "audio"
+                      ? colors.primary
+                      : colors.foreground,
+                  },
+                ]}>
+                  {isRecording ? `Stop · ${fmtSecs(recordSecs)}` : "Audio"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

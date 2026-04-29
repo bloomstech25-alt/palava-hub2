@@ -31,9 +31,14 @@ export default function RegisterScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
+  // Sign-up method toggle — Liberian users can choose to register with email
+  // or with a phone number. We back the Firebase Auth account with email
+  // (synthesized from the phone if needed) and store the real phone on profile.
+  const [method, setMethod] = useState<"email" | "phone">("email");
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
@@ -66,9 +71,31 @@ export default function RegisterScreen() {
     }
   };
 
+  // Normalize a Liberian phone number into E.164 format for storage and into
+  // a stable synthetic email for Firebase Auth. Examples:
+  //   "0778123456" -> { e164: "+231778123456", synth: "lr231778123456@palavahub.lr" }
+  //   "+231778123456" -> same
+  function normalizePhone(raw: string) {
+    const digits = raw.replace(/[^0-9]/g, "");
+    let e164 = "";
+    if (digits.startsWith("231")) e164 = `+${digits}`;
+    else if (digits.startsWith("0")) e164 = `+231${digits.substring(1)}`;
+    else e164 = `+231${digits}`;
+    const synth = `lr${e164.replace(/[^0-9]/g, "")}@palavahub.lr`;
+    return { e164, synth };
+  }
+
   const handleRegister = async () => {
-    if (!name.trim() || !username.trim() || !email.trim() || !password.trim() || !selectedSchool) {
+    if (!name.trim() || !username.trim() || !password.trim() || !selectedSchool) {
       setError("Please fill in all required fields");
+      return;
+    }
+    if (method === "email" && !email.trim()) {
+      setError("Please enter your email address");
+      return;
+    }
+    if (method === "phone" && phone.replace(/[^0-9]/g, "").length < 8) {
+      setError("Please enter a valid Liberian phone number");
       return;
     }
     if (username.length < 3) {
@@ -81,14 +108,24 @@ export default function RegisterScreen() {
     }
     setIsLoading(true);
     setError("");
+
+    let authEmail = email.trim();
+    let savedPhone: string | undefined;
+    if (method === "phone") {
+      const { e164, synth } = normalizePhone(phone);
+      authEmail = synth;
+      savedPhone = e164;
+    }
+
     const result = await register({
       name: name.trim(),
       username: username.trim().toLowerCase(),
-      email: email.trim(),
+      email: authEmail,
       password,
       school: selectedSchool,
       bio: bio.trim(),
       avatarUri: avatarUri ?? undefined,
+      phone: savedPhone,
     });
     setIsLoading(false);
     if (result.success) {
@@ -143,9 +180,45 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.form}>
+            {/* Sign-up method toggle */}
+            <View style={[styles.methodToggle, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <TouchableOpacity
+                style={[
+                  styles.methodOption,
+                  method === "email" && { backgroundColor: colors.primary },
+                ]}
+                onPress={() => setMethod("email")}
+                activeOpacity={0.85}
+              >
+                <Feather name="mail" size={14} color={method === "email" ? colors.primaryForeground : colors.mutedForeground} />
+                <Text style={[
+                  styles.methodOptionText,
+                  { color: method === "email" ? colors.primaryForeground : colors.mutedForeground },
+                ]}>Email</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.methodOption,
+                  method === "phone" && { backgroundColor: colors.primary },
+                ]}
+                onPress={() => setMethod("phone")}
+                activeOpacity={0.85}
+              >
+                <Feather name="phone" size={14} color={method === "phone" ? colors.primaryForeground : colors.mutedForeground} />
+                <Text style={[
+                  styles.methodOptionText,
+                  { color: method === "phone" ? colors.primaryForeground : colors.mutedForeground },
+                ]}>Phone</Text>
+              </TouchableOpacity>
+            </View>
+
             <InputField label="Full Name" icon="user" value={name} onChangeText={setName} placeholder="Your full name" colors={colors} />
             <InputField label="Username" icon="at-sign" value={username} onChangeText={setUsername} placeholder="yourhandle" colors={colors} autoCapitalize="none" />
-            <InputField label="Email" icon="mail" value={email} onChangeText={setEmail} placeholder="your@email.com" colors={colors} keyboardType="email-address" />
+            {method === "email" ? (
+              <InputField label="Email" icon="mail" value={email} onChangeText={setEmail} placeholder="your@email.com" colors={colors} keyboardType="email-address" />
+            ) : (
+              <InputField label="Phone Number" icon="phone" value={phone} onChangeText={setPhone} placeholder="+231 77 812 3456" colors={colors} keyboardType="phone-pad" />
+            )}
 
             <View style={styles.field}>
               <Text style={[styles.label, { color: colors.foreground }]}>Password</Text>
@@ -387,6 +460,24 @@ const styles = StyleSheet.create({
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 28 },
   footerText: { fontSize: 14 },
   footerLink: { fontSize: 14, fontWeight: "600" },
+  methodToggle: {
+    flexDirection: "row",
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 4,
+    gap: 4,
+    marginBottom: 4,
+  },
+  methodOption: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  methodOptionText: { fontSize: 13, fontWeight: "700" },
   modalContainer: { flex: 1 },
   modalHeader: {
     flexDirection: "row",

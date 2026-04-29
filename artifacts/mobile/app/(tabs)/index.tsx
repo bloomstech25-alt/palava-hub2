@@ -92,6 +92,14 @@ export default function FeedScreen() {
             <Text style={[styles.advertiseBtnText, { color: colors.primary }]}>News</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            onPress={() => router.push("/campus-jams")}
+            style={[styles.advertiseBtn, { backgroundColor: colors.accent, borderColor: colors.primary + "30" }]}
+            activeOpacity={0.8}
+          >
+            <Feather name="music" size={13} color={colors.primary} />
+            <Text style={[styles.advertiseBtnText, { color: colors.primary }]}>Jams</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={() => router.push("/go-live")}
             style={[styles.liveBtn, { backgroundColor: "#ef4444" + "15", borderColor: "#ef444440" }]}
             activeOpacity={0.8}
