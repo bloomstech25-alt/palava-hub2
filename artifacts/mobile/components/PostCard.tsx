@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { PalavaStar } from "@/components/PalavaStar";
 import { ReportModal } from "@/components/ReportModal";
-import { Audio } from "expo-av";
+import { Audio, ResizeMode, Video } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
 import * as MediaLibrary from "expo-media-library";
@@ -263,15 +263,16 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
         )}
 
         {post.mediaUri && post.mediaType === "video" && (
-          <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={[styles.videoThumb, { backgroundColor: colors.muted, borderColor: colors.border }]}>
-            <View style={[styles.playBtn, { backgroundColor: colors.primary }]}>
-              <Feather name="play" size={22} color="#ffffff" />
-            </View>
-            <View style={[styles.videoBadge, { backgroundColor: "rgba(0,0,0,0.55)" }]}>
-              <Feather name="film" size={11} color="#ffffff" />
-              <Text style={styles.videoBadgeText}>Video</Text>
-            </View>
-          </TouchableOpacity>
+          <View style={[styles.videoThumb, { backgroundColor: "#000", borderColor: colors.border }]}>
+            <Video
+              source={{ uri: post.mediaUri }}
+              style={StyleSheet.absoluteFill}
+              useNativeControls
+              resizeMode={ResizeMode.CONTAIN}
+              isLooping={false}
+              shouldPlay={false}
+            />
+          </View>
         )}
 
         {post.mediaUri && post.mediaType === "audio" && (

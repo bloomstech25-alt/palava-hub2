@@ -378,8 +378,11 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
           repostedBy: has ? arrayRemove(currentUserId) : arrayUnion(currentUserId),
         });
       });
-    } catch {
-      // Swallow — the snapshot listener will reconcile UI state on next tick.
+    } catch (err) {
+      // Surface the reason so we can spot rules / network issues. The
+      // snapshot listener will still reconcile UI state on the next tick.
+      // eslint-disable-next-line no-console
+      console.warn("[feed] toggleRepost failed", (err as { code?: string })?.code, (err as Error)?.message);
     }
   }, [currentUserId]);
 
@@ -408,8 +411,13 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
       [postId]: [newComment, ...(prev[postId] ?? [])],
     }));
     try {
-      // Persist to Firestore subcollection
+      // Persist to Firestore subcollection. We MUST include `authorId` here
+      // because the security rule for /posts/{postId}/comments/{commentId}
+      // requires `request.resource.data.authorId == request.auth.uid`.
+      // Without it, Firestore rejects the write with "Missing or insufficient
+      // permissions" and the comment never lands.
       await addDoc(collection(db, "posts", postId, "comments"), {
+        authorId: author.id,
         author,
         content,
         likes: 0,
@@ -417,7 +425,16 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         createdAt: serverTimestamp(),
       });
       await updateDoc(doc(db, "posts", postId), { comments: increment(1) });
-    } catch {
+    } catch (err) {
+      // Roll back the optimistic comment so the UI doesn't show a comment
+      // that didn't actually persist. Surface the underlying reason in dev
+      // so we can spot a rules problem early.
+      // eslint-disable-next-line no-console
+      console.warn("[feed] addComment failed", (err as { code?: string })?.code, (err as Error)?.message);
+      setComments((prev) => ({
+        ...prev,
+        [postId]: (prev[postId] ?? []).filter((c) => c.id !== newComment.id),
+      }));
     }
   }, []);
 
