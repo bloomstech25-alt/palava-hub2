@@ -23,7 +23,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Sidebar */}
       <div className="w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border hidden md:flex flex-col">
         <div className="h-16 flex items-center px-6 gap-3">
-          <img src="/logo.png" alt="Palava Hub" className="w-8 h-8 rounded-lg shrink-0" />
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Palava Hub" className="w-8 h-8 rounded-lg shrink-0" />
           <span className="font-bold text-xl tracking-tight text-sidebar-foreground">Palava Hub</span>
         </div>
         <nav className="flex-1 px-4 py-6 space-y-1">

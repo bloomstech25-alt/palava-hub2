@@ -35,7 +35,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center" style={{ background: "hsl(24, 24%, 5%)" }}>
       <div className="w-full max-w-md px-8 py-10 bg-card border border-card-border rounded-2xl shadow-2xl">
         <div className="mb-8 text-center">
-          <img src="/logo.png" alt="Palava Hub" className="w-14 h-14 rounded-2xl mb-4" />
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Palava Hub" className="w-14 h-14 rounded-2xl mb-4" />
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Palava Hub</h1>
           <p className="text-sm text-muted-foreground mt-1">Super Admin Dashboard</p>
         </div>

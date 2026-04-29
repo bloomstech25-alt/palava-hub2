@@ -1,3 +1,4 @@
+import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -28,39 +29,51 @@ export default function WelcomeScreen() {
     <View style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Pure-black hero with soft red wash matching the flyer mockup. */}
+      {/* Subtle red glow behind the brand mark — gives the dark hero a warm
+          Liberian-flag feel without competing with the logo. */}
       <LinearGradient
-        colors={["#000000", "#0A0202", "#000000"]}
+        colors={["#0D0A08", "#1A0A08", "#0D0A08"]}
         style={StyleSheet.absoluteFillObject}
       />
-      {/* Two layered glows — a brighter core and a softer halo — recreate the
-          red bloom that surrounds the logo on the flyer's phone screen. */}
-      <View style={styles.glowHalo} />
-      <View style={styles.glowCore} />
+      <View style={styles.glow} />
 
-      <View style={[styles.content, { paddingTop: topPad + 60, paddingBottom: bottomPad + 28 }]}>
-        {/* ─── Logo + brand block ─────────────────────────────────────────── */}
-        <View style={styles.brandBlock}>
-          <Image
-            source={require("../assets/images/palava-z-icon.png")}
-            style={styles.logoImg}
-            resizeMode="contain"
-          />
+      <View style={[styles.content, { paddingTop: topPad + 30, paddingBottom: bottomPad + 24 }]}>
+        {/* ─── Logo block ──────────────────────────────────────────────────── */}
+        <View style={styles.logoBlock}>
+          <View style={styles.logoFrame}>
+            <Image
+              source={require("../assets/images/icon.png")}
+              style={styles.logoImg}
+              resizeMode="contain"
+            />
+          </View>
 
-          <Text style={styles.brandRed}>Palava</Text>
-          <Text style={styles.brandWhite}>Hub</Text>
+          <Text style={styles.brand}>
+            <Text style={styles.brandRed}>Palava </Text>
+            <Text style={styles.brandWhite}>Hub</Text>
+          </Text>
 
-          <Text style={styles.tagline}>Real people. Real talk.{"\n"}Real connections.</Text>
+          <Text style={styles.tagline}>
+            Liberia's home for student stories, jams, and big talks.
+          </Text>
         </View>
 
-        {/* ─── CTAs ──────────────────────────────────────────────────────── */}
+        {/* ─── Quick value props ───────────────────────────────────────────── */}
+        <View style={styles.valueRow}>
+          <ValueChip icon="users" text="50+ schools" />
+          <ValueChip icon="zap" text="Campus Jams" />
+          <ValueChip icon="message-circle" text="Anonymous Palava" />
+        </View>
+
+        {/* ─── CTAs ───────────────────────────────────────────────────────── */}
         <View style={styles.ctaBlock}>
           <TouchableOpacity
             style={styles.primaryBtn}
-            activeOpacity={0.88}
+            activeOpacity={0.85}
             onPress={() => router.push("/register")}
           >
-            <Text style={styles.primaryBtnText}>Sign Up</Text>
+            <Text style={styles.primaryBtnText}>Get Started</Text>
+            <Feather name="arrow-right" size={17} color="#0D0A08" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -68,116 +81,131 @@ export default function WelcomeScreen() {
             activeOpacity={0.85}
             onPress={() => router.push("/login")}
           >
-            <Text style={styles.secondaryBtnText}>Log In</Text>
+            <Text style={styles.secondaryBtnText}>I already have an account</Text>
           </TouchableOpacity>
-
-          <Text style={styles.footer}>
-            By continuing, you agree to our{" "}
-            <Text style={styles.footerLink} onPress={() => router.push("/legal/guidelines")}>
-              Community Guidelines
-            </Text>{" "}
-            &{" "}
-            <Text style={styles.footerLink} onPress={() => router.push("/legal/privacy")}>
-              Privacy Policy
-            </Text>
-            .
-          </Text>
         </View>
+
+        {/* ─── Footer ─────────────────────────────────────────────────────── */}
+        <Text style={styles.footer}>
+          By continuing, you agree to our{" "}
+          <Text style={styles.footerLink} onPress={() => router.push("/legal/guidelines")}>
+            Community Guidelines
+          </Text>{" "}
+          and{" "}
+          <Text style={styles.footerLink} onPress={() => router.push("/legal/privacy")}>
+            Privacy Policy
+          </Text>
+          .
+        </Text>
       </View>
     </View>
   );
 }
 
+function ValueChip({ icon, text }: { icon: keyof typeof Feather.glyphMap; text: string }) {
+  return (
+    <View style={styles.chip}>
+      <Feather name={icon} size={12} color="#DC2626" />
+      <Text style={styles.chipText}>{text}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#000000" },
-
-  // Two-layer red glow centered behind the logo
-  glowHalo: {
+  container: { flex: 1, backgroundColor: "#0D0A08" },
+  glow: {
     position: "absolute",
-    top: "8%",
-    alignSelf: "center",
-    width: 520,
-    height: 520,
-    borderRadius: 260,
+    top: -160,
+    left: -100,
+    width: 460,
+    height: 460,
+    borderRadius: 230,
     backgroundColor: "#DC2626",
-    opacity: 0.16,
+    opacity: 0.18,
   },
-  glowCore: {
-    position: "absolute",
-    top: "16%",
-    alignSelf: "center",
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: "#EF4444",
-    opacity: 0.22,
-  },
+  content: { flex: 1, paddingHorizontal: 26, justifyContent: "space-between" },
 
-  content: { flex: 1, paddingHorizontal: 28, justifyContent: "space-between" },
-
-  // Brand
-  brandBlock: { alignItems: "center" },
-  logoImg: {
-    width: 168,
-    height: 168,
-    borderRadius: 36,
-  },
-  brandRed: {
-    color: "#EF4444",
-    fontSize: 44,
-    fontWeight: "900",
-    letterSpacing: -1.5,
-    marginTop: 28,
-    lineHeight: 48,
-  },
-  brandWhite: {
-    color: "#FFFFFF",
-    fontSize: 44,
-    fontWeight: "900",
-    letterSpacing: -1.5,
-    lineHeight: 48,
-  },
-  tagline: {
-    color: "#E6DDD4",
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: "center",
-    marginTop: 16,
-    fontWeight: "500",
-  },
-
-  // CTAs
-  ctaBlock: { gap: 14 },
-  primaryBtn: {
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#DC2626",
+  // Logo
+  logoBlock: { alignItems: "center", marginTop: 18 },
+  logoFrame: {
+    width: 132,
+    height: 132,
+    borderRadius: 30,
+    backgroundColor: "#171210",
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#2A1F1B",
     shadowColor: "#DC2626",
-    shadowOpacity: 0.45,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
   },
-  primaryBtnText: { color: "#FFFFFF", fontSize: 17, fontWeight: "800", letterSpacing: 0.2 },
+  logoImg: { width: 110, height: 110, borderRadius: 22 },
+  brand: {
+    fontSize: 38,
+    fontWeight: "900",
+    letterSpacing: -1.2,
+    marginTop: 22,
+    textAlign: "center",
+  },
+  brandRed: { color: "#DC2626" },
+  brandWhite: { color: "#FFFFFF" },
+  tagline: {
+    color: "#C5BCB3",
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+    marginTop: 8,
+    paddingHorizontal: 16,
+  },
+
+  // Value chips
+  valueRow: { flexDirection: "row", justifyContent: "center", gap: 8, flexWrap: "wrap", marginTop: 4 },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 14,
+    backgroundColor: "#1A1310",
+    borderWidth: 1,
+    borderColor: "#2A1F1B",
+  },
+  chipText: { color: "#E6DDD4", fontSize: 12, fontWeight: "600" },
+
+  // CTAs
+  ctaBlock: { gap: 12, marginTop: 8 },
+  primaryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+    height: 54,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+  },
+  primaryBtnText: { color: "#0D0A08", fontSize: 16, fontWeight: "800", letterSpacing: -0.2 },
   secondaryBtn: {
-    height: 56,
-    borderRadius: 28,
+    height: 54,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
-    borderColor: "#FFFFFF",
-    backgroundColor: "transparent",
+    borderColor: "#2A1F1B",
+    backgroundColor: "#11100E",
   },
-  secondaryBtnText: { color: "#FFFFFF", fontSize: 17, fontWeight: "700" },
+  secondaryBtnText: { color: "#E6DDD4", fontSize: 15, fontWeight: "700" },
 
+  // Footer
   footer: {
     color: "#7A7269",
     fontSize: 11,
     textAlign: "center",
     lineHeight: 16,
-    marginTop: 10,
+    marginTop: 8,
   },
-  footerLink: { color: "#EF4444", fontWeight: "600" },
+  footerLink: { color: "#DC2626", fontWeight: "600" },
 });
