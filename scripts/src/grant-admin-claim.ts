@@ -35,6 +35,8 @@ if (!target) {
   );
 }
 
+const targetId: string = target;
+
 const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
 if (!serviceAccountJson) {
   fail(
@@ -61,21 +63,21 @@ if (getApps().length === 0) {
 const adminAuth = getAuth();
 
 async function main() {
-  const isEmail = target.includes("@");
+  const isEmail = targetId.includes("@");
   let uid: string;
   let email: string | undefined;
 
   try {
     const userRecord = isEmail
-      ? await adminAuth.getUserByEmail(target)
-      : await adminAuth.getUser(target);
+      ? await adminAuth.getUserByEmail(targetId)
+      : await adminAuth.getUser(targetId);
     uid = userRecord.uid;
     email = userRecord.email ?? undefined;
   } catch (err) {
     const code = (err as { code?: string }).code ?? "";
     if (code === "auth/user-not-found") {
       fail(
-        `No Firebase user found for "${target}".\n` +
+        `No Firebase user found for "${targetId}".\n` +
           (isEmail
             ? "Make sure the user has registered through the mobile app at least once."
             : "Double-check the UID in Firebase Console → Authentication.")

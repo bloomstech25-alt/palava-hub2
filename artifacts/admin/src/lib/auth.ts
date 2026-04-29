@@ -27,9 +27,14 @@ onAuthStateChanged(auth, async (user) => {
   }
   try {
     const tokenResult = await user.getIdTokenResult(true);
+    // Guard against an out-of-order resolve: only emit if this is still the
+    // active user. If the user signed out (or switched) while we were awaiting
+    // the token, drop this result.
+    if (auth.currentUser?.uid !== user.uid) return;
     const isAdmin = tokenResult.claims.admin === true;
     emit({ loading: false, user, isAdmin });
   } catch {
+    if (auth.currentUser?.uid !== user.uid) return;
     emit({ loading: false, user, isAdmin: false });
   }
 });

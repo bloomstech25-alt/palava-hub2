@@ -4,12 +4,12 @@ import {
   onSnapshot,
   doc,
   updateDoc,
-  deleteDoc,
   query,
   where,
   orderBy,
   serverTimestamp,
   getDoc,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -199,12 +199,17 @@ export default function ReportsPage() {
     if (!ok) return;
     setActionLoading(report.id + "remove");
     try {
-      await deleteDoc(doc(db, "posts", report.targetId));
-      await updateDoc(doc(db, "reports", report.id), {
+      // Atomic: delete the post AND mark the report resolved in a single
+      // batched write. Prevents an orphaned "pending" report pointing at a
+      // deleted post if the second write fails.
+      const batch = writeBatch(db);
+      batch.delete(doc(db, "posts", report.targetId));
+      batch.update(doc(db, "reports", report.id), {
         status: "resolved",
         reviewedAt: serverTimestamp(),
         reviewerNote: "Content removed by admin.",
       });
+      await batch.commit();
     } catch (err) {
       console.error("Remove failed:", err);
       alert("Could not remove post. It may already be deleted.");

@@ -170,6 +170,14 @@ Generated Zod schemas: `lib/api-zod/src/generated/`
 
 To regenerate after spec changes: `pnpm --filter @workspace/api-spec run codegen`
 
+## Admin Dashboard Auth
+
+- **Authentication**: Firebase Auth (email/password) via `signInWithEmailAndPassword`. No more legacy `sc_admin_token`.
+- **Authorization**: Firebase custom claim `admin: true` on the user. Both client gate (ProtectedRoute via `useAdminAuth`) and Firestore rules (`request.auth.token.admin == true`) enforce this.
+- **Auth state**: Module-level `onAuthStateChanged` in `artifacts/admin/src/lib/auth.ts` with cached state + listener Set; `useAdminAuth()` hook subscribes.
+- **Granting admin**: Run `pnpm --filter @workspace/scripts run grant-admin <email-or-uid>` (revoke with `--revoke`). Requires `FIREBASE_SERVICE_ACCOUNT` env var (JSON string of a service-account key from Firebase Console → Project Settings → Service accounts).
+- **Reports tab** (`/reports`): Live-streams the Firestore `reports` collection with Pending/Reviewed/Resolved tabs + counts. Inspect expands the reported post inline; "Remove content" deletes the post AND resolves the report atomically via `writeBatch`. Required for App Store Apple Guideline 1.2.
+
 ## Mobile App Notes
 
 - Do NOT use `uuid` package — use `Date.now().toString() + Math.random().toString(36).substr(2, 9)` instead
