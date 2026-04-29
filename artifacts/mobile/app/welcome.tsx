@@ -461,17 +461,11 @@ export default function WelcomeScreen() {
       >
         {/* Logo section */}
         <View style={styles.logoSection}>
-          <View style={styles.starContainer}>
-            <Image
-              source={require("../assets/images/icon.png")}
-              style={styles.logoImg}
-              resizeMode="contain"
-            />
-            <View style={styles.flagStripe1} />
-            <View style={styles.flagStripe2} />
-          </View>
-
-          <Text style={styles.appName}>Palava</Text>
+          <Image
+            source={require("../assets/images/palava-lockup.png")}
+            style={styles.lockupImg}
+            resizeMode="contain"
+          />
           <View style={styles.nameDivider}>
             <View style={[styles.divLine, { backgroundColor: "#BF0A30" }]} />
             <Text style={styles.lrBadge}>🇱🇷 LR</Text>
@@ -572,12 +566,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
-  logoSection: { alignItems: "center", paddingTop: 24 },
-  starContainer: { alignItems: "center", marginBottom: 18 },
-  logoImg: { width: 92, height: 92, borderRadius: 20 },
-  starEmoji: { fontSize: 36 },
-  flagStripe1: { width: 48, height: 3, backgroundColor: "#BF0A30", borderRadius: 2, marginTop: 8 },
-  flagStripe2: { width: 32, height: 3, backgroundColor: "#002868", borderRadius: 2, marginTop: 4 },
+  logoSection: { alignItems: "center", paddingTop: 12 },
+  lockupImg: { width: 200, height: 300, marginBottom: 4 },
 
   appName: {
     fontSize: 62,
