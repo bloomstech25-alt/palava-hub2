@@ -1,0 +1,64 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    function isVideo() {
+      return request.resource.contentType.matches('video/.*');
+    }
+    function isAudio() {
+      return request.resource.contentType.matches('audio/.*');
+    }
+    function under(maxBytes) {
+      return request.resource.size < maxBytes;
+    }
+    // Public read for posts (the feed is world-readable).
+    match /posts/{userId}/{fileName} {
+      allow read: if true;
+      allow create: if isOwner(userId)
+        && (
+          (isImage() && under(10 * 1024 * 1024))
+          || (isVideo() && under(50 * 1024 * 1024))
+          || (isAudio() && under(15 * 1024 * 1024))
+        );
+      allow update, delete: if isOwner(userId);
+    }
+    // DM uploads — sender owns the path; signed-in peers can download.
+    match /chats/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId)
+        && (
+          (isImage() && under(10 * 1024 * 1024))
+          || (isAudio() && under(15 * 1024 * 1024))
+        );
+      allow update, delete: if isOwner(userId);
+    }
+    // Profile pictures — file is named after the user's uid (no sub-folder).
+    match /avatars/{userId} {
+      allow read: if true;
+      allow create, update: if isOwner(userId)
+        && isImage()
+        && under(5 * 1024 * 1024);
+      allow delete: if isOwner(userId);
+    }
+    // Page banner / page avatar uploads.
+    match /pages/{userId}/{fileName} {
+      allow read: if true;
+      allow create, update: if isOwner(userId)
+        && isImage()
+        && under(10 * 1024 * 1024);
+      allow delete: if isOwner(userId);
+    }
+    // Default deny — anything else is rejected.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
