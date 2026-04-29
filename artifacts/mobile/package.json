@@ -61,6 +61,7 @@
     "expo-camera": "^17.0.10",
     "expo-file-system": "~19.0.21",
     "expo-media-library": "^55.0.14",
-    "firebase": "^12.12.0"
+    "firebase": "^12.12.0",
+    "react-native-webview": "^13.16.1"
   }
 }

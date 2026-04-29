@@ -22,7 +22,7 @@ import { useMessaging, type Message } from "@/context/MessagingContext";
 import { useColors } from "@/hooks/useColors";
 import { db, storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import VoiceCallModal from "@/components/VoiceCallModal";
 import VideoCallModal from "@/components/VideoCallModal";
 import EmojiPicker from "@/components/EmojiPicker";
@@ -212,6 +212,10 @@ export default function ChatScreen() {
     if (!user?.id || !userId) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const callId = `${user.id}_${userId}_${Date.now()}`;
+    setActiveCallId(callId);
+    if (type === "voice") setShowVoiceCall(true);
+    else setShowVideoCall(true);
+
     try {
       await setDoc(doc(db, "calls", callId), {
         callId,
@@ -225,9 +229,24 @@ export default function ChatScreen() {
         startedAt: serverTimestamp(),
       });
     } catch { /* Firestore unavailable — call still opens locally */ }
-    setActiveCallId(callId);
-    if (type === "voice") setShowVoiceCall(true);
-    else setShowVideoCall(true);
+
+    // Request a Daily.co room from the API and store its URL on the call doc
+    try {
+      const apiBase = process.env.EXPO_PUBLIC_DOMAIN
+        ? `https://${process.env.EXPO_PUBLIC_DOMAIN}`
+        : "";
+      const res = await fetch(`${apiBase}/api/calls/room`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ callId, type }),
+      });
+      if (res.ok) {
+        const { url } = await res.json();
+        if (url) {
+          try { await updateDoc(doc(db, "calls", callId), { roomUrl: url }); } catch { /* ignore */ }
+        }
+      }
+    } catch { /* room creation failed; modal will show error state */ }
   }, [user, userId, name]);
 
   const doSend = useCallback(async (
