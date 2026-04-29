@@ -36,7 +36,7 @@ interface PostCardProps {
 export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }: PostCardProps) {
   const colors = useColors();
   const { user, blockUser } = useAuth();
-  const { addPost, sharePost } = useFeed();
+  const { toggleRepost } = useFeed();
   const [likeAnimating, setLikeAnimating] = useState(false);
   // Post options menu (3-dot) — replaces the standalone Follow/Delete buttons.
   // Houses Apple-required Report and Block actions for any non-owned post.
@@ -102,36 +102,15 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
     );
   };
 
-  const handleShare = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert(
-      "Share Post",
-      "How would you like to share this?",
-      [
-        {
-          text: "🔁 Repost on Palava Hub",
-          onPress: handleRepost,
-        },
-        {
-          text: "📤 Share to other apps",
-          onPress: handleShareExternal,
-        },
-        { text: "Cancel", style: "cancel" },
-      ]
-    );
-  };
-
-  const handleRepost = async () => {
+  // Twitter-style retweet: tap toggles the repost state (icon turns green
+  // when active, gray when not). No quote-tweet behavior, no Alert prompt.
+  // External "share to other apps" lives in the 3-dot menu instead.
+  const handleRepost = () => {
     if (!user) return;
-    try {
-      const repostContent = `🔁 Reposted from @${post.author.username}:\n\n${post.content}`;
-      await addPost(repostContent, post.tags, user);
-      sharePost(post.id);
-      onShare?.();
-      Alert.alert("Reposted!", "The post has been shared to your feed.");
-    } catch {
-      Alert.alert("Error", "Could not repost. Please try again.");
-    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    toggleRepost(post.id);
+    // NB: do not call onShare?.() here — toggleRepost already updates the
+    // shares counter atomically. Calling onShare would double-count.
   };
 
   const handleShareExternal = async () => {
@@ -337,9 +316,13 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.action} activeOpacity={0.7} onPress={handleShare}>
-            <Feather name="repeat" size={18} color={colors.mutedForeground} />
-            <Text style={[styles.actionCount, { color: colors.mutedForeground }]}>
+          <TouchableOpacity style={styles.action} activeOpacity={0.7} onPress={handleRepost} testID={`repost-${post.id}`}>
+            <Feather
+              name="repeat"
+              size={18}
+              color={post.isReposted ? "#17BF63" : colors.mutedForeground}
+            />
+            <Text style={[styles.actionCount, { color: post.isReposted ? "#17BF63" : colors.mutedForeground }]}>
               {formatCount(post.shares)}
             </Text>
           </TouchableOpacity>
@@ -400,6 +383,23 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
                 </TouchableOpacity>
               </>
             )}
+            <TouchableOpacity
+              style={menuStyles.row}
+              onPress={() => {
+                setMenuOpen(false);
+                setTimeout(handleShareExternal, 120);
+              }}
+              activeOpacity={0.7}
+              testID="menu-share-external"
+            >
+              <Feather name="share" size={18} color={colors.foreground} />
+              <View style={{ flex: 1 }}>
+                <Text style={[menuStyles.rowTitle, { color: colors.foreground }]}>Share to other apps</Text>
+                <Text style={[menuStyles.rowSub, { color: colors.mutedForeground }]}>
+                  Send via WhatsApp, SMS, email, etc.
+                </Text>
+              </View>
+            </TouchableOpacity>
             {onDelete && (
               <TouchableOpacity
                 style={menuStyles.row}

@@ -30,7 +30,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { user, logout, followUser, unfollowUser, applyForVerification } = useAuth();
-  const { posts, toggleLike, toggleFollow, deletePost, sharePost } = useFeed();
+  const { posts, toggleLike, toggleFollow, deletePost } = useFeed();
   const params = useLocalSearchParams<{ userId?: string }>();
 
   const [otherUser, setOtherUser] = useState<User | null>(null);
@@ -93,7 +93,6 @@ export default function ProfileScreen() {
             onFollow={() => toggleFollow(item.id)}
             onPress={() => router.push({ pathname: "/post/[id]", params: { id: item.id } })}
             onDelete={isOwnProfile ? () => deletePost(item.id) : undefined}
-            onShare={() => sharePost(item.id)}
           />
         )}
         showsVerticalScrollIndicator={false}

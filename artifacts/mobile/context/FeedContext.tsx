@@ -15,9 +15,10 @@ import {
   limit,
   getDoc,
   getDocs,
+  runTransaction,
 } from "firebase/firestore";
 import { db, storage } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import type { School, User } from "./AuthContext";
 import { useAuth } from "./AuthContext";
 
@@ -34,7 +35,9 @@ export interface Post {
   likedBy: string[];
   comments: number;
   shares: number;
+  repostedBy: string[];
   isLiked: boolean;
+  isReposted: boolean;
   isFollowing: boolean;
   isPinned: boolean;
   createdAt: string;
@@ -80,6 +83,7 @@ interface FeedContextType {
   deletePost: (postId: string) => Promise<void>;
   sharePost: (postId: string) => void;
   toggleLike: (postId: string) => void;
+  toggleRepost: (postId: string) => void;
   toggleFollow: (postId: string) => void;
   getPostComments: (postId: string) => Comment[];
   addComment: (postId: string, content: string, author: User) => void;
@@ -224,12 +228,15 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
       const fetched: Post[] = snap.docs.map((d) => {
         const data = d.data();
         const likedBy: string[] = data.likedBy ?? [];
+        const repostedBy: string[] = data.repostedBy ?? [];
         return {
           ...data,
           id: d.id,
           authorId: data.authorId ?? data.author?.id ?? "",
           likedBy,
+          repostedBy,
           isLiked: currentUserId ? likedBy.includes(currentUserId) : false,
+          isReposted: currentUserId ? repostedBy.includes(currentUserId) : false,
           isFollowing: false,
           isPinned: data.isPinned ?? false,
           createdAt: tsToString(data.createdAt),
@@ -258,44 +265,58 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     options?: { category?: "general" | "campus_jams"; audioDurationSec?: number },
   ) => {
     // Upload media to Firebase Storage so we store a permanent HTTPS URL
-    // (not a local blob: or file: URI which breaks for other users)
+    // (not a local blob: or file: URI which breaks for other users).
+    // We deliberately re-throw on failure so the caller (create-post.tsx)
+    // can show a real error to the user instead of silently posting a
+    // text-only version of what they thought was a photo/video/audio post.
     let finalMediaUri: string | null = null;
+    let uploadedRef: ReturnType<typeof ref> | null = null;
     if (mediaUri) {
-      try {
-        const response = await fetch(mediaUri);
-        const blob = await response.blob();
-        const ext = mediaType === "video" ? "mp4" : mediaType === "audio" ? "m4a" : "jpg";
-        const storageRef = ref(storage, `posts/${author.id}/${Date.now()}.${ext}`);
-        await uploadBytes(storageRef, blob);
-        finalMediaUri = await getDownloadURL(storageRef);
-      } catch {
-        // If upload fails, post without media rather than storing a broken local URI
-        finalMediaUri = null;
-      }
+      const response = await fetch(mediaUri);
+      const blob = await response.blob();
+      const contentType =
+        mediaType === "video" ? "video/mp4"
+        : mediaType === "audio" ? "audio/m4a"
+        : "image/jpeg";
+      const ext = mediaType === "video" ? "mp4" : mediaType === "audio" ? "m4a" : "jpg";
+      const storageRef = ref(storage, `posts/${author.id}/${Date.now()}.${ext}`);
+      await uploadBytes(storageRef, blob, { contentType });
+      finalMediaUri = await getDownloadURL(storageRef);
+      uploadedRef = storageRef;
     }
 
     // Strip phone from the embedded author snapshot — posts are world-readable
     // and we never want a user's phone number leaking into the public feed.
     const { phone: _omitPhone, ...publicAuthor } = author;
     void _omitPhone;
-    await addDoc(collection(db, "posts"), {
-      author: publicAuthor,
-      authorId: author.id,
-      content,
-      mediaUri: finalMediaUri,
-      mediaType: finalMediaUri ? (mediaType ?? null) : null,
-      audioDurationSec: mediaType === "audio" && options?.audioDurationSec
-        ? options.audioDurationSec
-        : null,
-      category: options?.category ?? "general",
-      likes: 0,
-      likedBy: [],
-      comments: 0,
-      shares: 0,
-      isFollowing: false,
-      createdAt: serverTimestamp(),
-      tags,
-    });
+    try {
+      await addDoc(collection(db, "posts"), {
+        author: publicAuthor,
+        authorId: author.id,
+        content,
+        mediaUri: finalMediaUri,
+        mediaType: finalMediaUri ? (mediaType ?? null) : null,
+        audioDurationSec: mediaType === "audio" && options?.audioDurationSec
+          ? options.audioDurationSec
+          : null,
+        category: options?.category ?? "general",
+        likes: 0,
+        likedBy: [],
+        comments: 0,
+        shares: 0,
+        repostedBy: [],
+        isFollowing: false,
+        createdAt: serverTimestamp(),
+        tags,
+      });
+    } catch (err) {
+      // If we uploaded media but couldn't create the Firestore doc, clean up
+      // the orphaned Storage object so we don't leak user quota / storage cost.
+      if (uploadedRef) {
+        try { await deleteObject(uploadedRef); } catch { /* best-effort */ }
+      }
+      throw err;
+    }
     try {
       await updateDoc(doc(db, "users", author.id), { posts: increment(1) });
     } catch {
@@ -327,6 +348,35 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
       });
     }
   }, [posts, currentUserId]);
+
+  // Twitter-style repost toggle. We reuse the existing `shares` counter as
+  // the repost count and track who reposted in `repostedBy` (parallel to
+  // `likedBy`). Tap once to repost, tap again to undo. The PostCard renders
+  // the icon green when `isReposted` is true.
+  //
+  // Uses a Firestore transaction so a fast double-tap can't double-increment
+  // the counter: we read the latest server-side `repostedBy` array inside the
+  // transaction and decide based on that, not on the (possibly stale) local
+  // snapshot state.
+  const toggleRepost = useCallback(async (postId: string) => {
+    if (!currentUserId) return;
+    const postRef = doc(db, "posts", postId);
+    try {
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(postRef);
+        if (!snap.exists()) return;
+        const data = snap.data();
+        const repostedBy: string[] = Array.isArray(data.repostedBy) ? data.repostedBy : [];
+        const has = repostedBy.includes(currentUserId);
+        tx.update(postRef, {
+          shares: increment(has ? -1 : 1),
+          repostedBy: has ? arrayRemove(currentUserId) : arrayUnion(currentUserId),
+        });
+      });
+    } catch {
+      // Swallow — the snapshot listener will reconcile UI state on next tick.
+    }
+  }, [currentUserId]);
 
   const toggleFollow = useCallback((postId: string) => {
     setAllPosts((prev) =>
@@ -416,6 +466,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         deletePost,
         sharePost,
         toggleLike,
+        toggleRepost,
         toggleFollow,
         getPostComments,
         addComment,

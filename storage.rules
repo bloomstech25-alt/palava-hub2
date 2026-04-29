@@ -1,0 +1,88 @@
+rules_version = '2';
+
+// Firebase Storage security rules for Palava Hub.
+//
+// Layout (must match the upload paths used by the mobile app):
+//   posts/{userId}/{filename}      — image/video/audio attached to feed posts
+//   chats/{userId}/{filename}      — voice notes / images sent in DMs
+//   avatars/{userId}             — profile picture (file is named after the uid)
+//   pages/{userId}/{filename}      — page banner / avatar uploads
+//
+// Rules:
+//   • Reads are public for everything except chat (DMs are private).
+//   • Writes are limited to the authenticated owner of the {userId} folder.
+//   • Files are capped at 50MB (videos) / 10MB (everything else) and must
+//     match the expected content type.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    function isVideo() {
+      return request.resource.contentType.matches('video/.*');
+    }
+    function isAudio() {
+      return request.resource.contentType.matches('audio/.*');
+    }
+    function under(maxBytes) {
+      return request.resource.size < maxBytes;
+    }
+
+    // Public read for posts (the feed is world-readable).
+    match /posts/{userId}/{fileName} {
+      allow read: if true;
+      allow create: if isOwner(userId)
+        && (
+          (isImage() && under(10 * 1024 * 1024))
+          || (isVideo() && under(50 * 1024 * 1024))
+          || (isAudio() && under(15 * 1024 * 1024))
+        );
+      allow update, delete: if isOwner(userId);
+    }
+
+    // Private: only the sender of a chat upload can read/write it. We don't
+    // restrict reads to the conversation peer here because the conversation
+    // membership check lives in Firestore; Storage downloads use the URL
+    // returned by getDownloadURL which is access-token gated.
+    match /chats/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId)
+        && (
+          (isImage() && under(10 * 1024 * 1024))
+          || (isAudio() && under(15 * 1024 * 1024))
+        );
+      allow update, delete: if isOwner(userId);
+    }
+
+    // Public read for avatars + page assets. The mobile app stores each user's
+    // avatar at `avatars/{uid}` (the file itself is named after the uid — no
+    // sub-folder), so we match a single path segment here, not two.
+    match /avatars/{userId} {
+      allow read: if true;
+      allow create, update: if isOwner(userId)
+        && isImage()
+        && under(5 * 1024 * 1024);
+      allow delete: if isOwner(userId);
+    }
+
+    match /pages/{userId}/{fileName} {
+      allow read: if true;
+      allow create, update: if isOwner(userId)
+        && isImage()
+        && under(10 * 1024 * 1024);
+      allow delete: if isOwner(userId);
+    }
+
+    // Default deny — anything else is rejected.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -41,7 +41,7 @@ export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { user, followUser, unfollowUser } = useAuth();
-  const { trendingPosts, posts, toggleLike, toggleFollow, deletePost, sharePost } = useFeed();
+  const { trendingPosts, posts, toggleLike, toggleFollow, deletePost } = useFeed();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("trending");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
@@ -117,9 +117,8 @@ export default function ExploreScreen() {
       onFollow={() => toggleFollow(item.id)}
       onPress={() => router.push({ pathname: "/post/[id]", params: { id: item.id } })}
       onDelete={user?.id === item.authorId ? () => deletePost(item.id) : undefined}
-      onShare={() => sharePost(item.id)}
     />
-  ), [toggleLike, toggleFollow, deletePost, sharePost, user?.id]);
+  ), [toggleLike, toggleFollow, deletePost, user?.id]);
 
   async function handleFollowToggle(targetId: string) {
     if (followingInProgress[targetId]) return;

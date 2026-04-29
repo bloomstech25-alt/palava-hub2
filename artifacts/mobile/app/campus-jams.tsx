@@ -29,7 +29,7 @@ export default function CampusJamsScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { user } = useAuth();
-  const { posts, isLoading, toggleLike, toggleFollow, deletePost, sharePost } = useFeed();
+  const { posts, isLoading, toggleLike, toggleFollow, deletePost } = useFeed();
 
   const jams = useMemo<Post[]>(() => {
     return posts.filter((p) => {
@@ -100,7 +100,6 @@ export default function CampusJamsScreen() {
               post={item}
               onLike={() => toggleLike(item.id)}
               onFollow={() => toggleFollow(item.id)}
-              onShare={() => sharePost(item.id)}
               // Only show delete affordance to the post owner — prevents
               // any user from triggering deletes on jams they don't own.
               onDelete={

@@ -272,18 +272,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user || targetId === user.id) return;
     if ((user.followingIds ?? []).includes(targetId)) return;
     const updatedIds = [...(user.followingIds ?? []), targetId];
+    // Optimistic UI update — user sees instant feedback.
     setUser({ ...user, followingIds: updatedIds, following: user.following + 1 });
-    try {
-      await updateDoc(doc(db, "users", user.id), {
+    // Fire both Firestore writes in parallel and don't block the UI on them.
+    // The previous implementation awaited them sequentially, which made the
+    // follow button feel laggy on slow networks.
+    Promise.all([
+      updateDoc(doc(db, "users", user.id), {
         followingIds: arrayUnion(targetId),
         following: increment(1),
-      });
-      await updateDoc(doc(db, "users", targetId), {
+      }),
+      updateDoc(doc(db, "users", targetId), {
         followers: increment(1),
-      });
-    } catch {
-      setUser({ ...user });
-    }
+      }),
+    ]).catch(() => {
+      // Roll back optimistic update on failure.
+      setUser((prev) => prev ? {
+        ...prev,
+        followingIds: (prev.followingIds ?? []).filter((id) => id !== targetId),
+        following: Math.max(0, prev.following - 1),
+      } : prev);
+    });
   }, [user]);
 
   const unfollowUser = useCallback(async (targetId: string) => {
@@ -291,17 +300,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!(user.followingIds ?? []).includes(targetId)) return;
     const updatedIds = (user.followingIds ?? []).filter((id) => id !== targetId);
     setUser({ ...user, followingIds: updatedIds, following: Math.max(0, user.following - 1) });
-    try {
-      await updateDoc(doc(db, "users", user.id), {
+    Promise.all([
+      updateDoc(doc(db, "users", user.id), {
         followingIds: arrayRemove(targetId),
         following: increment(-1),
-      });
-      await updateDoc(doc(db, "users", targetId), {
+      }),
+      updateDoc(doc(db, "users", targetId), {
         followers: increment(-1),
-      });
-    } catch {
-      setUser({ ...user });
-    }
+      }),
+    ]).catch(() => {
+      setUser((prev) => prev ? {
+        ...prev,
+        followingIds: [...(prev.followingIds ?? []), targetId],
+        following: prev.following + 1,
+      } : prev);
+    });
   }, [user]);
 
   const applyForVerification = useCallback(async () => {

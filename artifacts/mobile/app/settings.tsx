@@ -148,7 +148,6 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Your Activity</Text>
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Row icon="bar-chart-2" label="My Ads" description="View metrics for your ads and pages" onPress={() => router.push("/my-ads")} />
-          <Row icon="globe" label="News Pages" description="Follow Liberian news, sports, and entertainment" onPress={() => router.push("/news")} />
           <Row icon="zap" label="Campus Jams" description="See what's happening on campus" onPress={() => router.push("/campus-jams")} />
         </View>
 

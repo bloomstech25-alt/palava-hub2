@@ -29,7 +29,7 @@ export default function FeedScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { user } = useAuth();
 
-  const { posts, isLoading, toggleLike, toggleFollow, deletePost, sharePost } = useFeed();
+  const { posts, isLoading, toggleLike, toggleFollow, deletePost } = useFeed();
   const { getActiveAds } = useAds();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -67,10 +67,9 @@ export default function FeedScreen() {
         onFollow={() => toggleFollow(item.data.id)}
         onPress={() => router.push({ pathname: "/post/[id]", params: { id: item.data.id } })}
         onDelete={isOwn ? () => deletePost(item.data.id) : undefined}
-        onShare={() => sharePost(item.data.id)}
       />
     );
-  }, [toggleLike, toggleFollow, deletePost, sharePost, user?.id]);
+  }, [toggleLike, toggleFollow, deletePost, user?.id]);
 
   const keyExtractor = useCallback((item: FeedItem) => {
     return item.type === "post" ? `post_${item.data.id}` : `ad_${item.data.id}`;
@@ -83,14 +82,6 @@ export default function FeedScreen() {
       <View style={[styles.header, { paddingTop: topPad, borderBottomColor: colors.border, backgroundColor: colors.background }]}>
         <Text style={[styles.headerTitle, { color: colors.primary }]}>Palava Hub</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity
-            onPress={() => router.push("/news")}
-            style={[styles.advertiseBtn, { backgroundColor: colors.accent, borderColor: colors.primary + "30" }]}
-            activeOpacity={0.8}
-          >
-            <Feather name="globe" size={13} color={colors.primary} />
-            <Text style={[styles.advertiseBtnText, { color: colors.primary }]}>News</Text>
-          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.push("/campus-jams")}
             style={[styles.advertiseBtn, { backgroundColor: colors.accent, borderColor: colors.primary + "30" }]}

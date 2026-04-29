@@ -178,6 +178,23 @@ To regenerate after spec changes: `pnpm --filter @workspace/api-spec run codegen
 - **Granting admin**: Run `pnpm --filter @workspace/scripts run grant-admin <email-or-uid>` (revoke with `--revoke`). Requires `FIREBASE_SERVICE_ACCOUNT` env var (JSON string of a service-account key from Firebase Console → Project Settings → Service accounts).
 - **Reports tab** (`/reports`): Live-streams the Firestore `reports` collection with Pending/Reviewed/Resolved tabs + counts. Inspect expands the reported post inline; "Remove content" deletes the post AND resolves the report atomically via `writeBatch`. Required for App Store Apple Guideline 1.2.
 
+## Recent Mobile Bug Fixes (Apr 2026)
+
+User-reported issues from store-readiness testing:
+1. **Media uploads silently failing** — `addPost` (FeedContext) used to swallow Storage errors and post text-only. Now re-throws; `create-post.tsx` shows friendly Alert messages for `storage/unauthorized`, `storage/quota-exceeded`, `storage/unauthenticated`. If `addDoc` fails after a successful upload, the orphaned Storage object is deleted (best-effort).
+2. **Slow follow** — `followUser`/`unfollowUser` (AuthContext) parallelize the two Firestore writes via `Promise.all` and use functional `setUser((prev)=>...)` rollback on error.
+3. **News feature removed** — deleted `app/news.tsx`, removed Stack.Screen registration in `_layout.tsx`, removed home-screen News button, removed Settings "News Pages" row, removed `routes/news.ts` and its registration in api-server.
+4. **Twitter-style retweet** — `Post` type gained `repostedBy: string[]` and `isReposted: boolean`. New `toggleRepost(postId)` in FeedContext uses a Firestore **transaction** (idempotent on rapid double-tap) to update `shares` + `repostedBy` atomically. PostCard's repeat icon turns Twitter-green (#17BF63) when reposted. The "share to other apps" affordance moved into the 3-dot menu so we don't lose external sharing.
+
+## Storage Rules (`storage.rules`)
+
+Locked down with per-folder ownership rules + size/type caps. **Must be published manually in the Firebase Console** (Storage → Rules) — same flow as `firestore.rules`. Path layout (must match upload paths in code):
+- `posts/{userId}/{filename}` — public read; owner write; image ≤10MB / video ≤50MB / audio ≤15MB
+- `chats/{userId}/{filename}` — signed-in read; owner write; image ≤10MB / audio ≤15MB
+- `avatars/{userId}` — public read; owner write; image ≤5MB (file is named after the uid, no sub-folder)
+- `pages/{userId}/{filename}` — public read; owner write; image ≤10MB
+- Default deny for everything else.
+
 ## Mobile App Notes
 
 - Do NOT use `uuid` package — use `Date.now().toString() + Math.random().toString(36).substr(2, 9)` instead

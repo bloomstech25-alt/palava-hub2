@@ -199,19 +199,34 @@ export default function CreatePostScreen() {
     if (!content.trim() || !user) return;
     setIsPosting(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await addPost(
-      content.trim(),
-      tags,
-      user,
-      mediaUri ?? undefined,
-      mediaType ?? undefined,
-      {
-        category: isCampusJam ? "campus_jams" : "general",
-        audioDurationSec,
-      },
-    );
-    setIsPosting(false);
-    router.back();
+    try {
+      await addPost(
+        content.trim(),
+        tags,
+        user,
+        mediaUri ?? undefined,
+        mediaType ?? undefined,
+        {
+          category: isCampusJam ? "campus_jams" : "general",
+          audioDurationSec,
+        },
+      );
+      router.back();
+    } catch (err: unknown) {
+      const code = (err as { code?: string } | null)?.code ?? "";
+      const mediaLabel = mediaType === "video" ? "video" : mediaType === "audio" ? "audio" : "image";
+      let message = `Could not upload your ${mediaLabel}. Please check your connection and try again.`;
+      if (code === "storage/unauthorized") {
+        message = `Upload was rejected. The Firebase Storage rules need to be deployed. Ask the project owner to publish storage.rules in the Firebase Console.`;
+      } else if (code === "storage/quota-exceeded") {
+        message = "Storage quota exceeded. Try a smaller file or contact support.";
+      } else if (code === "storage/unauthenticated") {
+        message = "Your session expired. Please sign out and sign back in, then try again.";
+      }
+      Alert.alert("Post failed", message);
+    } finally {
+      setIsPosting(false);
+    }
   };
 
   const remaining = charLimit - content.length;

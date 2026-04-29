@@ -5,7 +5,6 @@ import usersRouter from "./users";
 import postsRouter from "./posts";
 import adminRouter from "./admin";
 import callsRouter from "./calls";
-import newsRouter from "./news";
 
 const router: IRouter = Router();
 
@@ -15,6 +14,5 @@ router.use(schoolsRouter);
 router.use(usersRouter);
 router.use(postsRouter);
 router.use(callsRouter);
-router.use(newsRouter);
 
 export default router;

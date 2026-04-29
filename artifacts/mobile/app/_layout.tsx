@@ -46,7 +46,6 @@ function RootLayoutNav() {
         <Stack.Screen name="create-post" options={{ presentation: "modal" }} />
         <Stack.Screen name="create-ad" options={{ presentation: "modal" }} />
         <Stack.Screen name="my-ads" options={{ presentation: "modal" }} />
-        <Stack.Screen name="news" options={{ presentation: "modal" }} />
         <Stack.Screen name="create-palava" options={{ presentation: "modal" }} />
         <Stack.Screen name="go-live" options={{ presentation: "fullScreenModal" }} />
         <Stack.Screen name="edit-profile" options={{ presentation: "modal" }} />
