@@ -42,7 +42,7 @@ export default function WelcomeScreen() {
         {/* ─── Logo + brand block ─────────────────────────────────────────── */}
         <View style={styles.brandBlock}>
           <Image
-            source={require("../assets/images/icon.png")}
+            source={require("../assets/images/palava-z-icon.png")}
             style={styles.logoImg}
             resizeMode="contain"
           />
