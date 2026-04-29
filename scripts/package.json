@@ -5,10 +5,14 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:rules": "PATH=\"$(ls -d /nix/store/*-openjdk-21*/bin 2>/dev/null | head -1):$PATH\" firebase --config ../firebase.json --project palava-hub-rules-test emulators:exec --only firestore 'tsx ./src/test-firestore-rules.ts'"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
     "@types/node": "catalog:",
+    "firebase": "^12.12.0",
+    "firebase-tools": "^15.15.0",
     "tsx": "catalog:"
   }
 }

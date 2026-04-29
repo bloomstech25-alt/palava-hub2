@@ -91,6 +91,18 @@ All schools in `SCHOOLS_LIST` (FeedContext.tsx) are exclusively Liberian institu
 - `supportRequests/{id}` — Report & Help submissions (userId, userEmail, kind, subject, message, createdAt)
 - `verificationRequests/{uid}` — verification applications (status ∈ pending|approved|rejected)
 - `ads/{id}` — sponsor ads (free during launch; admin reviews before publishing)
+- `reports/{id}` — Apple Guideline 1.2 user-content moderation reports (reporterId, targetType ∈ post|comment|user|message, targetId, targetUserId?, reason ∈ spam|harassment|hate_speech|violence|nudity|self_harm|misinformation|other, details, status ∈ pending|reviewed|resolved, createdAt) — admin-readable only
+
+#### Firestore Security Rules
+Rules at `firestore.rules` are the server-side enforcement layer for moderation, blocking, and integrity:
+- **Reports**: only signed-in users may write; `reporterId == auth.uid` enforced; self-reporting rejected; reason enum validated server-side; admin-only read/update
+- **Blocking**: `users/{uid}.blockedUserIds` writable only by `uid`; messages and conversation summaries to a target user are rejected if the writer is in their `blockedUserIds`
+- **Posts**: author-only delete; counter fields (likes/likedBy/comments/shares) updatable by any signed-in user
+- **Messaging**: only convo participants can read/write; `fromId == auth.uid` enforced; messages immutable except `read` flag
+- **Default deny**: any collection not explicitly allowed is closed
+- **Admin**: gated via custom claim `request.auth.token.admin == true`
+- **Test it**: `pnpm --filter @workspace/scripts run test:rules` — runs 33 checks against the Firestore emulator (requires JDK 21, auto-located from `/nix/store`)
+- **Deploy**: `firebase deploy --only firestore:rules` (requires `firebase login` and a real project ID in `.firebaserc`)
 
 ### Palava Hub Admin Dashboard (`artifacts/admin`)
 - **Type**: React + Vite web app

@@ -1,0 +1,238 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helpers ───────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    // True when `viewerUid` is in the `targetUid`'s blockedUserIds.
+    // Tolerates a missing field/document.
+    function isBlockedBy(targetUid, viewerUid) {
+      let userDoc = get(/databases/$(database)/documents/users/$(targetUid));
+      return userDoc != null
+        && userDoc.data.blockedUserIds is list
+        && viewerUid in userDoc.data.blockedUserIds;
+    }
+
+    // Convo IDs are formed as `${minUid}_${maxUid}` (alphabetical sort).
+    function convParticipants(cid) {
+      return cid.split('_');
+    }
+
+    function isConvParticipant(cid) {
+      return isSignedIn()
+        && (request.auth.uid == convParticipants(cid)[0]
+            || request.auth.uid == convParticipants(cid)[1]);
+    }
+
+    // Allowed report reason enum (must match ReportReason in AuthContext.tsx).
+    function isValidReportReason(r) {
+      return r in [
+        'spam',
+        'harassment',
+        'hate_speech',
+        'violence',
+        'nudity',
+        'self_harm',
+        'misinformation',
+        'other'
+      ];
+    }
+
+    // ─── users/{uid} ───────────────────────────────────────────────────────
+    // Profiles are world-readable (signed-in only). The owner can write.
+    // Other signed-in users may ONLY change counter-style or follow-graph
+    // fields on someone else's profile (followers count, posts count).
+    match /users/{uid} {
+      allow read: if isSignedIn();
+
+      allow create: if isSelf(uid)
+        && request.resource.data.id == uid;
+
+      // Owner: full update rights, BUT cannot grant themselves admin.
+      // Non-owner: limited to counter increments (followers/following/posts)
+      // so the existing follow/unfollow flow keeps working without exposing
+      // arbitrary writes to someone else's profile (esp. blockedUserIds).
+      allow update: if (
+        isSelf(uid)
+        && (
+          !('admin' in request.resource.data.keys())
+          || request.resource.data.admin == resource.data.get('admin', false)
+        )
+      ) || (
+        isSignedIn()
+        && request.auth.uid != uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['followers', 'following', 'posts'])
+      ) || isAdmin();
+
+      allow delete: if isSelf(uid) || isAdmin();
+    }
+
+    // ─── users/{uid}/conversations/{otherId} ──────────────────────────────
+    // Conversation summaries — written from BOTH sides during sendMessage.
+    // Either participant may write their counterpart's summary doc, but
+    // never if the recipient has blocked the writer.
+    match /users/{uid}/conversations/{otherId} {
+      allow read: if isSelf(uid);
+
+      allow write: if isSignedIn()
+        && (request.auth.uid == uid || request.auth.uid == otherId)
+        && !isBlockedBy(uid, request.auth.uid)
+        && !isBlockedBy(otherId, request.auth.uid);
+
+      allow delete: if isSelf(uid);
+    }
+
+    // ─── conversations/{cid}/messages/{msgId} ─────────────────────────────
+    // 1-on-1 messages keyed by sorted-uid pair. Sender must be a participant,
+    // and the recipient must not have blocked them.
+    match /conversations/{cid}/messages/{msgId} {
+      allow read: if isConvParticipant(cid);
+
+      allow create: if isConvParticipant(cid)
+        && request.resource.data.fromId == request.auth.uid
+        && request.resource.data.toId in convParticipants(cid)
+        && request.resource.data.toId != request.auth.uid
+        && !isBlockedBy(request.resource.data.toId, request.auth.uid);
+
+      // Updates limited to flipping `read` to true on the recipient's side.
+      allow update: if isConvParticipant(cid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read == true;
+
+      allow delete: if false; // messages are immutable; admin via SDK only
+    }
+
+    // ─── posts/{postId} ────────────────────────────────────────────────────
+    // World-readable to signed-in users. Authors create/delete their own.
+    // Anyone signed-in can mutate counter fields (likes/comments/shares)
+    // and the personal `likedBy` array — but cannot rewrite content.
+    match /posts/{postId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.authorId == request.auth.uid;
+
+      allow update: if (
+        isSignedIn()
+        && resource.data.authorId == request.auth.uid
+      ) || (
+        isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['likes', 'likedBy', 'comments', 'shares', 'isFollowing'])
+      ) || isAdmin();
+
+      allow delete: if (isSignedIn() && resource.data.authorId == request.auth.uid)
+        || isAdmin();
+
+      // Comments under a post.
+      match /comments/{commentId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn()
+          && request.resource.data.authorId == request.auth.uid;
+        allow update, delete: if (isSignedIn()
+          && resource.data.authorId == request.auth.uid) || isAdmin();
+      }
+    }
+
+    // ─── reports/{reportId} ────────────────────────────────────────────────
+    // Apple Guideline 1.2 — write-only for end users; reads/admin actions
+    // gated to admins. Validates self-protection and reason enum server-side.
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+
+      allow create: if isSignedIn()
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && isValidReportReason(request.resource.data.reason)
+        && request.resource.data.targetType in ['post', 'comment', 'user', 'message']
+        && (
+          !('targetUserId' in request.resource.data.keys())
+          || request.resource.data.targetUserId == null
+          || request.resource.data.targetUserId != request.auth.uid
+        );
+
+      allow update, delete: if isAdmin();
+    }
+
+    // ─── verificationRequests/{uid} ───────────────────────────────────────
+    match /verificationRequests/{uid} {
+      allow read: if isSelf(uid) || isAdmin();
+      allow create, update: if isSelf(uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── ads/{adId} ────────────────────────────────────────────────────────
+    match /ads/{adId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update: if (
+        isSignedIn() && resource.data.ownerId == request.auth.uid
+      ) || (
+        isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['impressions', 'clicks'])
+      ) || isAdmin();
+      allow delete: if (isSignedIn() && resource.data.ownerId == request.auth.uid)
+        || isAdmin();
+    }
+
+    // ─── pages/{pageId} ────────────────────────────────────────────────────
+    match /pages/{pageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if (isSignedIn()
+        && resource.data.ownerId == request.auth.uid) || isAdmin();
+    }
+
+    // ─── palavaroomPosts/{id} ─────────────────────────────────────────────
+    match /palavaroomPosts/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.authorId == request.auth.uid;
+      allow update, delete: if (isSignedIn()
+        && resource.data.authorId == request.auth.uid) || isAdmin();
+    }
+
+    // ─── supportRequests/{id} ─────────────────────────────────────────────
+    match /supportRequests/{id} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn()
+        && request.resource.data.reporterId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ─── calls/{callId} ────────────────────────────────────────────────────
+    // Only the two participants encoded in the call doc may read/write.
+    match /calls/{callId} {
+      allow read: if isSignedIn()
+        && (request.auth.uid == resource.data.callerId
+            || request.auth.uid == resource.data.calleeId);
+      allow create: if isSignedIn()
+        && request.resource.data.callerId == request.auth.uid;
+      allow update: if isSignedIn()
+        && (request.auth.uid == resource.data.callerId
+            || request.auth.uid == resource.data.calleeId);
+      allow delete: if isAdmin();
+    }
+
+    // Default deny — any collection not explicitly allowed above is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
