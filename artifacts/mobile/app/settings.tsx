@@ -3,7 +3,9 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -30,6 +32,10 @@ export default function SettingsScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { user, logout, deleteAccount } = useAuth();
   const [deleting, setDeleting] = useState(false);
+  // Custom confirmation modal — Alert.alert is unreliable on react-native-web
+  // and Apple App Store Guideline 5.1.1(v) explicitly requires a confirmation
+  // step before account deletion, so we render our own cross-platform dialog.
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   function handleLogout() {
     Alert.alert("Log out", "Are you sure you want to log out?", [
@@ -46,27 +52,19 @@ export default function SettingsScreen() {
   }
 
   function handleDelete() {
-    Alert.alert(
-      "Delete Account",
-      "This permanently removes your profile, posts, and all data. This cannot be undone. Continue?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete forever",
-          style: "destructive",
-          onPress: async () => {
-            setDeleting(true);
-            const res = await deleteAccount();
-            setDeleting(false);
-            if (res.success) {
-              router.replace("/welcome");
-            } else {
-              Alert.alert("Could not delete", res.error ?? "Please try again later.");
-            }
-          },
-        },
-      ]
-    );
+    setConfirmDeleteOpen(true);
+  }
+
+  async function confirmDelete() {
+    setConfirmDeleteOpen(false);
+    setDeleting(true);
+    const res = await deleteAccount();
+    setDeleting(false);
+    if (res.success) {
+      router.replace("/welcome");
+    } else {
+      Alert.alert("Could not delete", res.error ?? "Please try again later.");
+    }
   }
 
   function Row({ icon, label, description, onPress, destructive, iconColor }: RowProps) {
@@ -168,6 +166,53 @@ export default function SettingsScreen() {
 
         <Text style={[styles.appVersion, { color: colors.mutedForeground }]}>Palava Hub · v1.0.0</Text>
       </ScrollView>
+
+      <Modal
+        visible={confirmDeleteOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmDeleteOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View
+            style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            testID="confirm-delete-dialog"
+          >
+            <View style={[styles.modalIconBubble, { backgroundColor: "#DC262615" }]}>
+              <Feather name="alert-triangle" size={26} color="#DC2626" />
+            </View>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+              Delete your account?
+            </Text>
+            <Text style={[styles.modalBody, { color: colors.mutedForeground }]}>
+              This permanently removes your profile, posts, comments, messages, and all other data
+              from Palava Hub. This action cannot be undone.
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnGhost, { borderColor: colors.border }]}
+                onPress={() => setConfirmDeleteOpen(false)}
+                disabled={deleting}
+                testID="cancel-delete"
+              >
+                <Text style={[styles.modalBtnGhostText, { color: colors.foreground }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnDanger]}
+                onPress={confirmDelete}
+                disabled={deleting}
+                testID="confirm-delete"
+              >
+                {deleting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.modalBtnDangerText}>Delete forever</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -220,4 +265,42 @@ const styles = StyleSheet.create({
   rowLabel: { fontSize: 14, fontWeight: "600" },
   rowDesc: { fontSize: 12, marginTop: 1, lineHeight: 16 },
   appVersion: { textAlign: "center", marginTop: 24, fontSize: 12 },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 360,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 22,
+    alignItems: "center",
+  },
+  modalIconBubble: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  modalTitle: { fontSize: 17, fontWeight: "700", marginBottom: 8, textAlign: "center" },
+  modalBody: { fontSize: 13, lineHeight: 19, textAlign: "center", marginBottom: 18 },
+  modalActions: { flexDirection: "row", gap: 10, width: "100%" },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 44,
+  },
+  modalBtnGhost: { borderWidth: 1, backgroundColor: "transparent" },
+  modalBtnGhostText: { fontSize: 14, fontWeight: "600" },
+  modalBtnDanger: { backgroundColor: "#DC2626" },
+  modalBtnDangerText: { color: "#fff", fontSize: 14, fontWeight: "700" },
 });

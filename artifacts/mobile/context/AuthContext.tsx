@@ -73,6 +73,7 @@ interface RegisterData {
   bio?: string;
   avatarUri?: string;
   phone?: string;
+  dob: string; // ISO date YYYY-MM-DD — required for store-compliant age gating
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -210,7 +211,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         joinedAt: new Date().toISOString().split("T")[0],
         ...(data.phone ? { phone: data.phone } : {}),
       };
-      await setDoc(doc(db, "users", uid), newUser);
+      // Persist DOB on the Firestore record (kept off the public User type
+      // to avoid leaking it in feed embeds — mirrors how `phone` is handled).
+      await setDoc(doc(db, "users", uid), { ...newUser, dob: data.dob });
       setUser(newUser);
       return { success: true };
     } catch (err: any) {

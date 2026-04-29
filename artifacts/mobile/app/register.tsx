@@ -41,6 +41,9 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [bio, setBio] = useState("");
+  // Date of birth in ISO format YYYY-MM-DD — required by both Apple and Google
+  // for age-appropriate design / COPPA compliance. Anyone under 13 is blocked.
+  const [dob, setDob] = useState("");
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const [schoolQuery, setSchoolQuery] = useState("");
@@ -85,6 +88,51 @@ export default function RegisterScreen() {
     return { e164, synth };
   }
 
+  // Auto-format DOB input as the user types. Strips non-digits and inserts
+  // hyphens so a "number-pad" style keyboard (which lacks "-" on iOS/Android)
+  // still produces a valid YYYY-MM-DD string.
+  function handleDobChange(text: string) {
+    const digits = text.replace(/\D/g, "").slice(0, 8);
+    let out = digits;
+    if (digits.length > 4 && digits.length <= 6) {
+      out = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    } else if (digits.length > 6) {
+      out = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+    }
+    setDob(out);
+  }
+
+  // Compute calendar age from a YYYY-MM-DD string. Returns NaN for any
+  // unparseable / future / structurally-invalid date (e.g. Feb 31) so the
+  // caller can show a single error. We round-trip the parts back through Date
+  // to reject values JavaScript silently normalizes (Feb 31 -> Mar 3 etc.).
+  function computeAge(iso: string): number {
+    const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return NaN;
+    const y = Number(m[1]);
+    const mo = Number(m[2]);
+    const d = Number(m[3]);
+    if (mo < 1 || mo > 12 || d < 1 || d > 31) return NaN;
+    if (y < 1900) return NaN;
+    const birth = new Date(y, mo - 1, d);
+    if (
+      isNaN(birth.getTime()) ||
+      birth.getFullYear() !== y ||
+      birth.getMonth() !== mo - 1 ||
+      birth.getDate() !== d
+    ) {
+      return NaN;
+    }
+    const today = new Date();
+    if (birth > today) return NaN;
+    let age = today.getFullYear() - birth.getFullYear();
+    const beforeBirthday =
+      today.getMonth() < birth.getMonth() ||
+      (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate());
+    if (beforeBirthday) age -= 1;
+    return age;
+  }
+
   const handleRegister = async () => {
     if (!name.trim() || !username.trim() || !password.trim() || !selectedSchool) {
       setError("Please fill in all required fields");
@@ -104,6 +152,17 @@ export default function RegisterScreen() {
     }
     if (password.length < 6) {
       setError("Password must be at least 6 characters");
+      return;
+    }
+    // Age gating — required for Google Play age-appropriate design and Apple
+    // App Store Guideline 1.3 / 5.1.4. Block anyone under 13 (COPPA).
+    const age = computeAge(dob.trim());
+    if (isNaN(age)) {
+      setError("Please enter your date of birth as YYYY-MM-DD");
+      return;
+    }
+    if (age < 13) {
+      setError("You must be at least 13 years old to use Palava Hub.");
       return;
     }
     setIsLoading(true);
@@ -126,6 +185,7 @@ export default function RegisterScreen() {
       bio: bio.trim(),
       avatarUri: avatarUri ?? undefined,
       phone: savedPhone,
+      dob: dob.trim(),
     });
     setIsLoading(false);
     if (result.success) {
@@ -236,6 +296,28 @@ export default function RegisterScreen() {
                   <Feather name={showPw ? "eye-off" : "eye"} size={18} color={colors.mutedForeground} />
                 </TouchableOpacity>
               </View>
+            </View>
+
+            {/* Date of Birth — store-required age verification */}
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.foreground }]}>Date of Birth</Text>
+              <View style={[styles.inputWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                <Feather name="calendar" size={18} color={colors.mutedForeground} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { color: colors.foreground }]}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={colors.mutedForeground}
+                  value={dob}
+                  onChangeText={handleDobChange}
+                  keyboardType={Platform.OS === "web" ? "default" : "number-pad"}
+                  autoCapitalize="none"
+                  maxLength={10}
+                  testID="input-dob"
+                />
+              </View>
+              <Text style={[styles.schoolSub, { color: colors.mutedForeground }]}>
+                You must be at least 13 to use Palava Hub.
+              </Text>
             </View>
 
             {/* Bio Field */}
