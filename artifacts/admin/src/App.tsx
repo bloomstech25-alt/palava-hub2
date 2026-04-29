@@ -11,6 +11,7 @@ import UsersPage from "@/pages/users";
 import PostsPage from "@/pages/posts";
 import AdsPage from "@/pages/ads";
 import VerificationsPage from "@/pages/verifications";
+import ReportsPage from "@/pages/reports";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -73,6 +74,13 @@ function Router() {
         <ProtectedRoute>
           <Layout>
             <VerificationsPage />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/reports">
+        <ProtectedRoute>
+          <Layout>
+            <ReportsPage />
           </Layout>
         </ProtectedRoute>
       </Route>
