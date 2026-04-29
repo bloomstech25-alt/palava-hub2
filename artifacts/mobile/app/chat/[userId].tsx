@@ -21,7 +21,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useMessaging, type Message } from "@/context/MessagingContext";
 import { useColors } from "@/hooks/useColors";
 import { db, storage } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref } from "firebase/storage";
+import { uploadUriToStorage } from "@/utils/uploadBlob";
 import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import VoiceCallModal from "@/components/VoiceCallModal";
 import VideoCallModal from "@/components/VideoCallModal";
@@ -291,13 +292,15 @@ export default function ChatScreen() {
 
   const uploadMediaToStorage = async (localUri: string, mediaType: "image" | "video"): Promise<string | null> => {
     try {
-      const response = await fetch(localUri);
-      const blob = await response.blob();
       const ext = mediaType === "video" ? "mp4" : "jpg";
+      const contentType = mediaType === "video" ? "video/mp4" : "image/jpeg";
       const storageRef = ref(storage, `chats/${user?.id}/${Date.now()}.${ext}`);
-      await uploadBytes(storageRef, blob);
-      return await getDownloadURL(storageRef);
-    } catch {
+      return await uploadUriToStorage(localUri, storageRef, contentType);
+    } catch (err) {
+      // Surface why the upload failed so we can debug picker / network /
+      // permissions issues instead of just sending a text bubble silently.
+      // eslint-disable-next-line no-console
+      console.warn("[chat] uploadMediaToStorage failed", (err as { code?: string })?.code, (err as Error)?.message);
       return null;
     }
   };

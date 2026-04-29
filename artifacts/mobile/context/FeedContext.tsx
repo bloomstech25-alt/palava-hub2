@@ -18,7 +18,8 @@ import {
   runTransaction,
 } from "firebase/firestore";
 import { db, storage } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { ref, deleteObject } from "firebase/storage";
+import { uploadUriToStorage } from "@/utils/uploadBlob";
 import type { School, User } from "./AuthContext";
 import { useAuth } from "./AuthContext";
 
@@ -277,16 +278,13 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     let finalMediaUri: string | null = null;
     let uploadedRef: ReturnType<typeof ref> | null = null;
     if (mediaUri) {
-      const response = await fetch(mediaUri);
-      const blob = await response.blob();
       const contentType =
         mediaType === "video" ? "video/mp4"
         : mediaType === "audio" ? "audio/m4a"
         : "image/jpeg";
       const ext = mediaType === "video" ? "mp4" : mediaType === "audio" ? "m4a" : "jpg";
       const storageRef = ref(storage, `posts/${author.id}/${Date.now()}.${ext}`);
-      await uploadBytes(storageRef, blob, { contentType });
-      finalMediaUri = await getDownloadURL(storageRef);
+      finalMediaUri = await uploadUriToStorage(mediaUri, storageRef, contentType);
       uploadedRef = storageRef;
     }
 

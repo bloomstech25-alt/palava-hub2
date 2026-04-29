@@ -24,7 +24,8 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { auth, db, storage } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref } from "firebase/storage";
+import { uploadUriToStorage } from "@/utils/uploadBlob";
 
 export interface School {
   id: string;
@@ -242,11 +243,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.avatarUri) {
         (async () => {
           try {
-            const response = await fetch(data.avatarUri!);
-            const blob = await response.blob();
             const storageRef = ref(storage, `avatars/${uid}`);
-            await uploadBytes(storageRef, blob, { contentType: "image/jpeg" });
-            const avatarUrl = await getDownloadURL(storageRef);
+            const avatarUrl = await uploadUriToStorage(data.avatarUri!, storageRef, "image/jpeg");
             await updateDoc(doc(db, "users", uid), { avatar: avatarUrl });
           } catch {
             // keep generated avatar on upload failure — non-fatal
