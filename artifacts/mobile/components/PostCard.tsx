@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { PalavaStar } from "@/components/PalavaStar";
+import { ReportModal } from "@/components/ReportModal";
 import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
@@ -9,7 +10,9 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Image,
+  Modal,
   Platform,
+  Pressable,
   Share,
   StyleSheet,
   Text,
@@ -32,9 +35,48 @@ interface PostCardProps {
 
 export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }: PostCardProps) {
   const colors = useColors();
-  const { user } = useAuth();
+  const { user, blockUser } = useAuth();
   const { addPost, sharePost } = useFeed();
   const [likeAnimating, setLikeAnimating] = useState(false);
+  // Post options menu (3-dot) — replaces the standalone Follow/Delete buttons.
+  // Houses Apple-required Report and Block actions for any non-owned post.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+
+  const isOwnPost = !!user && user.id === post.author.id;
+
+  function openMenu() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setMenuOpen(true);
+  }
+
+  function handleReport() {
+    setMenuOpen(false);
+    // Small delay so the menu close animation finishes before the report
+    // modal opens — prevents nested modals flickering on web.
+    setTimeout(() => setReportOpen(true), 120);
+  }
+
+  function handleBlock() {
+    setMenuOpen(false);
+    Alert.alert(
+      `Block @${post.author.username}?`,
+      "You will no longer see their posts or messages. They will not be notified.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Block",
+          style: "destructive",
+          onPress: async () => {
+            const result = await blockUser(post.author.id);
+            if (!result.success) {
+              Alert.alert("Could not block", result.error ?? "Please try again.");
+            }
+          },
+        },
+      ],
+    );
+  }
 
   const handleLike = () => {
     setLikeAnimating(true);
@@ -192,31 +234,34 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
               </Text>
             </View>
           </TouchableOpacity>
-          {onDelete ? (
+          <View style={styles.headerActions}>
+            {!isOwnPost && (
+              <TouchableOpacity
+                onPress={handleFollow}
+                style={[
+                  styles.followBtn,
+                  {
+                    backgroundColor: post.isFollowing ? colors.muted : colors.primary,
+                    borderColor: post.isFollowing ? colors.border : colors.primary,
+                  },
+                ]}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.followText, { color: post.isFollowing ? colors.mutedForeground : colors.primaryForeground }]}>
+                  {post.isFollowing ? "Following" : "Follow"}
+                </Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              onPress={handleDelete}
-              style={[styles.deleteBtn, { backgroundColor: "rgba(239,68,68,0.1)" }]}
+              onPress={openMenu}
+              style={[styles.menuBtn, { backgroundColor: colors.muted }]}
               activeOpacity={0.7}
+              testID={`post-menu-${post.id}`}
+              accessibilityLabel="Post options"
             >
-              <Feather name="trash-2" size={15} color="#ef4444" />
+              <Feather name="more-horizontal" size={18} color={colors.mutedForeground} />
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              onPress={handleFollow}
-              style={[
-                styles.followBtn,
-                {
-                  backgroundColor: post.isFollowing ? colors.muted : colors.primary,
-                  borderColor: post.isFollowing ? colors.border : colors.primary,
-                },
-              ]}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.followText, { color: post.isFollowing ? colors.mutedForeground : colors.primaryForeground }]}>
-                {post.isFollowing ? "Following" : "Follow"}
-              </Text>
-            </TouchableOpacity>
-          )}
+          </View>
         </View>
 
         {post.content ? (
@@ -304,9 +349,137 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
           </Text>
         </View>
       </View>
+
+      {/* Post options bottom sheet — replaces native ActionSheet so it works
+          on web preview AND native, satisfying Apple Guideline 1.2 (must
+          provide report + block on every UGC item). */}
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuOpen(false)}
+      >
+        <Pressable style={menuStyles.backdrop} onPress={() => setMenuOpen(false)}>
+          <Pressable
+            style={[menuStyles.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={(e) => e.stopPropagation()}
+            testID={`post-menu-sheet-${post.id}`}
+          >
+            <View style={menuStyles.handle} />
+            {!isOwnPost && (
+              <>
+                <TouchableOpacity
+                  style={menuStyles.row}
+                  onPress={handleReport}
+                  activeOpacity={0.7}
+                  testID="menu-report"
+                >
+                  <Feather name="flag" size={18} color="#DC2626" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[menuStyles.rowTitle, { color: "#DC2626" }]}>Report post</Text>
+                    <Text style={[menuStyles.rowSub, { color: colors.mutedForeground }]}>
+                      Tell us if this breaks our rules
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={menuStyles.row}
+                  onPress={handleBlock}
+                  activeOpacity={0.7}
+                  testID="menu-block"
+                >
+                  <Feather name="user-x" size={18} color="#DC2626" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[menuStyles.rowTitle, { color: "#DC2626" }]}>
+                      Block @{post.author.username}
+                    </Text>
+                    <Text style={[menuStyles.rowSub, { color: colors.mutedForeground }]}>
+                      Hide their posts and messages
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </>
+            )}
+            {onDelete && (
+              <TouchableOpacity
+                style={menuStyles.row}
+                onPress={() => {
+                  setMenuOpen(false);
+                  setTimeout(handleDelete, 120);
+                }}
+                activeOpacity={0.7}
+                testID="menu-delete"
+              >
+                <Feather name="trash-2" size={18} color="#DC2626" />
+                <View style={{ flex: 1 }}>
+                  <Text style={[menuStyles.rowTitle, { color: "#DC2626" }]}>Delete post</Text>
+                  <Text style={[menuStyles.rowSub, { color: colors.mutedForeground }]}>
+                    Permanently remove this post
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[menuStyles.row, menuStyles.cancel, { borderTopColor: colors.border }]}
+              onPress={() => setMenuOpen(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={[menuStyles.cancelText, { color: colors.foreground }]}>Cancel</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <ReportModal
+        visible={reportOpen}
+        onClose={() => setReportOpen(false)}
+        targetType="post"
+        targetId={post.id}
+        targetUserId={post.author.id}
+      />
     </TouchableOpacity>
   );
 }
+
+const menuStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    paddingBottom: 28,
+    paddingTop: 6,
+  },
+  handle: {
+    alignSelf: "center",
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(150,150,150,0.5)",
+    marginVertical: 8,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  rowTitle: { fontSize: 15, fontWeight: "600" },
+  rowSub: { fontSize: 12, marginTop: 1 },
+  cancel: {
+    justifyContent: "center",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginTop: 4,
+  },
+  cancelText: { fontSize: 15, fontWeight: "600" },
+});
 
 const styles = StyleSheet.create({
   card: {
@@ -369,12 +542,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 1,
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginLeft: 8,
+  },
   followBtn: {
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    marginLeft: 8,
+  },
+  menuBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
   deleteBtn: {
     width: 32,

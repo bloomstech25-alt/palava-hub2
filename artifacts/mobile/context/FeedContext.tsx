@@ -19,6 +19,7 @@ import {
 import { db, storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import type { School, User } from "./AuthContext";
+import { useAuth } from "./AuthContext";
 
 export interface Post {
   id: string;
@@ -194,11 +195,23 @@ function tsToString(ts: any): string {
 }
 
 export function FeedProvider({ children }: { children: React.ReactNode }) {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  // Pull the signed-in user's blocked list so we can hide their posts from
+  // every screen that consumes the feed. Required for Apple Guideline 1.2.
+  const { user: authUser } = useAuth();
+  const blockedIds = authUser?.blockedUserIds ?? [];
+
+  // Filter the raw posts list against the current user's block list. We do
+  // this in a derived value (not in setState) so unblocking immediately
+  // restores those posts without a Firestore round-trip.
+  const posts = React.useMemo(
+    () => allPosts.filter((p) => !blockedIds.includes(p.authorId)),
+    [allPosts, blockedIds],
+  );
 
   useEffect(() => {
     const q = query(
@@ -227,7 +240,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         if (!a.isPinned && b.isPinned) return 1;
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
-      setPosts(fetched);
+      setAllPosts(fetched);
       setIsLoading(false);
     }, () => {
       setIsLoading(false);
@@ -316,7 +329,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
   }, [posts, currentUserId]);
 
   const toggleFollow = useCallback((postId: string) => {
-    setPosts((prev) =>
+    setAllPosts((prev) =>
       prev.map((p) => p.id === postId ? { ...p, isFollowing: !p.isFollowing } : p)
     );
   }, []);

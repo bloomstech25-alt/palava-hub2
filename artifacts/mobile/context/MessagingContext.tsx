@@ -12,6 +12,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useAuth } from "./AuthContext";
 
 export function encryptMessage(text: string, _myId: string, _otherId: string): string {
   return text;
@@ -76,9 +77,19 @@ interface MessagingContextType {
 const MessagingContext = createContext<MessagingContextType | null>(null);
 
 export function MessagingProvider({ children }: { children: React.ReactNode }) {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [allConversations, setAllConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  // Hide conversations and messages from any user the current user has
+  // blocked. Required by Apple Guideline 1.2 — blocked users must not be
+  // able to reach the blocker through any in-app channel.
+  const { user: authUser } = useAuth();
+  const blockedIds = authUser?.blockedUserIds ?? [];
+
+  const conversations = React.useMemo(
+    () => allConversations.filter((c) => !blockedIds.includes(c.userId)),
+    [allConversations, blockedIds],
+  );
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -100,13 +111,17 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
           unread: data.unread ?? 0,
         };
       });
-      setConversations(convs);
+      setAllConversations(convs);
     });
 
     return unsub;
   }, [currentUserId]);
 
   const subscribeToConversation = useCallback((myId: string, otherId: string) => {
+    if (blockedIds.includes(otherId)) {
+      setMessages((prev) => ({ ...prev, [otherId]: [] }));
+      return () => {};
+    }
     const cid = convId(myId, otherId);
     const msgsRef = collection(db, "conversations", cid, "messages");
     const q = query(msgsRef, orderBy("createdAt", "asc"));
@@ -147,6 +162,9 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
     mySchool: string,
     media?: { uri: string; type: "image" | "video" | "audio"; duration?: number }
   ) => {
+    if (blockedIds.includes(toUserId)) {
+      throw new Error("You have blocked this user. Unblock them to send a message.");
+    }
     const cid = convId(myId, toUserId);
     const now = serverTimestamp();
 
@@ -180,7 +198,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
 
   const markRead = useCallback((userId: string) => {
     if (!currentUserId) return;
-    setConversations((prev) =>
+    setAllConversations((prev) =>
       prev.map((c) => c.userId === userId ? { ...c, unread: 0 } : c)
     );
     updateDoc(

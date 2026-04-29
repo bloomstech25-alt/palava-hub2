@@ -48,6 +48,10 @@ export interface User {
   joinedAt: string;
   verificationStatus?: "none" | "pending" | "approved" | "rejected";
   phone?: string;
+  // List of user ids the current user has blocked. Posts/messages from
+  // these users are filtered out of feeds and conversations. Required by
+  // Apple App Store Guideline 1.2 for any app with user-generated content.
+  blockedUserIds?: string[];
 }
 
 interface AuthContextType {
@@ -62,6 +66,29 @@ interface AuthContextType {
   unfollowUser: (targetId: string) => Promise<void>;
   applyForVerification: () => Promise<{ success: boolean; error?: string }>;
   deleteAccount: () => Promise<{ success: boolean; error?: string }>;
+  blockUser: (targetId: string) => Promise<{ success: boolean; error?: string }>;
+  unblockUser: (targetId: string) => Promise<{ success: boolean; error?: string }>;
+  reportContent: (input: ReportInput) => Promise<{ success: boolean; error?: string }>;
+}
+
+export type ReportReason =
+  | "spam"
+  | "harassment"
+  | "hate_speech"
+  | "nudity"
+  | "violence"
+  | "self_harm"
+  | "misinformation"
+  | "other";
+
+export interface ReportInput {
+  // What is being reported
+  targetType: "post" | "user" | "message" | "comment";
+  targetId: string;
+  // The author of the reported content (so the admin can act on the user too)
+  targetUserId?: string;
+  reason: ReportReason;
+  details?: string;
 }
 
 interface RegisterData {
@@ -374,6 +401,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // ─── Block / Unblock — required by Apple Guideline 1.2 ─────────────────────
+  // Adds/removes a user id from the current user's blockedUserIds. Posts and
+  // messages from blocked users are filtered out client-side by FeedContext
+  // and MessagingContext. We deliberately keep this as a list on the blocker's
+  // own document so reads are cheap and don't require querying another doc.
+  const blockUser = useCallback(async (targetId: string) => {
+    if (!user) return { success: false, error: "Not signed in." };
+    if (targetId === user.id) return { success: false, error: "You cannot block yourself." };
+    const current = user.blockedUserIds ?? [];
+    if (current.includes(targetId)) return { success: true };
+    setUser({ ...user, blockedUserIds: [...current, targetId] });
+    try {
+      await updateDoc(doc(db, "users", user.id), { blockedUserIds: arrayUnion(targetId) });
+      return { success: true };
+    } catch {
+      // Roll back optimistic update
+      setUser({ ...user, blockedUserIds: current });
+      return { success: false, error: "Could not block user. Please try again." };
+    }
+  }, [user]);
+
+  const unblockUser = useCallback(async (targetId: string) => {
+    if (!user) return { success: false, error: "Not signed in." };
+    const current = user.blockedUserIds ?? [];
+    if (!current.includes(targetId)) return { success: true };
+    setUser({ ...user, blockedUserIds: current.filter((id) => id !== targetId) });
+    try {
+      await updateDoc(doc(db, "users", user.id), { blockedUserIds: arrayRemove(targetId) });
+      return { success: true };
+    } catch {
+      setUser({ ...user, blockedUserIds: current });
+      return { success: false, error: "Could not unblock user. Please try again." };
+    }
+  }, [user]);
+
+  // ─── Report content — required by Apple Guideline 1.2 ─────────────────────
+  // Writes to a top-level `reports` collection that the admin dashboard
+  // surfaces and acts on. We include enough context for the admin to
+  // investigate without needing to look up the offending content separately.
+  const reportContent = useCallback(async (input: ReportInput) => {
+    if (!user) return { success: false, error: "Not signed in." };
+    if (input.targetUserId && input.targetUserId === user.id) {
+      return { success: false, error: "You cannot report your own content." };
+    }
+    try {
+      await setDoc(
+        doc(collection(db, "reports")),
+        {
+          targetType: input.targetType,
+          targetId: input.targetId,
+          targetUserId: input.targetUserId ?? null,
+          reason: input.reason,
+          details: input.details?.trim() ?? "",
+          reporterId: user.id,
+          reporterUsername: user.username,
+          status: "pending",
+          createdAt: serverTimestamp(),
+        }
+      );
+      return { success: true };
+    } catch {
+      return { success: false, error: "Could not submit report. Please try again." };
+    }
+  }, [user]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -388,6 +480,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         unfollowUser,
         applyForVerification,
         deleteAccount,
+        blockUser,
+        unblockUser,
+        reportContent,
       }}
     >
       {children}
