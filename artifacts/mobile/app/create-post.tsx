@@ -213,16 +213,29 @@ export default function CreatePostScreen() {
       );
       router.back();
     } catch (err: unknown) {
-      const code = (err as { code?: string } | null)?.code ?? "";
+      const e = err as { code?: string; message?: string; serverResponse?: string } | null;
+      const code = e?.code ?? "";
       const mediaLabel = mediaType === "video" ? "video" : mediaType === "audio" ? "audio" : "image";
       let message = `Could not upload your ${mediaLabel}. Please check your connection and try again.`;
       if (code === "storage/unauthorized") {
-        message = `Upload was rejected. The Firebase Storage rules need to be deployed. Ask the project owner to publish storage.rules in the Firebase Console.`;
+        message = `Upload was rejected by Firebase. The Storage rules in your Firebase Console need to be published — copy storage.rules from the project root into Firebase Console → Storage → Rules → Publish.`;
       } else if (code === "storage/quota-exceeded") {
         message = "Storage quota exceeded. Try a smaller file or contact support.";
       } else if (code === "storage/unauthenticated") {
         message = "Your session expired. Please sign out and sign back in, then try again.";
+      } else if (code === "storage/object-not-found" || code === "storage/bucket-not-found") {
+        message = `Firebase Storage bucket not found. Make sure Storage is enabled in your Firebase Console (project: palava-hub) and the bucket name in firebase.ts matches what the Console shows.`;
+      } else if (code === "storage/retry-limit-exceeded" || code === "storage/canceled") {
+        message = `Upload was interrupted. Check your connection and try again.`;
+      } else if (code) {
+        message = `Upload failed (code: ${code}). ${e?.message ?? ""}`;
+      } else if (e?.message) {
+        message = `Upload failed: ${e.message}`;
       }
+      // Surface the raw error to the dev console so we can see what Firebase
+      // is actually returning if the user reports a generic failure.
+      // eslint-disable-next-line no-console
+      console.warn("[create-post] addPost failed", { code, message: e?.message, serverResponse: e?.serverResponse, raw: err });
       Alert.alert("Post failed", message);
     } finally {
       setIsPosting(false);

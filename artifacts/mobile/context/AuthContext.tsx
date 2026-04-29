@@ -117,55 +117,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (userUnsub) { userUnsub(); userUnsub = null; }
 
       if (firebaseUser) {
-        // Build a minimal user profile from Firebase Auth data alone,
-        // used as fallback when Firestore is temporarily unreachable.
-        const buildFallback = (): User => ({
-          id: firebaseUser.uid,
-          name: firebaseUser.displayName ?? firebaseUser.email?.split("@")[0] ?? "User",
-          username: (firebaseUser.email?.split("@")[0] ?? "user").toLowerCase().replace(/[^a-z0-9]/g, ""),
-          email: firebaseUser.email ?? "",
-          school: { id: "", name: "Unknown School", type: "university", location: "" },
-          bio: "",
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.displayName ?? "User")}&background=BF0A30&color=fff&size=200`,
-          followers: 0,
-          following: 0,
-          followingIds: [],
-          posts: 0,
-          joinedAt: new Date().toISOString().split("T")[0],
-        });
-
         // Subscribe to real-time updates on this user's Firestore doc so that
-        // any write (following, being followed, posting) instantly updates the UI
+        // any write (following, being followed, posting) instantly updates the
+        // UI. We DELIBERATELY do not auto-create a fallback profile here —
+        // doing so used to race with register()'s setDoc and could permanently
+        // overwrite the real profile (school name, avatar, etc.) with
+        // placeholder values like "Unknown School". If the doc isn't there
+        // yet, we just keep loading; register() always writes the doc.
         userUnsub = onSnapshot(
           doc(db, "users", firebaseUser.uid),
-          async (snap) => {
+          (snap) => {
             if (snap.exists()) {
               setUser({ ...(snap.data() as User), id: snap.id });
-            } else {
-              // No Firestore profile yet — create a minimal fallback
-              const fallback = buildFallback();
-              try { await setDoc(doc(db, "users", firebaseUser.uid), fallback); } catch { /* best effort */ }
-              setUser(fallback);
+              setIsLoading(false);
             }
-            setIsLoading(false);
+            // If !snap.exists(), do NOTHING — register() is in flight and will
+            // write the proper doc shortly, which will trigger this listener
+            // again with the real data.
           },
           async () => {
             // Firestore connection error (e.g. 600ms timeout in proxied env).
-            // Don't immediately log the user out — they ARE still authenticated.
-            // Try a one-shot getDoc as fallback; if that also fails, use Auth data.
+            // Don't log the user out — try a one-shot getDoc as fallback.
             try {
               const snap = await getDoc(doc(db, "users", firebaseUser.uid));
               if (snap.exists()) {
                 setUser({ ...(snap.data() as User), id: snap.id });
-              } else {
-                const fallback = buildFallback();
-                try { await setDoc(doc(db, "users", firebaseUser.uid), fallback); } catch { /* best effort */ }
-                setUser(fallback);
               }
-            } catch {
-              // Even getDoc failed — keep the user logged in with Auth-only data
-              setUser(buildFallback());
-            }
+            } catch { /* leave as-is and let the snapshot retry */ }
             setIsLoading(false);
           }
         );
@@ -210,18 +188,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const uid = cred.user.uid;
 
-      let avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=BF0A30&color=fff&size=200`;
-      if (data.avatarUri) {
-        try {
-          const response = await fetch(data.avatarUri);
-          const blob = await response.blob();
-          const storageRef = ref(storage, `avatars/${uid}`);
-          await uploadBytes(storageRef, blob);
-          avatarUrl = await getDownloadURL(storageRef);
-        } catch {
-          // keep generated avatar on upload failure
-        }
-      }
+      // Default to a generated avatar URL — we'll swap in the uploaded one
+      // below if/when the Storage upload succeeds.
+      const placeholderAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=BF0A30&color=fff&size=200`;
 
       const newUser: User = {
         id: uid,
@@ -230,7 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: data.email,
         school: data.school,
         bio: data.bio?.trim() ?? "",
-        avatar: avatarUrl,
+        avatar: placeholderAvatar,
         followers: 0,
         following: 0,
         followingIds: [],
@@ -238,10 +207,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         joinedAt: new Date().toISOString().split("T")[0],
         ...(data.phone ? { phone: data.phone } : {}),
       };
+      // CRITICAL: write the real profile to Firestore IMMEDIATELY (with a
+      // placeholder avatar) before doing anything async like uploading the
+      // chosen avatar. Otherwise the auth-state snapshot listener fires while
+      // the avatar upload is still pending and races with us — historically
+      // that race overwrote the user's real school with a generic fallback.
       // Persist DOB on the Firestore record (kept off the public User type
       // to avoid leaking it in feed embeds — mirrors how `phone` is handled).
       await setDoc(doc(db, "users", uid), { ...newUser, dob: data.dob });
       setUser(newUser);
+
+      // Now upload the avatar in the background and patch the doc once it's
+      // done. We don't block registration on this — the user lands in the
+      // app right away with a generated avatar, and their photo appears
+      // a moment later when Storage finishes.
+      if (data.avatarUri) {
+        (async () => {
+          try {
+            const response = await fetch(data.avatarUri!);
+            const blob = await response.blob();
+            const storageRef = ref(storage, `avatars/${uid}`);
+            await uploadBytes(storageRef, blob, { contentType: "image/jpeg" });
+            const avatarUrl = await getDownloadURL(storageRef);
+            await updateDoc(doc(db, "users", uid), { avatar: avatarUrl });
+          } catch {
+            // keep generated avatar on upload failure — non-fatal
+          }
+        })();
+      }
       return { success: true };
     } catch (err: any) {
       const msg = err.code === "auth/email-already-in-use"
