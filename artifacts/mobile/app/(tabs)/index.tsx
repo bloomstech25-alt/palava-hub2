@@ -84,20 +84,20 @@ export default function FeedScreen() {
         <Text style={[styles.headerTitle, { color: colors.primary }]}>Palava Hub</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
+            onPress={() => router.push("/news")}
+            style={[styles.advertiseBtn, { backgroundColor: colors.accent, borderColor: colors.primary + "30" }]}
+            activeOpacity={0.8}
+          >
+            <Feather name="globe" size={13} color={colors.primary} />
+            <Text style={[styles.advertiseBtnText, { color: colors.primary }]}>News</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={() => router.push("/go-live")}
             style={[styles.liveBtn, { backgroundColor: "#ef4444" + "15", borderColor: "#ef444440" }]}
             activeOpacity={0.8}
           >
             <View style={styles.liveDotBtn} />
             <Text style={[styles.liveBtnText, { color: "#ef4444" }]}>Live</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => router.push("/create-ad")}
-            style={[styles.advertiseBtn, { backgroundColor: colors.accent, borderColor: colors.primary + "30" }]}
-            activeOpacity={0.8}
-          >
-            <Feather name="zap" size={13} color={colors.primary} />
-            <Text style={[styles.advertiseBtnText, { color: colors.primary }]}>Promote</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.push("/create-post")}

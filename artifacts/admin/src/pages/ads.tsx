@@ -1,4 +1,14 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  collection,
+  onSnapshot,
+  doc,
+  updateDoc,
+  query,
+  orderBy,
+  Timestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 type AdStatus = "pending" | "active" | "paused" | "rejected";
 type AdBudget = "basic" | "standard" | "premium";
@@ -6,6 +16,7 @@ type AdAudience = "all" | "university" | "high_school";
 
 interface Ad {
   id: string;
+  ownerId: string;
   sponsorName: string;
   headline: string;
   body: string;
@@ -17,45 +28,6 @@ interface Ad {
   impressions: number;
   clicks: number;
 }
-
-const SAMPLE_ADS: Ad[] = [
-  {
-    id: "ad1", sponsorName: "Liberia Tech Hub", headline: "Learn to Code in Monrovia",
-    body: "Join West Africa's fastest-growing coding bootcamp. Scholarships available for Liberian students.",
-    cta: "Apply Now", budget: "standard", audience: "all", status: "active",
-    createdAt: "2025-04-10T08:00:00Z", impressions: 1240, clicks: 87,
-  },
-  {
-    id: "ad2", sponsorName: "UL Career Services", headline: "2025 Internship Fair – Register Now",
-    body: "Over 40 employers coming to campus this April. Free registration for UL students. Network and get hired!",
-    cta: "Learn More", budget: "basic", audience: "university", status: "active",
-    createdAt: "2025-04-08T10:30:00Z", impressions: 890, clicks: 134,
-  },
-  {
-    id: "ad3", sponsorName: "Lonestar Cell", headline: "Student Data Plans — 50% Off",
-    body: "Stay connected all semester. Lonestar's student bundles give you 10GB for just L$500/month.",
-    cta: "Learn More", budget: "premium", audience: "all", status: "active",
-    createdAt: "2025-04-07T14:00:00Z", impressions: 3450, clicks: 412,
-  },
-  {
-    id: "ad4", sponsorName: "Cuttington University", headline: "Apply for Masters Programs 2025",
-    body: "Cuttington University is now accepting applications for Masters programs in Business, Education, and Health Sciences.",
-    cta: "Apply Now", budget: "standard", audience: "university", status: "pending",
-    createdAt: "2025-04-13T07:15:00Z", impressions: 0, clicks: 0,
-  },
-  {
-    id: "ad5", sponsorName: "Monrovia Book Club", headline: "Free Books for Students",
-    body: "Pick up free textbooks every Saturday at Waterside Market. First come, first served. Bring your student ID.",
-    cta: "Learn More", budget: "basic", audience: "all", status: "pending",
-    createdAt: "2025-04-12T16:45:00Z", impressions: 0, clicks: 0,
-  },
-  {
-    id: "ad6", sponsorName: "Spam Business Co.", headline: "Make Money Fast!!!",
-    body: "Click here to earn $1000 per day from home. No experience needed. Limited spots.",
-    cta: "Visit Website", budget: "basic", audience: "all", status: "rejected",
-    createdAt: "2025-04-11T09:00:00Z", impressions: 0, clicks: 0,
-  },
-];
 
 const BUDGET_LABELS: Record<AdBudget, string> = {
   basic: "Basic · L$500/day",
@@ -76,43 +48,75 @@ const STATUS_STYLES: Record<AdStatus, { dot: string; text: string; bg: string }>
   rejected: { dot: "bg-red-400", text: "text-red-700", bg: "bg-red-50" },
 };
 
+function tsToIso(value: unknown): string {
+  if (value instanceof Timestamp) return value.toDate().toISOString();
+  if (typeof value === "string") return value;
+  return new Date().toISOString();
+}
+
 export default function AdsPage() {
-  const [ads, setAds] = useState<Ad[]>(SAMPLE_ADS);
+  const [ads, setAds] = useState<Ad[]>([]);
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<AdStatus | "">("");
   const [search, setSearch] = useState("");
   const [selectedAd, setSelectedAd] = useState<Ad | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const filtered = ads.filter((a) => {
+  useEffect(() => {
+    const q = query(collection(db, "ads"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const next: Ad[] = snap.docs.map((d) => {
+          const data = d.data() as Record<string, unknown>;
+          return {
+            id: d.id,
+            ownerId: String(data.ownerId ?? ""),
+            sponsorName: String(data.sponsorName ?? ""),
+            headline: String(data.headline ?? ""),
+            body: String(data.body ?? ""),
+            cta: String(data.cta ?? "Learn More"),
+            budget: (data.budget as AdBudget) ?? "basic",
+            audience: (data.audience as AdAudience) ?? "all",
+            status: (data.status as AdStatus) ?? "pending",
+            createdAt: tsToIso(data.createdAt),
+            impressions: Number(data.impressions ?? 0),
+            clicks: Number(data.clicks ?? 0),
+          };
+        });
+        setAds(next);
+        setLoading(false);
+      },
+      () => setLoading(false),
+    );
+    return unsub;
+  }, []);
+
+  const filtered = useMemo(() => ads.filter((a) => {
     if (statusFilter && a.status !== statusFilter) return false;
     if (search) {
       const q = search.toLowerCase();
       return a.sponsorName.toLowerCase().includes(q) || a.headline.toLowerCase().includes(q);
     }
     return true;
-  });
+  }), [ads, statusFilter, search]);
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: ads.length,
     active: ads.filter((a) => a.status === "active").length,
     pending: ads.filter((a) => a.status === "pending").length,
     impressions: ads.reduce((s, a) => s + a.impressions, 0),
-  };
+  }), [ads]);
 
-  function approve(id: string) {
-    setAds((prev) => prev.map((a) => (a.id === id ? { ...a, status: "active" } : a)));
-    setSelectedAd(null);
-  }
-  function reject(id: string) {
-    setAds((prev) => prev.map((a) => (a.id === id ? { ...a, status: "rejected" } : a)));
-    setSelectedAd(null);
-  }
-  function pause(id: string) {
-    setAds((prev) => prev.map((a) => (a.id === id ? { ...a, status: "paused" } : a)));
-    setSelectedAd(null);
-  }
-  function resume(id: string) {
-    setAds((prev) => prev.map((a) => (a.id === id ? { ...a, status: "active" } : a)));
-    setSelectedAd(null);
+  async function setStatus(id: string, status: AdStatus) {
+    setActionLoading(id + status);
+    try {
+      await updateDoc(doc(db, "ads", id), { status });
+      setSelectedAd(null);
+    } catch (err) {
+      console.error("Ad status update failed:", err);
+    }
+    setActionLoading(null);
   }
 
   function formatDate(d: string) {
@@ -199,10 +203,10 @@ export default function AdsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center py-12 text-muted-foreground text-sm">No ads found</td>
-              </tr>
+            {loading ? (
+              <tr><td colSpan={6} className="text-center py-12 text-muted-foreground text-sm">Loading…</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={6} className="text-center py-12 text-muted-foreground text-sm">No ads found</td></tr>
             ) : (
               filtered.map((ad) => {
                 const s = STATUS_STYLES[ad.status];
@@ -238,31 +242,35 @@ export default function AdsPage() {
                         {ad.status === "pending" && (
                           <>
                             <button
-                              onClick={() => approve(ad.id)}
-                              className="px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors"
+                              onClick={() => setStatus(ad.id, "active")}
+                              disabled={!!actionLoading}
+                              className="px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors disabled:opacity-50"
                             >
-                              Approve
+                              {actionLoading === ad.id + "active" ? "…" : "Approve"}
                             </button>
                             <button
-                              onClick={() => reject(ad.id)}
-                              className="px-2.5 py-1 text-xs font-semibold rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                              onClick={() => setStatus(ad.id, "rejected")}
+                              disabled={!!actionLoading}
+                              className="px-2.5 py-1 text-xs font-semibold rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors disabled:opacity-50"
                             >
-                              Reject
+                              {actionLoading === ad.id + "rejected" ? "…" : "Reject"}
                             </button>
                           </>
                         )}
                         {ad.status === "active" && (
                           <button
-                            onClick={() => pause(ad.id)}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+                            onClick={() => setStatus(ad.id, "paused")}
+                            disabled={!!actionLoading}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors disabled:opacity-50"
                           >
                             Pause
                           </button>
                         )}
                         {ad.status === "paused" && (
                           <button
-                            onClick={() => resume(ad.id)}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors"
+                            onClick={() => setStatus(ad.id, "active")}
+                            disabled={!!actionLoading}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors disabled:opacity-50"
                           >
                             Resume
                           </button>
@@ -321,21 +329,21 @@ export default function AdsPage() {
             <div className="flex gap-2 pt-2">
               {selectedAd.status === "pending" && (
                 <>
-                  <button onClick={() => approve(selectedAd.id)} className="flex-1 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors">
+                  <button onClick={() => setStatus(selectedAd.id, "active")} className="flex-1 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors">
                     ✓ Approve
                   </button>
-                  <button onClick={() => reject(selectedAd.id)} className="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors">
+                  <button onClick={() => setStatus(selectedAd.id, "rejected")} className="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors">
                     ✕ Reject
                   </button>
                 </>
               )}
               {selectedAd.status === "active" && (
-                <button onClick={() => pause(selectedAd.id)} className="flex-1 py-2.5 rounded-lg bg-slate-200 text-slate-800 text-sm font-semibold hover:bg-slate-300 transition-colors">
+                <button onClick={() => setStatus(selectedAd.id, "paused")} className="flex-1 py-2.5 rounded-lg bg-slate-200 text-slate-800 text-sm font-semibold hover:bg-slate-300 transition-colors">
                   ⏸ Pause Ad
                 </button>
               )}
               {selectedAd.status === "paused" && (
-                <button onClick={() => resume(selectedAd.id)} className="flex-1 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors">
+                <button onClick={() => setStatus(selectedAd.id, "active")} className="flex-1 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors">
                   ▶ Resume Ad
                 </button>
               )}

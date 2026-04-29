@@ -1,0 +1,1472 @@
+Final Setup
+
+
+if the is a possibility that we can pull live news feed from other site about Liberia entertainment news and sports then i want for us to add a section that user can follow liberian entertainment news and sports news. just how twitter is that you can follow other news pages or sports then add it.
+i need the verification badge to be like the facebook badge but with star in the middle instead of a check mark and the badge color should be gold.
+Allow ads that are created  to show up on news feed like facebook.
+Allow user to control and see the metrix on their ads and pages they created just like facebook.
+Allow admin to verify certain user even without meeting the requirement.
+
+
+ðŸ“‹ FINAL LAUNCH CHECKLIST
+
+Before you go live:
+
+âœ… No major bugs
+âœ… No crashes
+âœ… Report system works
+âœ… Block feature works
+âœ… Account deletion works
+âœ… Privacy policy live
+âœ… App feels smooth
+
+ CORE FUNCTION TEST
+
+ðŸ‘‰ Goal: Make sure everything works
+
+Test:
+
+Signup (email)
+Login / logout
+Create post
+Palava (anonymous post)
+Like / comment
+Follow users
+Explore/search
+
+âœ… Fix anything broken immediately
+âŒ Donâ€™t move forward with bugs
+
+ERROR & EDGE CASE TEST
+
+ðŸ‘‰ Goal: Break your own app
+
+Test:
+
+Wrong password
+Empty fields
+Duplicate signup
+Invalid inputs
+API failure (turn off internet mid-use)
+
+Expected:
+
+No crash
+Proper error message
+NETWORK TEST (VERY IMPORTANT)
+
+ðŸ‘‰ Goal: Simulate Liberia real conditions
+
+Test:
+
+Slow internet (3G)
+Turn internet ON/OFF
+
+Check:
+
+Loading states
+Retry system
+Offline message
+CONTENT & SAFETY TEST
+
+ðŸ‘‰ Goal: Pass app store review
+
+Test:
+
+Report post button
+Block user
+Admin deletes post
+Bad content handling
+
+âš ï¸ This is critical for:
+
+App Store Connect
+Google Play Console
+ STRESS TEST
+
+ðŸ‘‰ Goal: See how much your app can handle
+
+Do:
+
+Open 20â€“50 browser tabs
+Login multiple users
+Post at same time
+Refresh feeds
+
+Watch:
+
+Speed
+Delays
+Errors
+
+
+ðŸ‘‰ Donâ€™t guide themâ€”just watch
+
+ FINAL FIX & POLISH
+
+ðŸ‘‰ Goal: Prepare for launch
+
+Fix:
+
+Bugs from users
+UI issues
+Slow pages
+
+Check:
+
+Privacy policy works
+Account deletion works
+App doesnâ€™t crash
+
+
+APP STORE READINESS TEST
+
+ðŸ‘‰ â€œWill Apple/Google approve?â€
+
+Verify:
+
+App icon
+Screenshots
+Description
+No placeholder content
+
+PRIVACY & POLICY TEST
+
+Check:
+
+Privacy policy link works
+Terms page works
+Data usage explained
+
+
+11. PERFORMANCE TEST
+
+Measure:
+
+App startup time
+Feed load time
+Image loading
+ðŸ§ª 12. CRASH TESTING
+
+Use:
+
+Firebase Crashlytics
+
+Test:
+
+Rapid actions
+Switching screens fast
+
+ðŸ”„ 10. REAL-TIME TEST
+
+Test:
+
+New posts appear
+Comments update
+Notifications (if any)
+
+ðŸ“± 9. UI / UX TEST
+
+Check:
+
+Buttons work
+Layout looks clean
+No overlapping text
+Works on small & big screens
+
+ðŸ—‘ï¸ 8. ACCOUNT MANAGEMENT TEST
+
+Test:
+
+Edit profile
+Change password
+Delete account (VERY IMPORTANT for Google)
+
+ðŸš« 7. CONTENT MODERATION TEST (CRITICAL)
+
+
+Test:
+
+Report post works
+Block user works
+Admin can delete content
+Bad content gets handled
+
+âš ï¸ This is REQUIRED for:
+
+App Store Connect
+Google Play Console
+
+
+the first time.
+
+ðŸš« BIGGEST RISK FOR PALAVA HUB
+Your â€œPalavaâ€ anonymous feature = ðŸš¨ HIGH RISK
+
+Apple worries about:
+
+Bullying
+
+Harassment
+
+Hate speech
+
+Fake news
+
+ðŸ‘‰ If you donâ€™t control this, your app gets rejected.
+
+âœ… WHAT YOU MUST ADD (NON-NEGOTIABLE)
+1. ðŸš© Report System (CRITICAL)
+Every post MUST have:
+
+â€œReportâ€ button
+
+Options like:
+
+Spam
+
+Abuse
+
+Hate speech
+
+False info
+
+ðŸ‘‰ Apple checks this manually
+
+2. ðŸš« Block / Mute Users
+Users must be able to:
+
+Block accounts
+
+Mute content
+
+3. ðŸ›¡ï¸ Content Moderation
+You need at least ONE of these:
+
+Minimum (acceptable)
+Admin dashboard to remove posts
+
+Ability to ban users
+
+Better (recommended)
+Auto filter bad words
+
+Flag suspicious content
+
+4. ðŸ“œ Privacy Policy (MANDATORY)
+You MUST host a page like:
+
+https://palavahub.com/privacy
+Include:
+
+Email collection
+
+School data usage
+
+Anonymous posting explanation
+
+ðŸ‘‰ Without this = instant rejection
+
+5. ðŸ‘¤ User Account Requirement
+Apple rule:
+
+Users must be accountable even if posting anonymously.
+
+So:
+
+Users sign up with email âœ… (you already have this ðŸ‘)
+
+Dont allow full anonymous access without account
+
+6. âš ï¸ Community Guidelines
+Create a simple page:
+
+â€œPALAVA HUB Community Rulesâ€
+
+Include:
+
+No hate speech
+
+No threats
+
+No explicit content
+
+No harassment
+
+ðŸ‘‰ Apple loves seeing this
+
+7. ðŸ”ž Content Rating Setup
+Inside :
+
+Set rating properly (likely 12+ or 17+)
+
+Be honest about user-generated content
+
+8. ðŸ§ª Test Your App (IMPORTANT)
+Before submitting:
+
+No crashes
+
+Login works
+
+Posting works
+
+Explore works
+
+ðŸ‘‰ Apple testers will try everything
+
+9. ðŸ“± Complete App Info
+In  add:
+
+App description
+
+Keywords
+
+Screenshots
+
+Support URL
+
+Privacy policy URL
+
+ðŸ”¥ SMART TRICK (BOOST APPROVAL CHANCES)
+Inside your app, add a small section:
+
+ðŸ‘‰ â€œSafety Centerâ€ or â€œReport & Helpâ€
+
+This shows Apple:
+
+â€œThis app takes safety seriouslyâ€
+
+âŒ WHAT WILL GET YOU REJECTED FAST
+Avoid these mistakes:
+
+âŒ No report button
+
+âŒ Anonymous posting with no control
+
+âŒ Missing privacy policy
+
+âŒ Fake features
+
+âŒ App crashes
+
+âŒ Empty app (no content)
+
+ðŸš€ FOR YOUR APP SPECIFICALLY (IMPORTANT)
+For PALAVA HUB, I strongly recommend:
+
+Add inside â€œPalavaâ€:
+
+â€œReport Postâ€ button
+
+â€œHide Postâ€ option
+
+â€œThis post may violate guidelinesâ€ warning system
+
+ðŸ’¡ REALITY CHECK
+Apple is not your enemyâ€”they just want:
+ðŸ‘‰ Safe apps
+ðŸ‘‰ Real apps
+ðŸ‘‰ No chaos
+
+If your app looks controlled and professional â†’ you will pass
+
+ðŸ‘ If You Want, I Can Help You Build:
+Privacy policy (ready-to-paste)
+
+Community guidelines
+
+Report system UI design
+
+App Store description (high converting)
+
+Just say:
+ðŸ‘‰ â€œcreate privacy policyâ€
+or
+ðŸ‘‰ â€œdesign report system UIâ€
+
+and Iâ€™ll build it for you step-by-step ðŸ”¥
+
+
+give me the andrro guidline  like how u did apple
+
+Goodâ€”Android is way more forgiving than Apple, but donâ€™t relax too much.  still has strict rules, especially for social apps like PALAVA HUB.
+
+Iâ€™ll break it down the same way so you donâ€™t get rejected.
+
+ðŸ¤– GOOGLE PLAY STORE APPROVAL GUIDE (PALAVA HUB)
+âš ï¸ FIRST: MAIN RISK FOR YOU
+Same as Apple:
+
+ðŸ‘‰ User-generated content (Palava + posts)
+
+Google cares about:
+
+Abuse
+
+Hate speech
+
+Fake accounts
+
+Unsafe communities
+
+âœ… WHAT YOU MUST HAVE (MANDATORY)
+1. ðŸš© Report System (VERY IMPORTANT)
+Every post MUST have:
+
+Report button
+
+Categories (spam, abuse, etc.)
+
+ðŸ‘‰ Google explicitly requires this
+
+2. ðŸ›¡ï¸ Content Moderation
+Google policy says:
+
+Apps with user content must moderate it.
+
+So you need:
+
+Remove posts
+
+Ban users
+
+Admin control
+
+ðŸ‘‰ Same as Apple, but Google enforces it through policy checks
+
+3. ðŸ‘¤ User Account System
+Youâ€™re good here already:
+
+Email signup âœ…
+
+But ALSO add:
+
+Ability to delete account âš ï¸ (NEW Google rule)
+
+ðŸ‘‰ This is where many apps get rejected
+
+4. ðŸ—‘ï¸ Account Deletion (CRITICAL ðŸš¨)
+Google now REQUIRES:
+
+Users must be able to:
+
+Delete account inside the app
+
+OR request deletion easily
+
+ðŸ‘‰ If missing â†’ instant rejection
+
+5. ðŸ“œ Privacy Policy (MANDATORY)
+Same as Apple:
+
+Must include:
+
+Email usage
+
+School data
+
+Anonymous feature explanation
+
+Host it publicly:
+
+https://palavahub.com/privacy
+6. ðŸ”ž Content Safety (BIG ONE FOR YOU)
+Because of â€œPalavaâ€:
+
+You MUST:
+
+Prevent bullying
+
+Allow reporting
+
+Remove harmful content
+
+ðŸ‘‰ Google calls this:
+User Generated Content Policy
+
+7. ðŸš« Prohibited Content
+Make sure your app does NOT allow:
+
+Hate speech
+
+Violence
+
+Sexual content
+
+Illegal activity
+
+ðŸ‘‰ Even user posts count
+
+8. ðŸ“± App Listing Requirements
+Inside :
+
+You must add:
+
+App description
+
+Screenshots
+
+App icon
+
+Feature graphic
+
+Privacy policy link
+
+9. ðŸ§ª Test Your App
+Google checks:
+
+App crashes
+
+Login works
+
+Navigation works
+
+ðŸ‘‰ Less strict than Apple, but still important
+
+ðŸ”¥ ANDROID ADVANTAGE (GOOD NEWS)
+Compared to Apple:
+
+Faster approval (few hours â€“ 2 days)
+
+Less strict UI rules
+
+Easier updates
+
+âŒ WHAT WILL GET YOU REJECTED (ANDROID)
+âŒ No account deletion option
+
+âŒ No report system
+
+âŒ No moderation
+
+âŒ Fake app / empty app
+
+âŒ Misleading description
+
+âŒ Crashes
+
+ðŸš€ FOR PALAVA HUB (IMPORTANT SETUP)
+Inside your app, make sure you have:
+
+In â€œPalavaâ€ section:
+Report post button
+
+Hide post
+
+Flag system
+
+In Settings:
+Delete account
+
+Privacy policy link
+
+Terms & conditions
+
+ðŸ’¡ SMART MOVE (BOOST APPROVAL)
+Add a simple page:
+
+ðŸ‘‰ â€œCommunity Guidelinesâ€
+
+This helps both:
+
+Google âœ…
+
+Apple âœ…
+
+âš–ï¸ APPLE vs ANDROID (REALITY)
+Feature	Apple	Google
+Strictness	ðŸ”¥ VERY HIGH	Medium
+Review Time	1â€“3 days	Hoursâ€“2 days
+Anonymous Content	Risky	Allowed (with controls)
+Account Deletion	Recommended	ðŸš¨ REQUIRED
+ðŸ‘ If You Want Next Step
+I can help you finish everything:
+
+Privacy Policy (copy-paste ready)
+
+Community Guidelines
+
+Report system UI (buttons + flow)
+
+Account deletion logic
+
+Just say:
+ðŸ‘‰ â€œbuild my compliance packageâ€
+
+and Iâ€™ll prepare everything so your app passes both stores first try ðŸš€
+
+
+build complience package for bith apple and google 
+
+Alrightâ€”this is the part that separates a rejected app from a successful launch. Iâ€™ll give you a complete compliance package you can copy, paste, and plug directly into your app and both stores.
+
+âœ… PALAVA HUB â€“ FULL COMPLIANCE PACKAGE
+ðŸ“œ 1. PRIVACY POLICY (READY TO USE)
+Host this on your website (e.g. https://palavahub.com/privacy)
+
+:::writing{variant="standard" id="pp001"}
+PALAVA HUB Privacy Policy
+
+Effective Date: May 4, 2026
+
+PALAVA HUB (â€œweâ€, â€œourâ€, â€œusâ€) respects your privacy. This policy explains how we collect, use, and protect your information.
+
+1. Information We Collect
+
+Email address (for account creation)
+
+School selection (to connect users)
+
+User-generated content (posts, comments, Palava posts)
+
+Device and usage data
+
+2. How We Use Information
+
+To create and manage your account
+
+To connect you with your school community
+
+To improve user experience
+
+To ensure safety and prevent abuse
+
+3. Anonymous Posting (Palava Feature)
+Posts made in the â€œPalavaâ€ section are anonymous to other users, but we may internally link activity to accounts to enforce safety and prevent misuse.
+
+4. Content Moderation
+We monitor and review content to prevent:
+
+Abuse
+
+Harassment
+
+Harmful or illegal activity
+
+5. Data Sharing
+We do not sell your data. We may share data only:
+
+To comply with legal obligations
+
+To protect user safety
+
+6. Account Deletion
+Users can delete their account at any time from the app settings.
+
+7. Security
+We use reasonable measures to protect your data.
+
+8. Contact
+Email: 
+
+:::
+
+ðŸ“˜ 2. COMMUNITY GUIDELINES
+:::writing{variant="standard" id="cg002"}
+PALAVA HUB Community Guidelines
+
+Welcome to PALAVA HUB. To keep our community safe and respectful, all users must follow these rules:
+
+1. Be Respectful
+No bullying, harassment, or hate speech.
+
+2. No Harmful Content
+Do not post:
+
+Violence or threats
+
+Sexual or explicit content
+
+False or misleading information
+
+3. Use Palava Responsibly
+Anonymous posting is allowed, but abuse of this feature will result in account suspension.
+
+4. Report Violations
+Use the report button to flag inappropriate content.
+
+5. Enforcement
+We may remove content or suspend accounts that violate these rules.
+
+:::
+
+ðŸš© 3. REPORT SYSTEM (UI + LOGIC)
+Must exist on EVERY post:
+Buttons:
+
+Report
+
+Hide
+
+Block User
+
+Report Options:
+Spam
+
+Harassment
+
+Hate Speech
+
+False Information
+
+Other
+
+Backend Logic:
+Save report to database
+
+Flag post
+
+Notify admin dashboard
+
+Apple & Google Expectation:
+âœ” Visible
+âœ” Working
+âœ” Easy to access
+
+ðŸ›¡ï¸ 4. CONTENT MODERATION SYSTEM
+Minimum you must implement:
+
+Admin panel to:
+
+Delete posts
+
+Ban users
+
+Track reported posts
+
+Smart Upgrade (recommended):
+Auto-filter bad words
+
+Flag repeated offenders
+
+ðŸ—‘ï¸ 5. ACCOUNT DELETION (CRITICAL FOR GOOGLE)
+Inside app settings:
+
+Button:
+ðŸ‘‰ â€œDelete My Accountâ€
+
+Flow:
+User clicks delete
+
+Confirmation prompt
+
+Account removed from database
+
+Policy Requirement:
+Must be inside the app (not just website)
+
+âš™ï¸ 6. IN-APP SETTINGS PAGE (MUST INCLUDE)
+Create a â€œSettingsâ€ section with:
+
+Privacy Policy link
+
+Community Guidelines
+
+Delete Account
+
+Logout
+
+Report & Help
+
+ðŸ§¾ 7. APP STORE LISTING TEXT (SHORT VERSION)
+App Name:
+PALAVA HUB
+
+Description:
+â€œPALAVA HUB is Liberiaâ€™s first social media platform designed to connect people, schools, and communities. Share posts, discover trends, and express yourself freely through our unique Palava feature.â€
+
+âš ï¸ 8. SPECIAL NOTE FOR YOUR APP
+Because of anonymous posting, both:
+
+
+
+will check:
+
+ðŸ‘‰ Do you control abuse?
+
+If YES â†’ Approved
+If NO â†’ Rejected
+
+ðŸ”¥ FINAL CHECKLIST (DONâ€™T SKIP)
+Before submission:
+
+âœ… Report button works
+
+âœ… Block feature works
+
+âœ… Admin moderation exists
+
+âœ… Privacy policy link works
+
+âœ… Account deletion works
+
+âœ… No crashes
+
+âœ… App has real content
+
+ðŸš€ WHAT YOU NOW HAVE
+Youâ€™re now ready with:
+
+Legal policy âœ…
+
+Safety system âœ…
+
+Store compliance âœ…
+
+ðŸ‘‰ This is enough to pass BOTH Apple & Google if implemented correctly.
+
+
+
+
+Privacy Policy
+
+Terms
+
+on your domain like:
+
+https://palavahub.com/privacy
+ Why Apps Crash (Even with Firebase)
+Crashes usually come from:
+
+Bugs in your frontend (React, Android, iOS)
+
+Bad API handling (null data, wrong responses)
+
+Network issues (slow or no internet)
+
+Poor error handling
+
+Memory issues on devices
+
+ðŸ‘‰ Firebase is just your backendâ€”it doesnâ€™t control all this.
+
+âœ… What Firebase DOES help with
+1. ðŸ§¯ Crash Monitoring
+Use:
+ðŸ‘‰ 
+
+It will:
+
+Show you where crashes happen
+
+Tell you which users are affected
+
+Give real-time error logs
+
+ðŸ‘‰ This is a MUST for your app
+
+2. âš¡ Stable Backend
+Firebase gives you:
+
+Reliable database (Firestore / Realtime DB)
+
+Authentication system
+
+Scalable hosting
+
+ðŸ‘‰ So backend-related crashes are reduced
+
+3. ðŸ”„ Real-time Error Tracking
+You can:
+
+Detect bugs early
+
+Fix issues before users complain
+
+âŒ What Firebase CANNOT DO
+It cannot:
+
+Fix your bad code
+
+Prevent UI crashes
+
+Stop logic errors
+
+Guarantee uptime 100%
+
+ðŸ”¥ How to Make Your App NOT Crash (REAL STRATEGY)
+âœ… 1. Handle Errors Properly
+Always do:
+
+try {
+  // fetch data
+} catch (error) {
+  // show fallback message
+}
+âœ… 2. Validate Data
+Never trust data blindly:
+
+if (user && user.name) {
+  // safe to use
+}
+âœ… 3. Offline Handling
+In Liberia (important reality):
+ðŸ‘‰ Internet is not always stable
+
+So:
+
+Show â€œNo Internetâ€ message
+
+Cache data
+
+âœ… 4. Test Like Crazy
+Before launch:
+
+Test login
+
+Test posting
+
+Test slow internet
+
+Test errors
+
+âœ… 5. Use Crashlytics (VERY IMPORTANT)
+Without it, youâ€™re blind.
+
+ðŸ’¡ REALITY CHECK (IMPORTANT)
+
+The goal is NOT zero crashes.
+ðŸ‘‰ The goal is fast detection + quick fixing
+
+ðŸš€ For PALAVA HUB (YOUR APP)
+You should definitely:
+
+Install Crashlytics
+
+Add error handling on:
+
+Login
+
+Posting
+
+Palava section
+
+Handle network failures
+
+Add Crashlytics step-by-step
+
+Write error-safe frontend code
+
+Design your app to handle bad internet conditions
+
+Stress-test your system before launch
+
+
+
+How many users it can handle
+
+When it slows down
+
+When it crashes
+
+âš ï¸ For PALAVA HUB
+You need to test:
+
+Login system
+
+Posting (especially â€œPalavaâ€)
+
+Feed loading
+
+Real-time updates
+
+ðŸ› ï¸ BEST TOOLS FOR STRESS TESTING
+1. ðŸ”¥ Backend/API Testing
+Use:
+
+ (very powerful)
+
+ (modern & easier)
+
+ðŸ‘‰ I recommend k6 for you (simpler)
+
+2. ðŸŒ Firebase Testing
+Use:
+
+
+Tracks:
+
+Slow queries
+
+Network delays
+
+3. ðŸ“± Real Device Testing
+Use:
+
+Multiple phones
+
+Or browser tabs
+
+ðŸ‘‰ Simulate real users manually
+
+âš¡ METHOD 1: SIMPLE STRESS TEST (NO CODING)
+Step 1:
+Open your app in:
+
+10â€“50 browser tabs
+
+Step 2:
+Do actions at the same time:
+
+Login
+
+Post
+
+Refresh feed
+
+Step 3:
+Watch for:
+
+Delays
+
+Errors
+
+Crashes
+
+ðŸ‘‰ This alone reveals a LOT
+
+âš¡ METHOD 2: AUTOMATED STRESS TEST (k6)
+Install:
+
+npm install -g k6
+Example Test Script:
+import http from 'k6/http';
+import { sleep } from 'k6';
+
+export default function () {
+  http.get('https://your-api-url.com/posts');
+  sleep(1);
+}
+Run Test:
+k6 run --vus 50 --duration 30s test.js
+ðŸ‘‰ This means:
+
+50 users
+
+Running for 30 seconds
+
+Increase Load:
+k6 run --vus 200 --duration 1m test.js
+ðŸ“Š WHAT TO LOOK FOR
+After test, check:
+
+Response time (should be fast < 500ms)
+
+Errors (should be near 0)
+
+Failed requests
+
+App freezing
+
+ðŸ”¥ CRITICAL TEST SCENARIOS FOR YOU
+1. Login Spike
+100 users login at same time
+
+2. Posting Flood (IMPORTANT)
+Many users post in â€œPalavaâ€ at once
+
+3. Feed Load
+Multiple users refreshing feed
+
+4. Explore Page
+Searching + loading trending
+
+ðŸ’¡ FIREBASE-SPECIFIC TIPS
+With :
+
+Firestore scales well BUT:
+
+Bad queries = slow app
+
+Too many reads = expensive
+
+ðŸ‘‰ Optimize:
+
+Use indexes
+
+Limit query size
+
+âš ï¸ COMMON PROBLEMS YOUâ€™LL FIND
+Slow loading feeds
+
+Duplicate posts
+
+Crashes when data is null
+
+API timeout
+
+ðŸ‘‰ Fix these before launch
+
+ðŸ§  PRO STRATEGY (VERY IMPORTANT)
+Start small:
+
+Test 10 users
+
+Then 50
+
+Then 100
+
+Then 500
+
+ðŸ‘‰ Donâ€™t jump straight to 1000 users
+
+ðŸš€ REALITY CHECK
+You donâ€™t need Facebook-level scale.
+
+If your app can handle:
+ðŸ‘‰ 100â€“500 active users smoothly
+
+Youâ€™re GOOD for launch.
+
+ðŸ‘ If You Want Next Step
+I can:
+
+Write a full k6 test script for your API
+
+Design your database for high performance
+
+Optimize Firebase queries for speed
+
+Simulate real user behavior for your app
+
+
+
+Before you launch PALAVA HUB, you donâ€™t just need â€œsome testingâ€â€”you need the right testing categories. Iâ€™ll give you a real-world checklist used by production apps, tailored to your kind of platform (social + anonymous posting + Firebase).
+
+ðŸš€ MASTER TEST CHECKLIST BEFORE LAUNCH
+ðŸ§ª 1. FUNCTIONAL TESTING (Core Features)
+ðŸ‘‰ â€œDoes everything actually work?â€
+
+Test ALL features:
+
+Signup (email)
+
+Login / logout
+
+Create post
+
+Palava (anonymous post)
+
+Like / comment
+
+Follow users
+
+Explore / search
+
+School selection & linking
+
+Ads / boost (if active)
+
+âš ï¸ If even ONE core feature is broken â†’ donâ€™t launch
+
+ðŸ” 2. AUTHENTICATION & SECURITY TEST
+ðŸ‘‰ â€œCan users break your system?â€
+
+Test:
+
+Wrong password login
+
+Empty inputs
+
+Duplicate accounts
+
+Token/session expiry
+
+Unauthorized access
+
+ðŸ§¯ 3. ERROR HANDLING TEST
+ðŸ‘‰ â€œDoes your app fail gracefully?â€
+
+Test:
+
+No internet
+
+Server down
+
+API fails
+
+Invalid data
+
+Expected:
+
+No crashes
+
+You should definitely:
+
+Install Crashlytics
+Add error handling on:
+Login
+Posting
+Palava section
+Handle network failures
+
+
+
+Show friendly messages
+
+ðŸŒ 4. NETWORK TEST (VERY IMPORTANT FOR LIBERIA)
+ðŸ‘‰ â€œDoes it work on bad internet?â€
+
+Simulate:
+
+Slow 3G
+
+Network drop
+
+Test:
+
+Loading speed
+
+Retry logic
+
+Offline message
+
+âš¡ 5. STRESS / LOAD TEST
+
+Test:
+
+50â€“200 users at once
+
+Multiple posts at same time
+
+Feed refresh spam
+
+Watch:
+
+Slowdowns
+
+Crashes
+
+ðŸŒ 4. NETWORK TEST (VERY IMPORTANT FOR LIBERIA)
+
+Simulate:
+
+Slow 3G
+Network drop
+
+Test:
+
+Loading speed
+Retry logic
+Offline message
+launch
+
+ðŸ” 2. AUTHENTICATION & SECURITY
+
+Test:
+
+Wrong password login
+Empty inputs
+Duplicate accounts
+Token/session expiry
+Unauthorized access
+
+ðŸ§ª 1. FUNCTIONAL TESTING (Core Features)
+
+ðŸ‘‰ â€œDoes everything actually work?â€
+
+Test ALL features:
+
+Signup (email)
+Login / logout
+Create post
+Palava (anonymous post)
+Like / comment
+Follow users
+Explore / search
+School selection & linking
+Ads / boost (if active)
+
+ðŸ”¥ CRITICAL TEST SCENARIOS 
+1. Login Spike
+100 users login at same time
+2. Posting Flood (IMPORTANT)
+Many users post in â€œPalavaâ€ at once
+3. Feed Load
+Multiple users refreshing feed
+4. Explore Page
+Searching + loading trending
+
+
+i need you to run a thorough stress test, i mean push the app to its limate.
+
+How to Make Your App NOT Crash (REAL STRATEGY)
+âœ… 1. Handle Errors Properly
+
+Always do:
+
+try {
+  // fetch data
+} catch (error) {
+  // show fallback message
+}
+âœ… 2. Validate Data
+
+Never trust data blindly:
+
+if (user && user.name) {
+  // safe to use
+}
+âœ… 3. Offline Handling
+
+In Liberia (important reality):
+ðŸ‘‰ Internet is not always stable
+
+So:
+
+Show â€œNo Internetâ€ message
+Cache data
+
+
+
+âœ… PALAVA HUB â€“ FULL COMPLIANCE PACKAGE
+ðŸ“œ 1. PRIVACY POLICY (READY TO USE)
+
+Host this on your website (e.g. https://palavahub.com/privacy)
+
+:::writing{variant="standard" id="pp001"}
+
+PALAVA HUB Privacy Policy
+
+Effective Date: May 4, 2026
+
+PALAVA HUB (â€œweâ€, â€œourâ€, â€œusâ€) respects your privacy. This policy explains how we collect, use, and protect your information.
+
+1. Information We Collect
+
+Email address (for account creation)
+School selection (to connect users)
+User-generated content (posts, comments, Palava posts)
+Device and usage data
+
+2. How We Use Information
+
+To create and manage your account
+To connect you with your school community
+To improve user experience
+To ensure safety and prevent abuse
+
+3. Anonymous Posting (Palava Feature)
+Posts made in the â€œPalavaâ€ section are anonymous to other users, but we may internally link activity to accounts to enforce safety and prevent misuse.
+
+4. Content Moderation
+We monitor and review content to prevent:
+
+Abuse
+Harassment
+Harmful or illegal activity
+
+5. Data Sharing
+We do not sell your data. We may share data only:
+
+To comply with legal obligations
+To protect user safety
+
+6. Account Deletion
+Users can delete their account at any time from the app settings.
+
+7. Security
+We use reasonable measures to protect your data.
+
+8. Contact
+Email: support@palavahub.com
+
+:::
+
+ðŸ“˜ 2. COMMUNITY GUIDELINES
+:::writing{variant="standard" id="cg002"}
+
+PALAVA HUB Community Guidelines
+
+Welcome to PALAVA HUB. To keep our community safe and respectful, all users must follow these rules:
+
+1. Be Respectful
+No bullying, harassment, or hate speech.
+
+2. No Harmful Content
+Do not post:
+
+Violence or threats
+Sexual or explicit content
+False or misleading information
+
+3. Use Palava Responsibly
+Anonymous posting is allowed, but abuse of this feature will result in account suspension.
+
+4. Report Violations
+Use the report button to flag inappropriate content.
+
+5. Enforcement
+We may remove content or suspend accounts that violate these rules.
+
+:::
+
+ðŸš© 3. REPORT SYSTEM (UI + LOGIC)
+Must exist on EVERY post:
+
+Buttons:
+
+Report
+Hide
+Block User
+Report Options:
+Spam
+Harassment
+Hate Speech
+False Information
+Other
+Backend Logic:
+Save report to database
+Flag post
+Notify admin dashboard
+Apple & Google Expectation:
+
+âœ” Visible
+âœ” Working
+âœ” Easy to access
+
+ðŸ›¡ï¸ 4. CONTENT MODERATION 
+WITHIN ADMIN PANEL WE MUST HAVE 
+
+
+Delete posts
+Ban users
+Track reported posts
+Smart Upgrade (recommended):
+Auto-filter bad words
+Flag repeated offenders
+ðŸ—‘ï¸ 5. ACCOUNT DELETION (CRITICAL FOR GOOGLE)
+
+Inside app settings:
+
+Button:
+ðŸ‘‰ â€œDelete My Accountâ€
+
+Flow:
+User clicks delete
+Confirmation prompt
+Account removed from database
+Policy Requirement:
+Must be inside the app (not just website)
+âš™ï¸ 6. IN-APP SETTINGS PAGE (MUST INCLUDE)
+
+Create a â€œSettingsâ€ section with:
+
+Privacy Policy link
+Community Guidelines
+Delete Account
+Logout
+Report & Help
+ðŸ§¾ 7. APP STORE LISTING TEXT (SHORT VERSION)
+App Name:
+
+PALAVA HUB
+
+Description:
+
+â€œPALAVA HUB is Liberiaâ€™s first social media platform designed to connect people, schools, and communities. Share posts, discover trends, and express yourself freely through our unique Palava feature.
+
+
+
+since we still trying to get the payment method ready, didable the payment for ads not that user can use it for free till we add it in the next update. the verification badge should be like facebook but a fire red color. admin should should be able to veriify certain users without reaching the craterials. change the landing page to the image below. change the officeial logo to the image below. add a phone number registration feature on it that user can also register using phone number just like facebook. make sure all the apis are set and working perfectly. seach all schools in liberia and inlist them on the app.(also addst gregory catholic school, buduburam community school, new testament high school among the schools). add a campus jams section that user can know every hapening on campus or campus socal life. also add audio posting just have users can upload videos and pictures and make sure everything works perfectly. ensure the app is a production ready app that cant be rejected by the app store. ALSO ADD PHUNE NUMBER IS A SIGN UP OPTION.

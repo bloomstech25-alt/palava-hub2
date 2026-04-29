@@ -1,12 +1,26 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  doc,
+  serverTimestamp,
+  increment,
+  Timestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-export type AdStatus = "pending" | "active" | "paused";
+export type AdStatus = "pending" | "active" | "paused" | "rejected";
 export type AdCTA = "Learn More" | "Apply Now" | "Contact Us" | "Visit Website" | "Enroll Now";
 export type AdBudget = "basic" | "standard" | "premium";
 export type AdAudience = "all" | "university" | "high_school";
 
 export interface Ad {
   id: string;
+  ownerId: string;
   sponsorName: string;
   headline: string;
   body: string;
@@ -18,48 +32,6 @@ export interface Ad {
   impressions: number;
   clicks: number;
 }
-
-const SAMPLE_ADS: Ad[] = [
-  {
-    id: "ad1",
-    sponsorName: "Liberia Tech Hub",
-    headline: "Learn to Code in Monrovia",
-    body: "Join West Africa's fastest-growing coding bootcamp. Scholarships available for Liberian students. Applications open now!",
-    cta: "Apply Now",
-    budget: "standard",
-    audience: "all",
-    status: "active",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    impressions: 1240,
-    clicks: 87,
-  },
-  {
-    id: "ad2",
-    sponsorName: "UL Career Services",
-    headline: "2025 Internship Fair – Register Now",
-    body: "Over 40 employers coming to campus this April. Free registration for University of Liberia students. Network and get hired!",
-    cta: "Learn More",
-    budget: "basic",
-    audience: "university",
-    status: "active",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-    impressions: 890,
-    clicks: 134,
-  },
-  {
-    id: "ad3",
-    sponsorName: "Lonestar Cell",
-    headline: "Student Data Plans — 50% Off",
-    body: "Stay connected all semester. Lonestar's student bundles give you 10GB for just L$500/month. Available at all campus locations.",
-    cta: "Learn More",
-    budget: "premium",
-    audience: "all",
-    status: "active",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
-    impressions: 3450,
-    clicks: 412,
-  },
-];
 
 const BUDGET_LABELS: Record<AdBudget, string> = {
   basic: "Basic — L$500/day",
@@ -75,9 +47,12 @@ const AUDIENCE_LABELS: Record<AdAudience, string> = {
 
 interface AdsContextType {
   ads: Ad[];
-  createAd: (data: Omit<Ad, "id" | "createdAt" | "impressions" | "clicks" | "status">) => void;
-  pauseAd: (id: string) => void;
-  resumeAd: (id: string) => void;
+  myAds: (ownerId: string) => Ad[];
+  createAd: (ownerId: string, data: Omit<Ad, "id" | "ownerId" | "createdAt" | "impressions" | "clicks" | "status">) => Promise<void>;
+  pauseAd: (id: string) => Promise<void>;
+  resumeAd: (id: string) => Promise<void>;
+  trackImpression: (id: string) => void;
+  trackClick: (id: string) => void;
   getActiveAds: () => Ad[];
   BUDGET_LABELS: typeof BUDGET_LABELS;
   AUDIENCE_LABELS: typeof AUDIENCE_LABELS;
@@ -85,33 +60,101 @@ interface AdsContextType {
 
 const AdsContext = createContext<AdsContextType | null>(null);
 
-export function AdsProvider({ children }: { children: React.ReactNode }) {
-  const [ads, setAds] = useState<Ad[]>(SAMPLE_ADS);
+function tsToIso(value: unknown): string {
+  if (value instanceof Timestamp) return value.toDate().toISOString();
+  if (typeof value === "string") return value;
+  return new Date().toISOString();
+}
 
-  const createAd = (data: Omit<Ad, "id" | "createdAt" | "impressions" | "clicks" | "status">) => {
-    const newAd: Ad = {
-      ...data,
-      id: "ad_" + Date.now().toString() + Math.random().toString(36).substr(2, 6),
-      status: "pending",
-      createdAt: new Date().toISOString(),
+export function AdsProvider({ children }: { children: React.ReactNode }) {
+  const [ads, setAds] = useState<Ad[]>([]);
+  // Throttle impression tracking: dedupe within session
+  const trackedImpressionsRef = React.useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const q = query(collection(db, "ads"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const next: Ad[] = snap.docs.map((d) => {
+          const data = d.data() as Record<string, unknown>;
+          return {
+            id: d.id,
+            ownerId: String(data.ownerId ?? ""),
+            sponsorName: String(data.sponsorName ?? ""),
+            headline: String(data.headline ?? ""),
+            body: String(data.body ?? ""),
+            cta: (data.cta as AdCTA) ?? "Learn More",
+            budget: (data.budget as AdBudget) ?? "basic",
+            audience: (data.audience as AdAudience) ?? "all",
+            status: (data.status as AdStatus) ?? "pending",
+            createdAt: tsToIso(data.createdAt),
+            impressions: Number(data.impressions ?? 0),
+            clicks: Number(data.clicks ?? 0),
+          };
+        });
+        setAds(next);
+      },
+      () => { /* Firestore unavailable, keep last state */ },
+    );
+    return unsub;
+  }, []);
+
+  const createAd = async (
+    ownerId: string,
+    data: Omit<Ad, "id" | "ownerId" | "createdAt" | "impressions" | "clicks" | "status">,
+  ) => {
+    await addDoc(collection(db, "ads"), {
+      ownerId,
+      sponsorName: data.sponsorName,
+      headline: data.headline,
+      body: data.body,
+      cta: data.cta,
+      budget: data.budget,
+      audience: data.audience,
+      status: "pending" as AdStatus,
       impressions: 0,
       clicks: 0,
-    };
-    setAds((prev) => [newAd, ...prev]);
+      createdAt: serverTimestamp(),
+    });
   };
 
-  const pauseAd = (id: string) => {
-    setAds((prev) => prev.map((a) => (a.id === id ? { ...a, status: "paused" } : a)));
+  const pauseAd = async (id: string) => {
+    try { await updateDoc(doc(db, "ads", id), { status: "paused" }); } catch { /* ignore */ }
   };
 
-  const resumeAd = (id: string) => {
-    setAds((prev) => prev.map((a) => (a.id === id ? { ...a, status: "active" } : a)));
+  const resumeAd = async (id: string) => {
+    try { await updateDoc(doc(db, "ads", id), { status: "active" }); } catch { /* ignore */ }
+  };
+
+  const trackImpression = (id: string) => {
+    if (trackedImpressionsRef.current.has(id)) return;
+    trackedImpressionsRef.current.add(id);
+    updateDoc(doc(db, "ads", id), { impressions: increment(1) }).catch(() => { /* ignore */ });
+  };
+
+  const trackClick = (id: string) => {
+    updateDoc(doc(db, "ads", id), { clicks: increment(1) }).catch(() => { /* ignore */ });
   };
 
   const getActiveAds = () => ads.filter((a) => a.status === "active");
+  const myAds = (ownerId: string) => ads.filter((a) => a.ownerId === ownerId);
 
   return (
-    <AdsContext.Provider value={{ ads, createAd, pauseAd, resumeAd, getActiveAds, BUDGET_LABELS, AUDIENCE_LABELS }}>
+    <AdsContext.Provider
+      value={{
+        ads,
+        myAds,
+        createAd,
+        pauseAd,
+        resumeAd,
+        trackImpression,
+        trackClick,
+        getActiveAds,
+        BUDGET_LABELS,
+        AUDIENCE_LABELS,
+      }}
+    >
       {children}
     </AdsContext.Provider>
   );

@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useAds } from "@/context/AdsContext";
+import { useAuth } from "@/context/AuthContext";
 import type { AdCTA, AdBudget, AdAudience } from "@/context/AdsContext";
 
 const CTA_OPTIONS: AdCTA[] = ["Learn More", "Apply Now", "Contact Us", "Visit Website", "Enroll Now"];
@@ -34,6 +35,7 @@ export default function CreateAdScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { createAd } = useAds();
+  const { user } = useAuth();
 
   const [sponsorName, setSponsorName] = useState("");
   const [headline, setHeadline] = useState("");
@@ -42,13 +44,26 @@ export default function CreateAdScreen() {
   const [budget, setBudget] = useState<AdBudget>("basic");
   const [audience, setAudience] = useState<AdAudience>("all");
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const canSubmit = sponsorName.trim() && headline.trim() && body.trim();
+  const canSubmit = sponsorName.trim() && headline.trim() && body.trim() && !submitting;
 
-  function handleSubmit() {
-    if (!canSubmit) return;
-    createAd({ sponsorName: sponsorName.trim(), headline: headline.trim(), body: body.trim(), cta, budget, audience });
-    setSubmitted(true);
+  async function handleSubmit() {
+    if (!canSubmit || !user) return;
+    setSubmitting(true);
+    try {
+      await createAd(user.id, {
+        sponsorName: sponsorName.trim(),
+        headline: headline.trim(),
+        body: body.trim(),
+        cta, budget, audience,
+      });
+      setSubmitted(true);
+    } catch {
+      Alert.alert("Error", "Could not submit your ad. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (submitted) {

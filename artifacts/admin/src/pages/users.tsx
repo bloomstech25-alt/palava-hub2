@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListUsers,
@@ -7,6 +7,8 @@ import {
   useUnbanUser,
   useDeleteUser,
 } from "@workspace/api-client-react";
+import { collection, doc, onSnapshot, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function UsersPage() {
   const qc = useQueryClient();
@@ -40,6 +42,55 @@ export default function UsersPage() {
       },
     },
   });
+
+  // Live verification status from Firestore (so manual verify reflects immediately)
+  const [verifyStatus, setVerifyStatus] = useState<Record<string, "approved" | "pending" | "rejected" | undefined>>({});
+  const [verifyLoading, setVerifyLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "users"), (snap) => {
+      const next: Record<string, "approved" | "pending" | "rejected" | undefined> = {};
+      snap.docs.forEach((d) => {
+        const v = (d.data() as { verificationStatus?: string }).verificationStatus;
+        if (v === "approved" || v === "pending" || v === "rejected") next[d.id] = v;
+      });
+      setVerifyStatus(next);
+    }, () => { /* offline — keep last */ });
+    return unsub;
+  }, []);
+
+  async function manuallyVerify(userId: string, name: string) {
+    setVerifyLoading(userId);
+    try {
+      // Mirror an approved request so it shows up under "Approved" in the verifications page
+      await setDoc(doc(db, "verificationRequests", userId), {
+        userName: name,
+        status: "approved",
+        appliedAt: serverTimestamp(),
+        reviewedAt: serverTimestamp(),
+        manualGrant: true,
+      }, { merge: true });
+      await updateDoc(doc(db, "users", userId), { verificationStatus: "approved" });
+    } catch (err) {
+      console.error("Manual verify failed:", err);
+      alert("Could not verify user. Try again.");
+    }
+    setVerifyLoading(null);
+  }
+
+  async function revokeVerification(userId: string) {
+    setVerifyLoading(userId);
+    try {
+      await updateDoc(doc(db, "users", userId), { verificationStatus: "rejected" });
+      await setDoc(doc(db, "verificationRequests", userId), {
+        status: "rejected",
+        reviewedAt: serverTimestamp(),
+      }, { merge: true });
+    } catch (err) {
+      console.error("Revoke verification failed:", err);
+    }
+    setVerifyLoading(null);
+  }
 
   const users = usersQuery.data ?? [];
 
@@ -135,6 +186,33 @@ export default function UsersPage() {
 
               {/* Action buttons */}
               <div className="flex items-center gap-1.5 shrink-0">
+                {/* Manual verify (no follower threshold) */}
+                {verifyStatus[user.id] === "approved" ? (
+                  <button
+                    onClick={() => revokeVerification(user.id)}
+                    disabled={verifyLoading === user.id}
+                    title="Revoke verification badge"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 transition-colors disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {/* Gold star (verified) */}
+                    <svg viewBox="0 0 24 24" fill="#D4A53A" className="w-3.5 h-3.5">
+                      <polygon points="12,2 14.6,8.6 22,9 16,14 18,21 12,17 6,21 8,14 2,9 9.4,8.6" />
+                    </svg>
+                    Verified
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => manuallyVerify(user.id, user.name)}
+                    disabled={verifyLoading === user.id}
+                    title="Manually verify this user (no follower requirement)"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 transition-colors disabled:opacity-50 whitespace-nowrap"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
+                      <polygon points="12,2 14.6,8.6 22,9 16,14 18,21 12,17 6,21 8,14 2,9 9.4,8.6" />
+                    </svg>
+                    {verifyLoading === user.id ? "…" : "Verify"}
+                  </button>
+                )}
                 {user.isBanned ? (
                   <button
                     onClick={() => unsuspendMutation.mutate({ id: user.id })}

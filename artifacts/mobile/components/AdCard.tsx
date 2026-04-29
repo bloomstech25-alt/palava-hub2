@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -7,20 +7,20 @@ import {
   View,
 } from "react-native";
 import { useColors } from "@/hooks/useColors";
-import type { Ad } from "@/context/AdsContext";
+import { useAds, type Ad } from "@/context/AdsContext";
 
 interface AdCardProps {
   ad: Ad;
 }
 
-const BUDGET_REACH: Record<string, string> = {
-  basic: "~500 students/day",
-  standard: "~1,500 students/day",
-  premium: "~3,000+ students/day",
-};
-
 export function AdCard({ ad }: AdCardProps) {
   const colors = useColors();
+  const { trackImpression, trackClick } = useAds();
+
+  // Count an impression once per session when this card mounts
+  useEffect(() => {
+    trackImpression(ad.id);
+  }, [ad.id, trackImpression]);
 
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.primary + "30" }]}>
@@ -41,6 +41,7 @@ export function AdCard({ ad }: AdCardProps) {
       <TouchableOpacity
         style={[styles.ctaBtn, { backgroundColor: colors.primary }]}
         activeOpacity={0.85}
+        onPress={() => trackClick(ad.id)}
       >
         <Text style={[styles.ctaBtnText, { color: colors.primaryForeground }]}>{ad.cta}</Text>
         <Feather name="arrow-right" size={14} color={colors.primaryForeground} />
