@@ -163,7 +163,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set loading so the tab layout doesn't redirect during the transition
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      // Verify the Firestore profile exists. A signed-in Auth user with no
+      // profile doc is an "orphan account" — typically a register attempt
+      // that succeeded in Auth but failed mid-way to write to Firestore
+      // (e.g. before security rules were published, or during a network
+      // hiccup). Without this check the snapshot listener would wait forever
+      // for a doc that's never coming and the login screen would hang.
+      const profileSnap = await getDoc(doc(db, "users", cred.user.uid));
+      if (!profileSnap.exists()) {
+        // Sign back out so we don't leave them in a half-logged-in state.
+        await signOut(auth);
+        setIsLoading(false);
+        return {
+          success: false,
+          error: "This account exists but has no profile. Please register again with the same email to recover it.",
+        };
+      }
       // onAuthStateChanged fires after this and handles setting user + isLoading(false)
       return { success: true };
     } catch (err: any) {
@@ -178,6 +194,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ? "Please enter a valid email address."
           : code === "auth/too-many-requests"
           ? "Too many attempts. Please try again later."
+          : code === "auth/network-request-failed"
+          ? "Network error. Please check your internet connection."
           : "Login failed. Please check your connection and try again.";
       return { success: false, error: msg };
     }
