@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { removeToken } from "@/lib/auth";
+import { logoutAdmin } from "@/lib/auth";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -86,9 +86,12 @@ const navItems = [
 export default function Layout({ children }: LayoutProps) {
   const [location, setLocation] = useLocation();
 
-  function handleLogout() {
-    removeToken();
-    setLocation("/login");
+  async function handleLogout() {
+    try {
+      await logoutAdmin();
+    } finally {
+      setLocation("/login");
+    }
   }
 
   return (

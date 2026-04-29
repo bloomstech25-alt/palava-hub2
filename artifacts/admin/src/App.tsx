@@ -2,7 +2,7 @@ import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wo
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { isAuthenticated } from "@/lib/auth";
+import { useAdminAuth } from "@/lib/auth";
 import Layout from "@/components/layout";
 import LoginPage from "@/pages/login";
 import DashboardPage from "@/pages/dashboard";
@@ -24,8 +24,15 @@ const queryClient = new QueryClient({
 });
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
-  if (!isAuthenticated()) {
+  const { loading, user, isAdmin } = useAdminAuth();
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (!user || !isAdmin) {
     return <Redirect to="/login" />;
   }
   return <>{children}</>;
@@ -85,11 +92,23 @@ function Router() {
         </ProtectedRoute>
       </Route>
       <Route path="/">
-        {isAuthenticated() ? <Redirect to="/dashboard" /> : <Redirect to="/login" />}
+        <RootRedirect />
       </Route>
       <Route component={NotFound} />
     </Switch>
   );
+}
+
+function RootRedirect() {
+  const { loading, user, isAdmin } = useAdminAuth();
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  return user && isAdmin ? <Redirect to="/dashboard" /> : <Redirect to="/login" />;
 }
 
 function App() {
