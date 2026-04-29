@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,7 +19,7 @@ import { useColors } from "@/hooks/useColors";
 
 export default function LoginScreen() {
   const colors = useColors();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, resetPassword } = useAuth();
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -80,6 +81,31 @@ export default function LoginScreen() {
       setError(result.error ?? "Login failed");
     }
     // Navigation is handled by the useEffect above once isAuthenticated flips to true
+  };
+
+  // Password reset — only works for email accounts (phone-signup users
+  // have synthetic emails that they can't actually receive mail at).
+  const handleForgotPassword = async () => {
+    if (method === "phone") {
+      Alert.alert(
+        "Phone accounts",
+        "Password reset over email isn't available for phone-based accounts yet. Please contact support to recover your account.",
+      );
+      return;
+    }
+    if (!email.trim()) {
+      setError("Please enter your email above first, then tap Forgot password.");
+      return;
+    }
+    const result = await resetPassword(email.trim());
+    if (result.success) {
+      Alert.alert(
+        "Check your email",
+        "If an account exists for that email, a password-reset link is on its way. Check your spam folder if you don't see it.",
+      );
+    } else {
+      setError(result.error ?? "Could not send reset email.");
+    }
   };
 
   return (
@@ -207,6 +233,10 @@ export default function LoginScreen() {
                 {isLoading ? "Signing in..." : "Sign In"}
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity onPress={handleForgotPassword} activeOpacity={0.7} style={styles.forgotBtn}>
+              <Text style={[styles.forgotText, { color: colors.primary }]}>Forgot password?</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.footer}>
@@ -276,6 +306,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   loginBtnText: { fontSize: 16, fontWeight: "700" },
+  forgotBtn: { alignSelf: "center", paddingVertical: 12, marginTop: 4 },
+  forgotText: { fontSize: 14, fontWeight: "600" },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 32 },
   footerText: { fontSize: 14 },
   footerLink: { fontSize: 14, fontWeight: "600" },

@@ -5,6 +5,7 @@ import {
   signOut,
   onAuthStateChanged,
   deleteUser,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import {
   doc,
@@ -70,6 +71,7 @@ interface AuthContextType {
   blockUser: (targetId: string) => Promise<{ success: boolean; error?: string }>;
   unblockUser: (targetId: string) => Promise<{ success: boolean; error?: string }>;
   reportContent: (input: ReportInput) => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 export type ReportReason =
@@ -526,6 +528,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  // Password reset — sends a Firebase-hosted reset email to the address.
+  // We never confirm whether the email exists (security: account-enumeration
+  // protection). The Firebase template handles the rest of the flow.
+  const resetPassword = useCallback(async (email: string) => {
+    const trimmed = email.trim();
+    if (!trimmed) return { success: false, error: "Please enter your email address." };
+    try {
+      await sendPasswordResetEmail(auth, trimmed);
+      return { success: true };
+    } catch (err: any) {
+      const code = err?.code ?? "";
+      const msg =
+        code === "auth/invalid-email"
+          ? "Please enter a valid email address."
+          : code === "auth/user-not-found"
+          // Don't leak account existence — generic success-style message.
+          ? "If an account exists for that email, a reset link is on its way."
+          : code === "auth/network-request-failed"
+          ? "Network error. Please check your internet connection."
+          : "Could not send reset email. Please try again.";
+      // Treat user-not-found as a soft-success so we don't reveal which
+      // emails are registered.
+      if (code === "auth/user-not-found") return { success: true };
+      return { success: false, error: msg };
+    }
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -543,6 +572,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         blockUser,
         unblockUser,
         reportContent,
+        resetPassword,
       }}
     >
       {children}
