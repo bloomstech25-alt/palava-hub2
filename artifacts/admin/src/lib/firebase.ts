@@ -7,7 +7,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBWD7hvFeO6rp3bTB-pmzJ-ViwvWII6Ds0",
   authDomain: "palava-hub.firebaseapp.com",
   projectId: "palava-hub",
-  storageBucket: "palava-hub.appspot.com",
+  storageBucket: "palava-hub.firebasestorage.app",
   messagingSenderId: "166869111433",
   appId: "1:166869111433:web:0775f7ed9f45afb42a2c58",
 };
