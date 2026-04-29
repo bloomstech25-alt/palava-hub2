@@ -114,6 +114,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let userUnsub: (() => void) | null = null;
 
     const authUnsub = onAuthStateChanged(auth, (firebaseUser) => {
+      // eslint-disable-next-line no-console
+      console.log("[auth] onAuthStateChanged →", firebaseUser ? `uid=${firebaseUser.uid}` : "signed out");
       // Clean up previous user listener whenever auth state changes
       if (userUnsub) { userUnsub(); userUnsub = null; }
 
@@ -128,15 +130,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userUnsub = onSnapshot(
           doc(db, "users", firebaseUser.uid),
           (snap) => {
+            // eslint-disable-next-line no-console
+            console.log("[auth] user snapshot →", snap.exists() ? "exists" : "missing");
             if (snap.exists()) {
               setUser({ ...(snap.data() as User), id: snap.id });
               setIsLoading(false);
+            } else {
+              // Profile is missing on a signed-in account. This is the
+              // "orphan account" state — auth user exists but Firestore
+              // profile doesn't (e.g. register failed mid-way, or rules
+              // blocked the setDoc). Don't leave the app stuck in isLoading;
+              // flip loading off so the login screen can show an error and
+              // navigation guards can route them out of the tabs.
+              setIsLoading(false);
             }
-            // If !snap.exists(), do NOTHING — register() is in flight and will
-            // write the proper doc shortly, which will trigger this listener
-            // again with the real data.
           },
-          async () => {
+          async (err) => {
+            // eslint-disable-next-line no-console
+            console.warn("[auth] user snapshot error", err?.code, err?.message);
             // Firestore connection error (e.g. 600ms timeout in proxied env).
             // Don't log the user out — try a one-shot getDoc as fallback.
             try {
@@ -144,7 +155,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (snap.exists()) {
                 setUser({ ...(snap.data() as User), id: snap.id });
               }
-            } catch { /* leave as-is and let the snapshot retry */ }
+            } catch (fallbackErr) {
+              // eslint-disable-next-line no-console
+              console.warn("[auth] fallback getDoc failed", (fallbackErr as { code?: string })?.code);
+            }
             setIsLoading(false);
           }
         );
@@ -164,15 +178,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set loading so the tab layout doesn't redirect during the transition
     setIsLoading(true);
     try {
+      // eslint-disable-next-line no-console
+      console.log("[auth] login: signing in", email);
       const cred = await signInWithEmailAndPassword(auth, email, password);
+      // eslint-disable-next-line no-console
+      console.log("[auth] login: signed in uid=", cred.user.uid);
+
       // Verify the Firestore profile exists. A signed-in Auth user with no
       // profile doc is an "orphan account" — typically a register attempt
-      // that succeeded in Auth but failed mid-way to write to Firestore
-      // (e.g. before security rules were published, or during a network
-      // hiccup). Without this check the snapshot listener would wait forever
-      // for a doc that's never coming and the login screen would hang.
-      const profileSnap = await getDoc(doc(db, "users", cred.user.uid));
+      // that succeeded in Auth but failed mid-way to write to Firestore.
+      // We race the getDoc against an 8-second timeout so a slow/blocked
+      // Firestore connection (common behind the Expo dev proxy) can never
+      // hang the login button forever — onAuthStateChanged + onSnapshot
+      // will pick up the user once the connection recovers.
+      const profileSnap = await Promise.race([
+        getDoc(doc(db, "users", cred.user.uid)),
+        new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), 8000)),
+      ]);
+
+      if (profileSnap === "timeout") {
+        // eslint-disable-next-line no-console
+        console.warn("[auth] login: profile getDoc timed out — letting snapshot listener recover");
+        // Don't sign out — the auth side worked. The snapshot listener will
+        // eventually populate the user, or surface an orphan state. We
+        // return success so handleLogin's spinner stops and the login
+        // screen's useEffect can navigate as soon as isAuthenticated flips.
+        return { success: true };
+      }
+
       if (!profileSnap.exists()) {
+        // eslint-disable-next-line no-console
+        console.warn("[auth] login: orphan account, signing out");
         // Sign back out so we don't leave them in a half-logged-in state.
         await signOut(auth);
         setIsLoading(false);
@@ -184,6 +220,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // onAuthStateChanged fires after this and handles setting user + isLoading(false)
       return { success: true };
     } catch (err: any) {
+      // eslint-disable-next-line no-console
+      console.warn("[auth] login error", err?.code, err?.message);
       setIsLoading(false);
       const code = err.code ?? "";
       const msg =
