@@ -249,7 +249,12 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
       });
       setAllPosts(fetched);
       setIsLoading(false);
-    }, () => {
+    }, (err) => {
+      // Surface why the feed listener died instead of silently showing an
+      // empty feed. Most common causes: Firestore connection blocked, rules
+      // rejecting the read, or auth not yet ready.
+      // eslint-disable-next-line no-console
+      console.warn("[feed] posts listener error", (err as { code?: string })?.code, err?.message, err);
       setIsLoading(false);
     });
 

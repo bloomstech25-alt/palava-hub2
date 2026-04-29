@@ -34,7 +34,15 @@ const TRENDING_TAGS = [
   "Academics", "Research", "Campus", "Sports", "Culture",
 ];
 
-type Tab = "trending" | "schools" | "people";
+type Tab = "trending" | "jams" | "schools" | "people";
+
+// Same keyword set used by the standalone Campus Jams screen — keeps both
+// surfaces in sync so a post that shows up there also shows up in the
+// Explore "Jams" tab.
+const JAM_TAGS = [
+  "campusjams", "campusjam", "party", "event", "show",
+  "concert", "music", "dance", "festival", "afrobeats",
+];
 
 export default function ExploreScreen() {
   const colors = useColors();
@@ -67,7 +75,13 @@ export default function ExploreScreen() {
           .slice(0, 80);
         setFirestoreUsers(fetched);
       })
-      .catch(() => {})
+      .catch((err) => {
+        // Surface what's actually going wrong instead of silently showing
+        // an empty list. Most common causes: Firestore offline in proxied
+        // environment, or rules rejecting the read.
+        // eslint-disable-next-line no-console
+        console.warn("[explore] people fetch failed", err?.code, err?.message, err);
+      })
       .finally(() => { if (!cancelled) setUsersLoading(false); });
     return () => { cancelled = true; };
   }, [activeTab, user?.id]);
@@ -110,6 +124,26 @@ export default function ExploreScreen() {
       .sort((a, b) => b.likes - a.likes);
   }, [selectedSchool, posts]);
 
+  // Build the Jams list from the global feed by matching the post's category
+  // OR any of its tags against the JAM_TAGS list. If the user is searching,
+  // narrow further by the search query so people can find a specific party
+  // or event by name.
+  const jamPosts = useMemo<Post[]>(() => {
+    const matches = posts.filter((p) => {
+      if (p.category === "campus_jams") return true;
+      const lower = (p.tags ?? []).map((t) => t.toLowerCase());
+      return lower.some((t) => JAM_TAGS.includes(t));
+    });
+    if (!searchQuery.trim()) return matches;
+    const q = searchQuery.toLowerCase();
+    return matches.filter(
+      (p) =>
+        p.content.toLowerCase().includes(q) ||
+        p.tags.some((t) => t.toLowerCase().includes(q)) ||
+        p.author.name.toLowerCase().includes(q),
+    );
+  }, [posts, searchQuery]);
+
   const renderPost = useCallback(({ item }: { item: Post }) => (
     <PostCard
       post={item}
@@ -136,6 +170,7 @@ export default function ExploreScreen() {
 
   const tabs: { key: Tab; label: string; icon: string }[] = [
     { key: "trending", label: "Trending", icon: "trending-up" },
+    { key: "jams", label: "Jams", icon: "zap" },
     { key: "schools", label: "Schools", icon: "book-open" },
     { key: "people", label: "People", icon: "users" },
   ];
@@ -245,6 +280,54 @@ export default function ExploreScreen() {
               <Feather name="search" size={40} color={colors.mutedForeground} />
               <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No results found</Text>
               <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>Try a different search term</Text>
+            </View>
+          }
+        />
+      )}
+
+      {/* JAMS TAB — campus party / event posts */}
+      {activeTab === "jams" && (
+        <FlatList
+          data={jamPosts}
+          keyExtractor={(item) => item.id}
+          renderItem={renderPost}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            !searchQuery ? (
+              <View style={[styles.jamsHero, { backgroundColor: "#0D0A08" }]}>
+                <View style={styles.jamsHeroRow}>
+                  <Feather name="zap" size={16} color="#FFD166" />
+                  <Text style={styles.jamsHeroTitle}>What's poppin' on campus?</Text>
+                </View>
+                <Text style={styles.jamsHeroSub}>
+                  Parties, shows, music drops, dance battles — share your campus energy with all of Liberia.
+                </Text>
+                <TouchableOpacity
+                  onPress={() => router.push("/create-post?category=campus_jams")}
+                  activeOpacity={0.85}
+                  style={styles.jamsHeroBtn}
+                >
+                  <Feather name="plus" size={14} color="#0D0A08" />
+                  <Text style={styles.jamsHeroBtnText}>Post a Jam</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Feather name="music" size={40} color={colors.mutedForeground} />
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No jams yet</Text>
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+                Be the first to share a party or campus moment. Tag your post with #campusjams.
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.push("/create-post?category=campus_jams")}
+                activeOpacity={0.85}
+                style={[styles.emptyBtn, { backgroundColor: colors.primary }]}
+              >
+                <Text style={[styles.emptyBtnText, { color: colors.primaryForeground }]}>Start the Jam</Text>
+              </TouchableOpacity>
             </View>
           }
         />
@@ -529,4 +612,28 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   trendingBadgeText: { fontSize: 12, fontWeight: "700" },
+  jamsHero: {
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 4,
+    padding: 16,
+    borderRadius: 16,
+  },
+  jamsHeroRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  jamsHeroTitle: { color: "#fff", fontSize: 17, fontWeight: "800", letterSpacing: -0.3 },
+  jamsHeroSub: { color: "#E6E0DA", fontSize: 12, lineHeight: 18, marginTop: 6 },
+  jamsHeroBtn: {
+    flexDirection: "row",
+    alignSelf: "flex-start",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#FFD166",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 12,
+  },
+  jamsHeroBtnText: { color: "#0D0A08", fontSize: 13, fontWeight: "800" },
+  emptyBtn: { paddingHorizontal: 22, paddingVertical: 11, borderRadius: 22, marginTop: 12 },
+  emptyBtnText: { fontSize: 14, fontWeight: "700" },
 });
