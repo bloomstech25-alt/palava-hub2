@@ -256,7 +256,9 @@ export default function ChatScreen() {
       });
     } catch { /* Firestore unavailable — call still opens locally */ }
 
-    // Request a Daily.co room from the API and store its URL on the call doc
+    // Request a Daily.co room from the API and store its URL (or the
+    // failure reason) on the call doc so the modal can show the user
+    // exactly what's wrong instead of spinning forever.
     try {
       const apiBase = process.env.EXPO_PUBLIC_DOMAIN
         ? `https://${process.env.EXPO_PUBLIC_DOMAIN}`
@@ -271,8 +273,20 @@ export default function ChatScreen() {
         if (url) {
           try { await updateDoc(doc(db, "calls", callId), { roomUrl: url }); } catch { /* ignore */ }
         }
+      } else {
+        const body = await res.json().catch(() => ({} as { error?: string }));
+        const reason = body?.error === "calling_not_configured"
+          ? "Calling isn't set up yet. Ask the admin to add the Daily.co API key."
+          : "Could not start the call. Please try again in a moment.";
+        try { await updateDoc(doc(db, "calls", callId), { errorMessage: reason }); } catch { /* ignore */ }
       }
-    } catch { /* room creation failed; modal will show error state */ }
+    } catch {
+      try {
+        await updateDoc(doc(db, "calls", callId), {
+          errorMessage: "Network error starting the call. Check your connection.",
+        });
+      } catch { /* ignore */ }
+    }
   }, [user, userId, name]);
 
   const doSend = useCallback(async (

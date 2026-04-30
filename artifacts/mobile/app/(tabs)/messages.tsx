@@ -22,6 +22,17 @@ import { useAuth } from "@/context/AuthContext";
 import type { User } from "@/context/AuthContext";
 import { formatRelativeTime } from "@/utils/time";
 
+// Discriminated union so a single FlatList can render both conversation
+// rows (already-talking-to) and suggestion rows (new people you can
+// message). Using one list is what fixes the previous "screen freezes
+// when the new-conversation panel is open" bug — the old version
+// rendered up to 60 suggestion users in a non-scrollable <View> which
+// overflowed the screen and blocked the conversation list below.
+type Row =
+  | { kind: "header"; id: string; label: string }
+  | { kind: "conversation"; id: string; conv: Conversation }
+  | { kind: "suggestion"; id: string; user: User };
+
 export default function MessagesScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -33,16 +44,16 @@ export default function MessagesScreen() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return conversations;
-    const q = query.toLowerCase();
-    return conversations.filter(
-      (c) => c.name.toLowerCase().includes(q) || c.username.toLowerCase().includes(q) || c.school.toLowerCase().includes(q)
-    );
-  }, [conversations, query]);
+  const trimmedQuery = query.trim().toLowerCase();
+  const isSearching = trimmedQuery.length > 0;
 
+  // Lazy-fetch the global user list the first time the user either taps
+  // "new message" OR types in the search bar. We pre-load on search so
+  // results across all students appear immediately as they type, not
+  // only after they tap the edit button.
   useEffect(() => {
-    if (!showNew || allUsers.length > 0) return;
+    if (allUsers.length > 0) return;
+    if (!showNew && !isSearching) return;
     setUsersLoading(true);
     const q = firestoreQuery(collection(db, "users"), orderBy("name", "asc"), limit(60));
     getDocs(q)
@@ -54,11 +65,46 @@ export default function MessagesScreen() {
       })
       .catch(() => {})
       .finally(() => setUsersLoading(false));
-  }, [showNew]);
+  }, [showNew, isSearching, allUsers.length, user?.id]);
 
-  const suggestions = useMemo(() => {
-    return allUsers.filter((u) => !conversations.find((c) => c.userId === u.id));
-  }, [allUsers, conversations]);
+  const filteredConversations = useMemo(() => {
+    if (!isSearching) return conversations;
+    return conversations.filter(
+      (c) =>
+        c.name.toLowerCase().includes(trimmedQuery) ||
+        c.username.toLowerCase().includes(trimmedQuery) ||
+        c.school.toLowerCase().includes(trimmedQuery),
+    );
+  }, [conversations, isSearching, trimmedQuery]);
+
+  const filteredSuggestions = useMemo(() => {
+    const base = allUsers.filter((u) => !conversations.find((c) => c.userId === u.id));
+    if (!isSearching) return base;
+    return base.filter(
+      (u) =>
+        u.name?.toLowerCase().includes(trimmedQuery) ||
+        u.username?.toLowerCase().includes(trimmedQuery) ||
+        u.school?.name?.toLowerCase().includes(trimmedQuery),
+    );
+  }, [allUsers, conversations, isSearching, trimmedQuery]);
+
+  // Build a single, fully scrollable list:
+  //   [conversations] -> "START A CONVERSATION" header -> [suggestions]
+  // Suggestions show whenever `showNew` is on OR the user is searching.
+  const rows = useMemo<Row[]>(() => {
+    const out: Row[] = [];
+    for (const conv of filteredConversations) {
+      out.push({ kind: "conversation", id: `c:${conv.userId}`, conv });
+    }
+    const showSuggestions = showNew || isSearching;
+    if (showSuggestions) {
+      out.push({ kind: "header", id: "h:suggestions", label: "START A CONVERSATION" });
+      for (const u of filteredSuggestions) {
+        out.push({ kind: "suggestion", id: `s:${u.id}`, user: u });
+      }
+    }
+    return out;
+  }, [filteredConversations, filteredSuggestions, showNew, isSearching]);
 
   function openChat(c: Conversation) {
     router.push({
@@ -75,8 +121,92 @@ export default function MessagesScreen() {
 
   function startNewChat(userId: string, name: string, username: string, avatar: string, school: string) {
     setShowNew(false);
+    setQuery("");
     router.push({ pathname: "/chat/[userId]", params: { userId, name, username, avatar, school } });
   }
+
+  const renderRow = ({ item }: { item: Row }) => {
+    if (item.kind === "header") {
+      return (
+        <View style={styles.suggestionsHeader}>
+          <Text style={[styles.suggestionsHeaderText, { color: colors.mutedForeground }]}>{item.label}</Text>
+          {usersLoading && <ActivityIndicator size="small" color={colors.primary} />}
+        </View>
+      );
+    }
+    if (item.kind === "conversation") {
+      const conv = item.conv;
+      return (
+        <TouchableOpacity
+          style={[styles.convRow, { borderBottomColor: colors.border }]}
+          onPress={() => openChat(conv)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.avatarWrap}>
+            <Image source={{ uri: conv.avatar }} style={styles.convAvatar} />
+            <View style={[styles.onlineDot, { backgroundColor: "#22c55e", borderColor: colors.background }]} />
+          </View>
+          <View style={styles.convInfo}>
+            <View style={styles.convTopRow}>
+              <Text style={[styles.convName, { color: colors.foreground }, conv.unread > 0 && styles.convNameBold]}>
+                {conv.name}
+              </Text>
+              <Text style={[styles.convTime, { color: colors.mutedForeground }]}>
+                {formatRelativeTime(conv.lastAt)}
+              </Text>
+            </View>
+            <View style={styles.convBottomRow}>
+              <Text
+                style={[styles.convLast, { color: conv.unread > 0 ? colors.foreground : colors.mutedForeground }]}
+                numberOfLines={1}
+              >
+                {conv.lastMessage}
+              </Text>
+              {conv.unread > 0 && (
+                <View style={[styles.unreadDot, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.unreadDotText}>{conv.unread}</Text>
+                </View>
+              )}
+            </View>
+            <Text style={[styles.convSchool, { color: colors.mutedForeground }]}>{conv.school}</Text>
+          </View>
+        </TouchableOpacity>
+      );
+    }
+    // suggestion
+    const u = item.user;
+    return (
+      <TouchableOpacity
+        style={[styles.suggestionRow, { borderBottomColor: colors.border }]}
+        activeOpacity={0.8}
+        onPress={() => startNewChat(u.id, u.name, u.username, u.avatar, u.school?.name ?? "")}
+      >
+        {u.avatar ? (
+          <Image source={{ uri: u.avatar }} style={styles.suggestionAvatar} />
+        ) : (
+          <View style={[styles.suggestionAvatar, styles.suggestionAvatarFallback, { backgroundColor: colors.primary }]}>
+            <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>{u.name?.[0]?.toUpperCase() ?? "?"}</Text>
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.suggestionName, { color: colors.foreground }]}>{u.name}</Text>
+          <Text style={[styles.suggestionMeta, { color: colors.mutedForeground }]}>
+            @{u.username}{u.school?.name ? ` · ${u.school.name}` : ""}
+          </Text>
+        </View>
+        <View style={[styles.messageIcon, { backgroundColor: colors.accent }]}>
+          <Feather name="message-circle" size={16} color={colors.primary} />
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const showSuggestionsSection = showNew || isSearching;
+  const noConversations = filteredConversations.length === 0;
+  const noSuggestions = filteredSuggestions.length === 0;
+  const fullyEmpty =
+    noConversations &&
+    (!showSuggestionsSection || (noSuggestions && !usersLoading));
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -103,7 +233,7 @@ export default function MessagesScreen() {
           <Feather name="search" size={15} color={colors.mutedForeground} />
           <TextInput
             style={[styles.searchInput, { color: colors.foreground }]}
-            placeholder="Search messages..."
+            placeholder="Search messages or students..."
             placeholderTextColor={colors.mutedForeground}
             value={query}
             onChangeText={setQuery}
@@ -116,98 +246,29 @@ export default function MessagesScreen() {
         </View>
       </View>
 
-      {/* New message panel */}
-      {showNew && (
-        <View style={[styles.newPanel, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-          <Text style={[styles.newPanelTitle, { color: colors.mutedForeground }]}>START A CONVERSATION</Text>
-          {usersLoading ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator color={colors.primary} size="small" />
-              <Text style={[styles.suggestionMeta, { color: colors.mutedForeground }]}>Finding students...</Text>
-            </View>
-          ) : suggestions.length === 0 ? (
-            <Text style={[styles.suggestionMeta, { color: colors.mutedForeground, paddingHorizontal: 16, paddingVertical: 10 }]}>
-              No other students to message yet.
-            </Text>
-          ) : (
-            suggestions.map((u) => (
-              <TouchableOpacity
-                key={u.id}
-                style={styles.suggestionRow}
-                activeOpacity={0.8}
-                onPress={() => startNewChat(u.id, u.name, u.username, u.avatar, u.school?.name ?? "")}
-              >
-                {u.avatar ? (
-                  <Image source={{ uri: u.avatar }} style={styles.suggestionAvatar} />
-                ) : (
-                  <View style={[styles.suggestionAvatar, styles.suggestionAvatarFallback, { backgroundColor: colors.primary }]}>
-                    <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>{u.name?.[0]?.toUpperCase() ?? "?"}</Text>
-                  </View>
-                )}
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.suggestionName, { color: colors.foreground }]}>{u.name}</Text>
-                  <Text style={[styles.suggestionMeta, { color: colors.mutedForeground }]}>@{u.username} · {u.school?.name ?? ""}</Text>
-                </View>
-                <View style={[styles.messageIcon, { backgroundColor: colors.accent }]}>
-                  <Feather name="message-circle" size={16} color={colors.primary} />
-                </View>
-              </TouchableOpacity>
-            ))
-          )}
-        </View>
-      )}
-
       <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.userId}
+        data={rows}
+        keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.convRow, { borderBottomColor: colors.border }]}
-            onPress={() => openChat(item)}
-            activeOpacity={0.8}
-          >
-            <View style={styles.avatarWrap}>
-              <Image source={{ uri: item.avatar }} style={styles.convAvatar} />
-              <View style={[styles.onlineDot, { backgroundColor: "#22c55e", borderColor: colors.background }]} />
-            </View>
-            <View style={styles.convInfo}>
-              <View style={styles.convTopRow}>
-                <Text style={[styles.convName, { color: colors.foreground }, item.unread > 0 && styles.convNameBold]}>
-                  {item.name}
-                </Text>
-                <Text style={[styles.convTime, { color: colors.mutedForeground }]}>
-                  {formatRelativeTime(item.lastAt)}
-                </Text>
-              </View>
-              <View style={styles.convBottomRow}>
-                <Text
-                  style={[styles.convLast, { color: item.unread > 0 ? colors.foreground : colors.mutedForeground }]}
-                  numberOfLines={1}
-                >
-                  {item.lastMessage}
-                </Text>
-                {item.unread > 0 && (
-                  <View style={[styles.unreadDot, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.unreadDotText}>{item.unread}</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={[styles.convSchool, { color: colors.mutedForeground }]}>{item.school}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        keyboardShouldPersistTaps="handled"
+        renderItem={renderRow}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <View style={[styles.emptyIcon, { backgroundColor: colors.accent }]}>
-              <Feather name="message-circle" size={36} color={colors.primary} />
+          fullyEmpty ? (
+            <View style={styles.empty}>
+              <View style={[styles.emptyIcon, { backgroundColor: colors.accent }]}>
+                <Feather name={isSearching ? "search" : "message-circle"} size={36} color={colors.primary} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
+                {isSearching ? "No matches" : "No messages yet"}
+              </Text>
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+                {isSearching
+                  ? "Try a different name, username, or school."
+                  : "Tap the edit icon above to start a conversation with a fellow student."}
+              </Text>
             </View>
-            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No messages yet</Text>
-            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-              Tap the edit icon above to start a conversation with a fellow student.
-            </Text>
-          </View>
+          ) : null
         }
       />
     </View>
@@ -255,22 +316,25 @@ const styles = StyleSheet.create({
     height: 42,
   },
   searchInput: { flex: 1, fontSize: 15 },
-  newPanel: {
+  suggestionsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    gap: 4,
+    paddingTop: 18,
+    paddingBottom: 8,
   },
-  newPanelTitle: { fontSize: 11, fontWeight: "700", letterSpacing: 1, marginBottom: 8 },
+  suggestionsHeaderText: { fontSize: 11, fontWeight: "700", letterSpacing: 1 },
   suggestionRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     gap: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   suggestionAvatar: { width: 42, height: 42, borderRadius: 21 },
   suggestionAvatarFallback: { alignItems: "center", justifyContent: "center" },
-  loadingRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 },
   suggestionName: { fontSize: 14, fontWeight: "600" },
   suggestionMeta: { fontSize: 12, marginTop: 1 },
   messageIcon: {

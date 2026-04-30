@@ -63,6 +63,9 @@ export default function VoiceCallModal({ visible, callId, name, avatar, school, 
           if (data.roomUrl && !roomUrl) {
             setRoomUrl(String(data.roomUrl));
           }
+          if (data.errorMessage) {
+            setError(String(data.errorMessage));
+          }
           if (data.status === "ended" || data.status === "declined") {
             cleanup();
             setTimeout(onEnd, 800);
@@ -123,10 +126,19 @@ export default function VoiceCallModal({ visible, callId, name, avatar, school, 
             <Image source={{ uri: avatar }} style={styles.avatar} />
             <Text style={styles.name}>{name}</Text>
             <Text style={styles.school}>{school}</Text>
-            <View style={styles.connectingRow}>
-              <ActivityIndicator color="#fff" />
-              <Text style={styles.connecting}>{error || "Connecting voice call..."}</Text>
-            </View>
+            {error ? (
+              <>
+                <Text style={styles.errorText}>{error}</Text>
+                <TouchableOpacity style={styles.errorBtn} onPress={handleEnd} activeOpacity={0.85}>
+                  <Text style={styles.errorBtnText}>Close</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View style={styles.connectingRow}>
+                <ActivityIndicator color="#fff" />
+                <Text style={styles.connecting}>Connecting voice call...</Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -151,6 +163,9 @@ const styles = StyleSheet.create({
   school: { color: "rgba(255,255,255,0.7)", fontSize: 14 },
   connectingRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 24 },
   connecting: { color: "rgba(255,255,255,0.85)", fontSize: 14 },
+  errorText: { color: "#fca5a5", fontSize: 14, textAlign: "center", marginTop: 24, lineHeight: 20 },
+  errorBtn: { marginTop: 18, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.12)" },
+  errorBtnText: { color: "#fff", fontSize: 15, fontWeight: "600" },
   endBar: { position: "absolute", bottom: 0, left: 0, right: 0, alignItems: "center", paddingTop: 12 },
   endBtn: { width: 68, height: 68, borderRadius: 34, backgroundColor: "#ef4444", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
 });
