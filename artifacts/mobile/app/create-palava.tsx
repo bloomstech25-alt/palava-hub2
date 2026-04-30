@@ -19,7 +19,6 @@ import {
   collection,
   addDoc,
   serverTimestamp,
-  Timestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
@@ -79,9 +78,20 @@ export default function CreatePalavaScreen() {
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace("/(tabs)/palava-room");
-    } catch {
+    } catch (err: any) {
+      // Surface the real reason so a permission-denied / rule mismatch
+      // doesn't get hidden behind a generic "check your connection" toast.
+      const code = err?.code as string | undefined;
+      const message = err?.message as string | undefined;
+      console.warn("[create-palava] post failed", { code, message, err });
       setIsPosting(false);
-      Alert.alert("Error", "Could not post. Please check your connection and try again.");
+      const friendly =
+        code === "permission-denied"
+          ? "You don't have permission to post right now. Make sure you're signed in."
+          : code === "unavailable"
+          ? "Couldn't reach the server. Check your connection and try again."
+          : message ?? "Could not post. Please try again.";
+      Alert.alert("Could not post", friendly);
     }
   }
 

@@ -154,10 +154,20 @@ service cloud.firestore {
       allow update, delete: if (isSignedIn() && resource.data.ownerId == request.auth.uid) || isAdmin();
     }
 
+    // Palava Room posts are anonymous — we deliberately do NOT store an
+    // `authorId` so the author cannot be linked back to the post. That means
+    // we can't gate create/update on ownership the way we do for the main
+    // feed; instead:
+    //   • create: any signed-in user (the post itself carries no identity)
+    //   • update: any signed-in user, but ONLY to the reaction fields (so
+    //     users can react / un-react without rewriting the post body)
+    //   • delete: admin only (no author to authorise self-delete against)
     match /palavaroomPosts/{id} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      allow update, delete: if (isSignedIn() && resource.data.authorId == request.auth.uid) || isAdmin();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions','wahalaBy','funnyBy','realTalkBy','spillBy']);
+      allow delete: if isAdmin();
     }
 
     match /supportRequests/{id} {

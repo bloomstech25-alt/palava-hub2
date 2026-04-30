@@ -140,7 +140,16 @@ export default function PalavaRoomScreen() {
         [`reactions.${reactionKey}`]: increment(alreadyReacted ? -1 : 1),
         [byField]: alreadyReacted ? arrayRemove(user.id) : arrayUnion(user.id),
       });
-    } catch {}
+    } catch (err: any) {
+      // Don't show a toast for every tap, but at least log so we can
+      // diagnose the rare permission-denied / rule mismatch case.
+      console.warn("[palava-room] reaction failed", {
+        code: err?.code,
+        message: err?.message,
+        postId,
+        reactionKey,
+      });
+    }
   }
 
   function renderPost({ item }: { item: PalavaPost }) {
