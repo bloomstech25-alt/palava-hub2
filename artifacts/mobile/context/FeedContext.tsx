@@ -23,6 +23,7 @@ import { uploadUriToStorage } from "@/utils/uploadBlob";
 import type { School, User } from "./AuthContext";
 import { useAuth } from "./AuthContext";
 import { sendExpoPush, type PushPayload } from "@/utils/notifications";
+import { normalizeUser } from "@/utils/normalizeUser";
 
 /**
  * Send a push to a user honoring their per-channel opt-in toggle. Reads the
@@ -256,10 +257,14 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         const data = d.data();
         const likedBy: string[] = data.likedBy ?? [];
         const repostedBy: string[] = data.repostedBy ?? [];
+        const authorId = data.authorId ?? data.author?.id ?? "";
         return {
           ...data,
           id: d.id,
-          authorId: data.authorId ?? data.author?.id ?? "",
+          author: normalizeUser(data.author, authorId),
+          authorId,
+          content: typeof data.content === "string" ? data.content : "",
+          tags: Array.isArray(data.tags) ? data.tags.filter((t: unknown): t is string => typeof t === "string") : [],
           likedBy,
           repostedBy,
           isLiked: currentUserId ? likedBy.includes(currentUserId) : false,
@@ -502,8 +507,8 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         const data = d.data();
         return {
           id: d.id,
-          author: data.author as User,
-          content: data.content ?? "",
+          author: normalizeUser(data.author),
+          content: typeof data.content === "string" ? data.content : "",
           likes: Array.isArray(data.likedBy) ? data.likedBy.length : (data.likes ?? 0),
           isLiked: false,
           createdAt: tsToString(data.createdAt),

@@ -20,6 +20,7 @@ import { useColors } from "@/hooks/useColors";
 import { useMessaging, type Conversation } from "@/context/MessagingContext";
 import { useAuth } from "@/context/AuthContext";
 import type { User } from "@/context/AuthContext";
+import { normalizeUser } from "@/utils/normalizeUser";
 import { formatRelativeTime } from "@/utils/time";
 
 // Discriminated union so a single FlatList can render both conversation
@@ -59,7 +60,7 @@ export default function MessagesScreen() {
     getDocs(q)
       .then((snap) => {
         const fetched = snap.docs
-          .map((d) => ({ ...(d.data() as User), id: d.id }))
+          .map((d) => normalizeUser(d.data(), d.id))
           .filter((u) => u.id !== user?.id);
         setAllUsers(fetched);
       })

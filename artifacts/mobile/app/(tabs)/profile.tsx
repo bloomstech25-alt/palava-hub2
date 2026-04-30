@@ -22,6 +22,7 @@ import { PostCard } from "@/components/PostCard";
 import { PalavaStar } from "@/components/PalavaStar";
 import { useAuth } from "@/context/AuthContext";
 import type { User } from "@/context/AuthContext";
+import { normalizeUser } from "@/utils/normalizeUser";
 import { useFeed, type Post } from "@/context/FeedContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -45,7 +46,7 @@ export default function ProfileScreen() {
     const unsub = onSnapshot(
       doc(db, "users", params.userId),
       (snap) => {
-        if (snap.exists()) setOtherUser({ ...(snap.data() as User), id: snap.id });
+        if (snap.exists()) setOtherUser(normalizeUser(snap.data(), snap.id));
         else setOtherUser(null);
         setOtherLoading(false);
       },

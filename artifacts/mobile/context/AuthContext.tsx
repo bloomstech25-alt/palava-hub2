@@ -28,6 +28,7 @@ import { auth, db, storage } from "@/lib/firebase";
 import { ref } from "firebase/storage";
 import { uploadUriToStorage } from "@/utils/uploadBlob";
 import { registerForPushNotificationsAsync, sendExpoPush } from "@/utils/notifications";
+import { normalizeUser } from "@/utils/normalizeUser";
 
 export interface School {
   id: string;
@@ -146,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // eslint-disable-next-line no-console
             console.log("[auth] user snapshot →", snap.exists() ? "exists" : "missing");
             if (snap.exists()) {
-              setUser({ ...(snap.data() as User), id: snap.id });
+              setUser(normalizeUser(snap.data(), snap.id));
               setIsLoading(false);
             } else {
               // Profile is missing on a signed-in account. This is the
@@ -166,7 +167,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
               const snap = await getDoc(doc(db, "users", firebaseUser.uid));
               if (snap.exists()) {
-                setUser({ ...(snap.data() as User), id: snap.id });
+                setUser(normalizeUser(snap.data(), snap.id));
               }
             } catch (fallbackErr) {
               // eslint-disable-next-line no-console

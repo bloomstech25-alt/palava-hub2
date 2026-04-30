@@ -101,15 +101,25 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
     const unsub = onSnapshot(q, (snap) => {
       const convs: Conversation[] = snap.docs.map((d) => {
         const data = d.data();
+        // Some older docs may have stored `school` as the full School object
+        // instead of a string. Coerce defensively so `.toLowerCase()` etc.
+        // never blow up at render/filter time.
+        const rawSchool = data.school;
+        const schoolStr =
+          typeof rawSchool === "string"
+            ? rawSchool
+            : (rawSchool && typeof rawSchool === "object" && typeof rawSchool.name === "string")
+              ? rawSchool.name
+              : "";
         return {
           userId: d.id,
-          name: data.name ?? "",
-          username: data.username ?? "",
-          avatar: data.avatar ?? "",
-          school: data.school ?? "",
-          lastMessage: data.lastMessage ?? "",
+          name: typeof data.name === "string" ? data.name : "",
+          username: typeof data.username === "string" ? data.username : "",
+          avatar: typeof data.avatar === "string" ? data.avatar : "",
+          school: schoolStr,
+          lastMessage: typeof data.lastMessage === "string" ? data.lastMessage : "",
           lastAt: tsToString(data.lastAt),
-          unread: data.unread ?? 0,
+          unread: typeof data.unread === "number" ? data.unread : 0,
         };
       });
       setAllConversations(convs);

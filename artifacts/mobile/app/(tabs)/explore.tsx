@@ -26,6 +26,7 @@ import { PostCard } from "@/components/PostCard";
 import { useFeed, type Post, SCHOOLS_LIST } from "@/context/FeedContext";
 import { useAuth } from "@/context/AuthContext";
 import type { School, User } from "@/context/AuthContext";
+import { normalizeUser } from "@/utils/normalizeUser";
 import { useColors } from "@/hooks/useColors";
 import { collectPostTags } from "@/utils/tags";
 
@@ -78,7 +79,7 @@ export default function ExploreScreen() {
       .then((snap) => {
         if (cancelled) return;
         const fetched: User[] = snap.docs
-          .map((d) => ({ ...(d.data() as User), id: d.id }))
+          .map((d) => normalizeUser(d.data(), d.id))
           .filter((u) => u.id !== user?.id)
           .sort((a, b) => (b.followers ?? 0) - (a.followers ?? 0))
           .slice(0, 80);

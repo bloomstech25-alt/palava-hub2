@@ -259,31 +259,55 @@ export default function ChatScreen() {
     // Request a Daily.co room from the API and store its URL (or the
     // failure reason) on the call doc so the modal can show the user
     // exactly what's wrong instead of spinning forever.
+    //
+    // React Native's fetch does NOT accept relative URLs the way a browser
+    // does — it needs a fully-qualified https://. So we MUST resolve a
+    // domain. We try the EXPO_PUBLIC_DOMAIN that the dev script bakes into
+    // the bundle, and only as a last resort surface a clear error.
+    const domain = process.env.EXPO_PUBLIC_DOMAIN;
+    if (!domain) {
+      // eslint-disable-next-line no-console
+      console.warn("[call] EXPO_PUBLIC_DOMAIN missing — bundle was built without API base URL");
+      try {
+        await updateDoc(doc(db, "calls", callId), {
+          errorMessage: "Calling isn't configured for this build. Please reload the app.",
+        });
+      } catch { /* ignore */ }
+      return;
+    }
+    const callsUrl = `https://${domain}/api/calls/room`;
+    // eslint-disable-next-line no-console
+    console.log("[call] requesting Daily room from", callsUrl);
     try {
-      const apiBase = process.env.EXPO_PUBLIC_DOMAIN
-        ? `https://${process.env.EXPO_PUBLIC_DOMAIN}`
-        : "";
-      const res = await fetch(`${apiBase}/api/calls/room`, {
+      const res = await fetch(callsUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ callId, type }),
       });
       if (res.ok) {
         const { url } = await res.json();
+        // eslint-disable-next-line no-console
+        console.log("[call] got room url", url);
         if (url) {
           try { await updateDoc(doc(db, "calls", callId), { roomUrl: url }); } catch { /* ignore */ }
+        } else {
+          try { await updateDoc(doc(db, "calls", callId), { errorMessage: "Server didn't return a call link." }); } catch { /* ignore */ }
         }
       } else {
         const body = await res.json().catch(() => ({} as { error?: string }));
+        // eslint-disable-next-line no-console
+        console.warn("[call] server error", res.status, body);
         const reason = body?.error === "calling_not_configured"
           ? "Calling isn't set up yet. Ask the admin to add the Daily.co API key."
-          : "Could not start the call. Please try again in a moment.";
+          : `Could not start the call (${res.status}). Please try again in a moment.`;
         try { await updateDoc(doc(db, "calls", callId), { errorMessage: reason }); } catch { /* ignore */ }
       }
-    } catch {
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("[call] fetch threw", (e as Error)?.message);
       try {
         await updateDoc(doc(db, "calls", callId), {
-          errorMessage: "Network error starting the call. Check your connection.",
+          errorMessage: `Network error starting the call: ${(e as Error)?.message ?? "unknown"}`,
         });
       } catch { /* ignore */ }
     }
