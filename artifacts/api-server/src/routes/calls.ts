@@ -65,8 +65,13 @@ router.post("/calls/room", async (req, res) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      // 409 means room already exists — fetch it
-      if (response.status === 409) {
+      // Daily.co returns 409, OR 400 with body containing "already exists",
+      // when a room with this name was created previously. In both cases the
+      // existing room is still usable for this call, so fetch and reuse it.
+      const alreadyExists =
+        response.status === 409 ||
+        (response.status === 400 && /already exists/i.test(errText));
+      if (alreadyExists) {
         const existing = await fetch(`${DAILY_API}/rooms/${safeName}`, {
           headers: { Authorization: `Bearer ${apiKey}` },
         });
@@ -74,6 +79,10 @@ router.post("/calls/room", async (req, res) => {
           const room = (await existing.json()) as DailyRoomResponse;
           return res.json({ url: room.url, name: room.name });
         }
+        req.log.error(
+          { status: existing.status, name: safeName },
+          "daily room exists but fetch failed",
+        );
       }
       req.log.error({ status: response.status, errText }, "daily room create failed");
       return res.status(502).json({ error: "room_create_failed" });

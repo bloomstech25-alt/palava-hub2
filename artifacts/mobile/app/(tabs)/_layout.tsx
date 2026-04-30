@@ -123,6 +123,12 @@ export default function TabLayout() {
               <Feather name="user" size={22} color={color} />
             ),
         }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.replace("/(tabs)/profile");
+          },
+        }}
       />
     </Tabs>
   );
