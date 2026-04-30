@@ -33,6 +33,25 @@ service cloud.firestore {
             || request.auth.uid == convParticipants(cid)[1]);
     }
 
+    // Mutual follow: both users must list each other in their `followingIds`
+    // before a brand-new conversation can begin. Mirrors the in-app gate in
+    // chat/[userId].tsx so a malicious client can't bypass it via the SDK.
+    function isMutualFollow(otherUid) {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && exists(/databases/$(database)/documents/users/$(otherUid))
+        && otherUid in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('followingIds', [])
+        && request.auth.uid in get(/databases/$(database)/documents/users/$(otherUid)).data.get('followingIds', []);
+    }
+
+    // Grandfathering: any conversation that was created before this rule
+    // shipped already has at least one of the two `users/{uid}/conversations`
+    // root docs. We let those continue to work even if the two users no
+    // longer follow each other.
+    function hasExistingConversation(otherUid) {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)/conversations/$(otherUid))
+        || exists(/databases/$(database)/documents/users/$(otherUid)/conversations/$(request.auth.uid));
+    }
+
     function isValidReportReason(r) {
       return r in ['spam','harassment','hate_speech','violence','nudity','self_harm','misinformation','other'];
     }
@@ -67,7 +86,11 @@ service cloud.firestore {
         && request.resource.data.fromId == request.auth.uid
         && request.resource.data.toId in convParticipants(cid)
         && request.resource.data.toId != request.auth.uid
-        && !isBlockedBy(request.resource.data.toId, request.auth.uid);
+        && !isBlockedBy(request.resource.data.toId, request.auth.uid)
+        && (
+          hasExistingConversation(request.resource.data.toId)
+          || isMutualFollow(request.resource.data.toId)
+        );
       allow update: if isConvParticipant(cid)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
         && request.resource.data.read == true;
