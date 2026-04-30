@@ -169,9 +169,9 @@ export default function ExploreScreen() {
     const q = searchQuery.toLowerCase();
     return matches.filter(
       (p) =>
-        p.content.toLowerCase().includes(q) ||
-        p.tags.some((t) => t.toLowerCase().includes(q)) ||
-        p.author.name.toLowerCase().includes(q),
+        (p.content ?? "").toLowerCase().includes(q) ||
+        (p.tags ?? []).some((t) => t.toLowerCase().includes(q)) ||
+        (p.author?.name ?? "").toLowerCase().includes(q),
     );
   }, [posts, searchQuery]);
 

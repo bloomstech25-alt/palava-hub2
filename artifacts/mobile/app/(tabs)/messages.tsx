@@ -71,9 +71,9 @@ export default function MessagesScreen() {
     if (!isSearching) return conversations;
     return conversations.filter(
       (c) =>
-        c.name.toLowerCase().includes(trimmedQuery) ||
-        c.username.toLowerCase().includes(trimmedQuery) ||
-        c.school.toLowerCase().includes(trimmedQuery),
+        (c.name ?? "").toLowerCase().includes(trimmedQuery) ||
+        (c.username ?? "").toLowerCase().includes(trimmedQuery) ||
+        (c.school ?? "").toLowerCase().includes(trimmedQuery),
     );
   }, [conversations, isSearching, trimmedQuery]);
 

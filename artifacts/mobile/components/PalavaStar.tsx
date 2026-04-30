@@ -22,9 +22,9 @@ export function PalavaStar({ size = 18 }: PalavaStarProps) {
           d="M12 3.2l1.55 1.3 1.98-.36.71 1.88 1.88.71-.36 1.98L19.06 10l-1.3 1.55.36 1.98-1.88.71-.71 1.88-1.98-.36L12 17.06l-1.55-1.3-1.98.36-.71-1.88-1.88-.71.36-1.98L4.94 10l1.3-1.55-.36-1.98 1.88-.71.71-1.88 1.98.36z"
           fill="#F1C232"
         />
-        {/* Five-pointed star (Liberia's lone star) in white */}
+        {/* Five-pointed star (Liberia's lone star) in white, centered on (12,10) */}
         <Path
-          d="M12 6.5l1.4 4.3h4.5l-3.65 2.65 1.4 4.3L12 15.1l-3.65 2.65 1.4-4.3L6.1 10.8h4.5z"
+          d="M12 5.5L13 8.6L16.3 8.6L13.6 10.5L14.6 13.6L12 11.7L9.4 13.6L10.4 10.5L7.7 8.6L11 8.6Z"
           fill="#FFFFFF"
         />
       </Svg>
