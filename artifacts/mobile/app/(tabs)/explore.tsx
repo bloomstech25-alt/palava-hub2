@@ -151,7 +151,7 @@ export default function ExploreScreen() {
   const schoolTrendingPosts = useMemo(() => {
     if (!selectedSchool) return [];
     return [...posts]
-      .filter((p) => p.author.school.id === selectedSchool.id)
+      .filter((p) => p.author.school?.id === selectedSchool.id)
       .sort((a, b) => b.likes - a.likes);
   }, [selectedSchool, posts]);
 

@@ -203,7 +203,7 @@ export default function EditProfileScreen() {
                 <Feather name="book-open" size={14} color={colors.mutedForeground} />
                 <Text style={[styles.readonlyLabel, { color: colors.mutedForeground }]}>School</Text>
               </View>
-              <Text style={[styles.readonlyValue, { color: colors.foreground }]}>{user.school.name}</Text>
+              <Text style={[styles.readonlyValue, { color: colors.foreground }]}>{user.school?.name ?? "—"}</Text>
               <Text style={[styles.readonlyHint, { color: colors.mutedForeground }]}>School cannot be changed after registration.</Text>
             </View>
           </View>

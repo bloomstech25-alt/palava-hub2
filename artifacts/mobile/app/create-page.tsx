@@ -81,7 +81,7 @@ export default function CreatePageScreen() {
         logo: logoUri ?? null,
         ownerId: user.id,
         ownerName: user.name,
-        ownerSchool: user.school.name,
+        ownerSchool: user.school?.name ?? "",
         followers: 0,
         posts: 0,
         verified: false,

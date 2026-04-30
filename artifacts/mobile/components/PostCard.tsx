@@ -209,7 +209,7 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
                 {post.author.verificationStatus === "approved" && <PalavaStar size={15} />}
               </View>
               <Text style={[styles.authorMeta, { color: colors.mutedForeground }]}>
-                @{post.author.username} · {post.author.school.name}
+                @{post.author.username}{post.author.school?.name ? ` · ${post.author.school.name}` : ""}
               </Text>
             </View>
           </TouchableOpacity>

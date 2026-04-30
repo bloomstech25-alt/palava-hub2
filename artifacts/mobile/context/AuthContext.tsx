@@ -437,7 +437,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userName: user.name,
         userUsername: user.username,
         userAvatar: user.avatar,
-        userSchool: user.school.name,
+        userSchool: user.school?.name ?? "",
         followers: user.followers,
         appliedAt: serverTimestamp(),
         status: "pending",

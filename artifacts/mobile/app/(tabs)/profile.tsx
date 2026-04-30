@@ -162,7 +162,7 @@ export default function ProfileScreen() {
                           name: profileUser.name,
                           username: profileUser.username,
                           avatar: profileUser.avatar,
-                          school: profileUser.school.name,
+                          school: profileUser.school?.name ?? "",
                         }
                       })}
                     >
@@ -189,13 +189,17 @@ export default function ProfileScreen() {
               </View>
               <Text style={[styles.username, { color: colors.mutedForeground }]}>@{profileUser.username}</Text>
 
-              <View style={[styles.schoolBadge, { backgroundColor: colors.accent }]}>
-                <Feather name="book-open" size={13} color={colors.primary} />
-                <Text style={[styles.schoolText, { color: colors.primary }]}>{profileUser.school.name}</Text>
-                <Text style={[styles.schoolType, { color: colors.mutedForeground }]}>
-                  · {profileUser.school.type === "university" ? "University" : "High School"}
-                </Text>
-              </View>
+              {profileUser.school?.name ? (
+                <View style={[styles.schoolBadge, { backgroundColor: colors.accent }]}>
+                  <Feather name="book-open" size={13} color={colors.primary} />
+                  <Text style={[styles.schoolText, { color: colors.primary }]}>{profileUser.school.name}</Text>
+                  {profileUser.school.type ? (
+                    <Text style={[styles.schoolType, { color: colors.mutedForeground }]}>
+                      · {profileUser.school.type === "university" ? "University" : "High School"}
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
 
               {profileUser.bio ? (
                 <Text style={[styles.bio, { color: colors.foreground }]}>{profileUser.bio}</Text>
