@@ -8,7 +8,6 @@ import {
   FlatList,
   Image,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -28,13 +27,23 @@ import { useFeed, type Post, SCHOOLS_LIST } from "@/context/FeedContext";
 import { useAuth } from "@/context/AuthContext";
 import type { School, User } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { collectPostTags } from "@/utils/tags";
 
-const TRENDING_TAGS = [
-  "StudentLife", "STEM", "Liberia", "UL", "Cuttington", "CWA",
-  "Academics", "Research", "Campus", "Sports", "Culture",
+// Fallback "suggested" topics shown only when no posts contain hashtags yet
+// (e.g. fresh install / brand-new account). Once real activity exists, the
+// trends list is built entirely from real posts.
+const SUGGESTED_TOPICS = [
+  "StudentLife", "Liberia", "Campus", "Academics", "UL", "Cuttington",
 ];
 
 type Tab = "trending" | "jams" | "schools" | "people";
+
+interface TrendingTopic {
+  tag: string;
+  count: number;
+  posters: number;
+  isSuggested?: boolean;
+}
 
 // Same keyword set used by the standalone Campus Jams screen — keeps both
 // surfaces in sync so a post that shows up there also shows up in the
@@ -49,7 +58,7 @@ export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { user, followUser, unfollowUser } = useAuth();
-  const { trendingPosts, posts, toggleLike, toggleFollow, deletePost } = useFeed();
+  const { posts, toggleLike, toggleFollow, deletePost } = useFeed();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("trending");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
@@ -88,17 +97,39 @@ export default function ExploreScreen() {
 
   const followingIds = user?.followingIds ?? [];
 
-  const filteredPosts = useMemo(() => {
-    if (!searchQuery.trim()) return trendingPosts;
+  // Build trending topics from real posts. Twitter-style: aggregate hashtags
+  // (from the explicit `tags` array AND any `#word` parsed from post content)
+  // via the shared `collectPostTags` helper — which dedupes by lowercase key
+  // PER POST so the same `#foo` in both `tags` and `content` only counts
+  // once. Falls back to suggested topics when there's literally nothing to
+  // trend on.
+  const trendingTopics = useMemo<TrendingTopic[]>(() => {
+    const counts = new Map<string, { display: string; count: number; posters: Set<string> }>();
+    for (const p of posts) {
+      const tagsForPost = collectPostTags(p);
+      for (const [key, display] of tagsForPost) {
+        const existing = counts.get(key) ?? { display, count: 0, posters: new Set<string>() };
+        existing.count += 1;
+        if (p.authorId) existing.posters.add(p.authorId);
+        counts.set(key, existing);
+      }
+    }
+
+    const real = Array.from(counts.values())
+      .map((t) => ({ tag: t.display, count: t.count, posters: t.posters.size }))
+      .sort((a, b) => b.count - a.count || b.posters - a.posters)
+      .slice(0, 25);
+
+    if (real.length > 0) return real;
+
+    return SUGGESTED_TOPICS.map((t) => ({ tag: t, count: 0, posters: 0, isSuggested: true }));
+  }, [posts]);
+
+  const filteredTopics = useMemo<TrendingTopic[]>(() => {
+    if (!searchQuery.trim()) return trendingTopics;
     const q = searchQuery.toLowerCase();
-    return posts.filter(
-      (p) =>
-        p.content.toLowerCase().includes(q) ||
-        p.tags.some((t) => t.toLowerCase().includes(q)) ||
-        p.author.name.toLowerCase().includes(q) ||
-        p.author.school.name.toLowerCase().includes(q)
-    );
-  }, [searchQuery, trendingPosts, posts]);
+    return trendingTopics.filter((t) => t.tag.toLowerCase().includes(q));
+  }, [searchQuery, trendingTopics]);
 
   const filteredSchools = useMemo(() => {
     if (!searchQuery.trim()) return SCHOOLS_LIST;
@@ -223,7 +254,15 @@ export default function ExploreScreen() {
           <Feather name="search" size={16} color={colors.mutedForeground} />
           <TextInput
             style={[styles.searchInput, { color: colors.foreground }]}
-            placeholder="Search posts, schools, people..."
+            placeholder={
+              activeTab === "trending"
+                ? "Search topics..."
+                : activeTab === "schools"
+                  ? "Search schools..."
+                  : activeTab === "people"
+                    ? "Search people..."
+                    : "Search jams..."
+            }
             placeholderTextColor={colors.mutedForeground}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -250,36 +289,57 @@ export default function ExploreScreen() {
         </View>
       </View>
 
-      {/* TRENDING TAB */}
+      {/* TRENDING TAB — Twitter-style topics list, not a feed */}
       {activeTab === "trending" && (
         <FlatList
-          data={filteredPosts}
-          keyExtractor={(item) => item.id}
-          renderItem={renderPost}
+          data={filteredTopics}
+          keyExtractor={(item) => item.tag.toLowerCase()}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
-            !searchQuery ? (
-              <View style={styles.tagsSection}>
-                <View style={styles.sectionLabelRow}>
-                  <Feather name="globe" size={12} color={colors.mutedForeground} />
-                  <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>TRENDING ACROSS ALL SCHOOLS</Text>
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tagsRow}>
-                  {TRENDING_TAGS.map((tag) => (
-                    <TouchableOpacity key={tag} style={[styles.tagChip, { backgroundColor: colors.accent }]} onPress={() => setSearchQuery(tag)} activeOpacity={0.7}>
-                      <Text style={[styles.tagChipText, { color: colors.primary }]}>#{tag}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            ) : null
+            <View style={styles.trendsHeader}>
+              <Text style={[styles.trendsTitle, { color: colors.foreground }]}>Trends for Liberia</Text>
+              <Text style={[styles.trendsSub, { color: colors.mutedForeground }]}>
+                {trendingTopics[0]?.isSuggested
+                  ? "Suggested topics — start posting with #hashtags to set the trends."
+                  : "What students are talking about right now."}
+              </Text>
+            </View>
           }
+          renderItem={({ item, index }) => {
+            const rank = index + 1;
+            const postWord = item.count === 1 ? "post" : "posts";
+            return (
+              <TouchableOpacity
+                style={[styles.trendRow, { borderBottomColor: colors.border }]}
+                activeOpacity={0.6}
+                onPress={() => router.push({ pathname: "/topic/[tag]", params: { tag: item.tag } })}
+              >
+                <View style={styles.trendLeft}>
+                  <Text style={[styles.trendRank, { color: colors.mutedForeground }]}>
+                    {rank} · {item.isSuggested ? "Suggested" : "Trending"}
+                  </Text>
+                  <Text style={[styles.trendTag, { color: colors.foreground }]} numberOfLines={1}>
+                    #{item.tag}
+                  </Text>
+                  {!item.isSuggested && (
+                    <Text style={[styles.trendCount, { color: colors.mutedForeground }]}>
+                      {item.count} {postWord}
+                      {item.posters > 1 ? ` · ${item.posters} students` : ""}
+                    </Text>
+                  )}
+                </View>
+                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            );
+          }}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Feather name="search" size={40} color={colors.mutedForeground} />
-              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No results found</Text>
-              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>Try a different search term</Text>
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No trends match</Text>
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+                Try a different search term.
+              </Text>
             </View>
           }
         />
@@ -519,15 +579,26 @@ const styles = StyleSheet.create({
   },
   tabText: { fontSize: 13, fontWeight: "600" },
   listContent: { paddingBottom: 100, paddingTop: 8 },
-  tagsSection: { paddingTop: 4, paddingBottom: 4 },
-  sectionLabelRow: {
+  trendsHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+    gap: 4,
+  },
+  trendsTitle: { fontSize: 20, fontWeight: "800", letterSpacing: -0.3 },
+  trendsSub: { fontSize: 13, lineHeight: 18 },
+  trendRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 16,
-    marginBottom: 10,
-    marginTop: 8,
+    gap: 10,
   },
+  trendLeft: { flex: 1, gap: 2 },
+  trendRank: { fontSize: 11, fontWeight: "600", letterSpacing: 0.3 },
+  trendTag: { fontSize: 16, fontWeight: "700", marginTop: 2 },
+  trendCount: { fontSize: 12, marginTop: 2 },
   sectionLabelRow2: {
     flexDirection: "row",
     alignItems: "center",
@@ -537,9 +608,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   sectionLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 1 },
-  tagsRow: { paddingHorizontal: 16, gap: 8 },
-  tagChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
-  tagChipText: { fontSize: 13, fontWeight: "600" },
   empty: { alignItems: "center", paddingTop: 60, gap: 10 },
   emptyTitle: { fontSize: 16, fontWeight: "700" },
   emptyText: { fontSize: 14, textAlign: "center", paddingHorizontal: 32 },

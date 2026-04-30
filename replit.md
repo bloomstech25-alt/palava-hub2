@@ -193,6 +193,7 @@ User-reported issues from store-readiness testing:
    - **Image compression**: every image upload now goes through `compressImageForUpload` in `utils/uploadBlob.ts` (resize to 1600px, JPEG q=0.75 via `expo-image-manipulator`). Wired into feed posts, chat images, signup avatars, and edit-profile avatars. A 4MB camera photo becomes ~200–400KB → uploads land 5–10× faster on mobile data.
    - **Optimistic close**: `create-post.tsx` and `create-palava.tsx` now snapshot the form values, immediately `router.back()`, and run the upload + Firestore writes in the background. The new post appears in the feed via `onSnapshot` when the write lands. Errors surface as an `Alert` (which works from any screen).
    - **Parallel writes**: `addPost` runs `addDoc(posts)` and `updateDoc(users)` (post-counter bump) via `Promise.all` instead of sequentially.
+6. **Trending tab was a duplicate feed** — Explore → Trending used to show the home-feed posts sorted by likes. Replaced with a Twitter-style **topics list**: aggregates hashtags from each post's `tags` array AND any `#word` parsed from `content` (deduped per post), sorts by frequency, shows rank · "Trending" · `#tag` · post count + unique-poster count. Falls back to a small suggested-topics list when no posts have hashtags yet. Tapping a row opens the new **`app/topic/[tag].tsx`** screen — a clean topic header with all posts that match that tag (registered as `topic/[tag]` Stack.Screen in `app/_layout.tsx`).
 
 ## Storage Rules (`storage.rules`)
 

@@ -52,6 +52,7 @@ function RootLayoutNav() {
         <Stack.Screen name="edit-profile" options={{ presentation: "modal" }} />
         <Stack.Screen name="create-page" options={{ presentation: "modal" }} />
         <Stack.Screen name="post/[id]" />
+        <Stack.Screen name="topic/[tag]" />
         <Stack.Screen name="chat/[userId]" />
         <Stack.Screen name="page/[pageId]" />
         <Stack.Screen name="settings" options={{ presentation: "modal" }} />
