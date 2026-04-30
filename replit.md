@@ -41,8 +41,11 @@ pnpm workspace monorepo using TypeScript. **Palava Hub** — a Liberian student 
 #### Features
 - Welcome / onboarding screen with dark Palava Hub branding + new logo image
 - Registration with school selection (24 Liberian universities + 52 high schools across all 15 counties — including St. Gregory Catholic, Buduburam Community, New Testament High, Stella Maris Polytechnic)
-- Email OR phone-number signup/login (Liberia +231); phone is converted to a synthetic email `lr{e164digits}@palavahub.lr` to back Firebase Auth, real phone stored on user profile
-- Fire-red Liberia-star verification badge (PalavaStar)
+- Email-only signup/login (phone signup removed; legacy users with `phone` on their profile are still supported)
+- Gold Liberia-star verification badge (PalavaStar) — `#D4A12A` / `#F1C232`
+- Light/Dark/Auto theme toggle via `ThemeContext` (persists in AsyncStorage); `<ThemedStatusBar />` wrapper keeps the StatusBar text legible across themes
+- Push notifications via Expo Push API (`expo-notifications` + `expo-device`) — sender's app sends pushes directly using recipient's `expoPushToken` stored on their Firestore user doc; per-channel opt-ins for messages/likes/follows/comments in Settings; no Cloud Function needed
+- Mutual-follow gate on direct messaging — both users must follow each other before a brand-new chat can start; existing threads grandfathered in (UI-only gate; for hard enforcement, the Firestore rules on `conversations/{cid}/messages` create should also check that both `request.auth.uid` and the recipient appear in each other's `followingIds`)
 - In-app Settings hub with Privacy Policy, Community Guidelines, Report & Help (writes to `supportRequests` Firestore collection), Logout, Delete Account
 - Delete Account permanently removes Auth user + all linked Firestore data (posts, ads, supportRequests, verificationRequests, profile) — Google Play / App Store policy compliant
 - Campus Jams section (filtered feed by `category == "campus_jams"` or `#CampusJams` tag); shortcut in home header

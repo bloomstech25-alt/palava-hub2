@@ -3,7 +3,7 @@ import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -247,7 +247,7 @@ export default function CreatePostScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <View style={[styles.header, { paddingTop: topPad, borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>

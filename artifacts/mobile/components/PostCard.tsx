@@ -263,16 +263,7 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
         )}
 
         {post.mediaUri && post.mediaType === "video" && (
-          <View style={[styles.videoThumb, { backgroundColor: "#000", borderColor: colors.border }]}>
-            <Video
-              source={{ uri: post.mediaUri }}
-              style={StyleSheet.absoluteFill}
-              useNativeControls
-              resizeMode={ResizeMode.CONTAIN}
-              isLooping={false}
-              shouldPlay={false}
-            />
-          </View>
+          <PostVideo uri={post.mediaUri} colors={colors} />
         )}
 
         {post.mediaUri && post.mediaType === "audio" && (
@@ -664,7 +655,7 @@ const styles = StyleSheet.create({
 });
 
 // ─── Inline audio player used by audio posts ─────────────────────────────────
-function AudioPlayerInline({
+export function AudioPlayerInline({
   uri,
   durationSec,
   colors,
@@ -751,6 +742,58 @@ function AudioPlayerInline({
     </View>
   );
 }
+
+// ─── Inline post video — preserves natural aspect ratio so vertical phone
+// videos don't get letterboxed inside a fixed landscape frame ────────────────
+export function PostVideo({
+  uri,
+  colors,
+}: {
+  uri: string;
+  colors: ReturnType<typeof useColors>;
+}) {
+  // Default to a friendly landscape until the video reports its real size,
+  // then snap to whatever the source actually is (e.g. 9/16 for portrait).
+  const [aspect, setAspect] = useState<number>(16 / 9);
+  return (
+    <View
+      style={[
+        videoStyles.wrap,
+        { aspectRatio: aspect, backgroundColor: colors.muted, borderColor: colors.border },
+      ]}
+    >
+      <Video
+        source={{ uri }}
+        style={StyleSheet.absoluteFill}
+        useNativeControls
+        resizeMode={ResizeMode.COVER}
+        isLooping={false}
+        shouldPlay={false}
+        onReadyForDisplay={(e: any) => {
+          const w = e?.naturalSize?.width;
+          const h = e?.naturalSize?.height;
+          if (typeof w === "number" && typeof h === "number" && w > 0 && h > 0) {
+            // Clamp extreme ratios so a 21:9 cinema clip still fits a phone
+            // screen, and a hyper-tall portrait doesn't blow out the feed.
+            const ratio = Math.min(Math.max(w / h, 0.5), 2.0);
+            setAspect(ratio);
+          }
+        }}
+      />
+    </View>
+  );
+}
+
+const videoStyles = StyleSheet.create({
+  wrap: {
+    width: "100%",
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: "hidden",
+    marginBottom: 12,
+    position: "relative",
+  },
+});
 
 const audioStyles = StyleSheet.create({
   wrap: {

@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -100,7 +100,7 @@ export default function CreatePageScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         {/* Header */}
         <View style={[styles.header, { paddingTop: topPad, borderBottomColor: colors.border }]}>

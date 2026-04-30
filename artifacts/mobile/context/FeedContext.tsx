@@ -22,6 +22,32 @@ import { ref, deleteObject } from "firebase/storage";
 import { uploadUriToStorage } from "@/utils/uploadBlob";
 import type { School, User } from "./AuthContext";
 import { useAuth } from "./AuthContext";
+import { sendExpoPush, type PushPayload } from "@/utils/notifications";
+
+/**
+ * Send a push to a user honoring their per-channel opt-in toggle. Reads the
+ * recipient's profile fresh so we always pick up the latest token. All
+ * failures are silent — a failed push must never break the underlying action.
+ */
+async function notifyUser(
+  toUserId: string,
+  channel: "messages" | "likes" | "follows" | "comments",
+  payload: Omit<PushPayload, "to">,
+): Promise<void> {
+  try {
+    const snap = await getDoc(doc(db, "users", toUserId));
+    if (!snap.exists()) return;
+    const data = snap.data() as {
+      expoPushToken?: string;
+      notifications?: Record<string, boolean | undefined>;
+    };
+    const allowed = data.notifications?.[channel] !== false;
+    if (!allowed || !data.expoPushToken) return;
+    await sendExpoPush({ to: data.expoPushToken, ...payload });
+  } catch {
+    // best effort
+  }
+}
 
 export interface Post {
   id: string;
@@ -349,6 +375,16 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         likes: increment(1),
         likedBy: arrayUnion(currentUserId),
       });
+      // Notify the post author when someone (other than themselves) likes
+      // their post. Read the recipient's profile to get the latest push
+      // token + opt-in toggle.
+      if (post.author?.id && post.author.id !== currentUserId) {
+        notifyUser(post.author.id, "likes", {
+          title: "New like",
+          body: "Someone liked your post",
+          data: { type: "like", postId },
+        });
+      }
     }
   }, [posts, currentUserId]);
 
@@ -423,6 +459,18 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         createdAt: serverTimestamp(),
       });
       await updateDoc(doc(db, "posts", postId), { comments: increment(1) });
+      // Notify the post author when someone else comments. We look up the
+      // post in the local list (the snapshot listener keeps it fresh) so we
+      // don't need an extra round-trip just to find authorId.
+      const parent = posts.find((p) => p.id === postId);
+      if (parent?.author?.id && parent.author.id !== author.id) {
+        const preview = content.length > 80 ? `${content.slice(0, 80)}…` : content;
+        notifyUser(parent.author.id, "comments", {
+          title: `${author.name || "Someone"} commented`,
+          body: preview,
+          data: { type: "comment", postId },
+        });
+      }
     } catch (err) {
       // Roll back the optimistic comment so the UI doesn't show a comment
       // that didn't actually persist. Surface the underlying reason in dev
@@ -434,7 +482,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         [postId]: (prev[postId] ?? []).filter((c) => c.id !== newComment.id),
       }));
     }
-  }, []);
+  }, [posts]);
 
   const subscribeToComments = useCallback((postId: string) => {
     const q = query(

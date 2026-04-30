@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React, { useState, useMemo, useEffect } from "react";
 import {
   ActivityIndicator,
@@ -80,7 +80,7 @@ export default function MessagesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
 
       <View style={[styles.header, { paddingTop: topPad, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
         <View style={styles.headerRow}>

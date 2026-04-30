@@ -17,6 +17,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { FeedProvider, useFeed } from "@/context/FeedContext";
 import { AdsProvider } from "@/context/AdsContext";
 import { MessagingProvider, useMessaging } from "@/context/MessagingContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -86,15 +87,17 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
-              <AuthProvider>
-                <FeedProvider>
-                  <AdsProvider>
-                    <MessagingProvider>
-                      <RootLayoutNav />
-                    </MessagingProvider>
-                  </AdsProvider>
-                </FeedProvider>
-              </AuthProvider>
+              <ThemeProvider>
+                <AuthProvider>
+                  <FeedProvider>
+                    <AdsProvider>
+                      <MessagingProvider>
+                        <RootLayoutNav />
+                      </MessagingProvider>
+                    </AdsProvider>
+                  </FeedProvider>
+                </AuthProvider>
+              </ThemeProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>

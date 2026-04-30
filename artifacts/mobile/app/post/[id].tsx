@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
@@ -19,6 +19,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useFeed, type Comment } from "@/context/FeedContext";
 import { useColors } from "@/hooks/useColors";
 import { formatRelativeTime } from "@/utils/time";
+import { AudioPlayerInline, PostVideo } from "@/components/PostCard";
+import { PalavaStar } from "@/components/PalavaStar";
 
 export default function PostDetailScreen() {
   const colors = useColors();
@@ -67,7 +69,7 @@ export default function PostDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <View style={[styles.header, { paddingTop: topPad, borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
@@ -87,7 +89,10 @@ export default function PostDetailScreen() {
                 <View style={styles.authorRow}>
                   <Image source={{ uri: post.author.avatar }} style={styles.avatar} />
                   <View style={styles.authorInfo}>
-                    <Text style={[styles.authorName, { color: colors.foreground }]}>{post.author.name}</Text>
+                    <View style={styles.authorNameRow}>
+                      <Text style={[styles.authorName, { color: colors.foreground }]}>{post.author.name}</Text>
+                      {post.author.verificationStatus === "approved" && <PalavaStar size={15} />}
+                    </View>
                     <Text style={[styles.authorMeta, { color: colors.mutedForeground }]}>
                       @{post.author.username} · {post.author.school.name}
                     </Text>
@@ -106,7 +111,33 @@ export default function PostDetailScreen() {
                   </TouchableOpacity>
                 </View>
 
-                <Text style={[styles.postText, { color: colors.foreground }]}>{post.content}</Text>
+                {post.content ? (
+                  <Text style={[styles.postText, { color: colors.foreground }]}>{post.content}</Text>
+                ) : null}
+
+                {post.mediaUri && post.mediaType === "image" && (
+                  <Image
+                    source={{ uri: post.mediaUri }}
+                    style={styles.detailImage}
+                    resizeMode="cover"
+                  />
+                )}
+
+                {post.mediaUri && post.mediaType === "video" && (
+                  <View style={{ marginTop: 14 }}>
+                    <PostVideo uri={post.mediaUri} colors={colors} />
+                  </View>
+                )}
+
+                {post.mediaUri && post.mediaType === "audio" && (
+                  <View style={{ marginTop: 14 }}>
+                    <AudioPlayerInline
+                      uri={post.mediaUri}
+                      durationSec={post.audioDurationSec}
+                      colors={colors}
+                    />
+                  </View>
+                )}
 
                 {post.tags.length > 0 && (
                   <View style={styles.tags}>
@@ -227,8 +258,10 @@ const styles = StyleSheet.create({
   authorRow: { flexDirection: "row", alignItems: "center", marginBottom: 14, gap: 12 },
   avatar: { width: 48, height: 48, borderRadius: 24 },
   authorInfo: { flex: 1 },
+  authorNameRow: { flexDirection: "row", alignItems: "center" },
   authorName: { fontSize: 15, fontWeight: "700" },
   authorMeta: { fontSize: 12, marginTop: 2 },
+  detailImage: { width: "100%", height: 260, borderRadius: 14, marginTop: 14 },
   followBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
   followText: { fontSize: 13, fontWeight: "600" },
   postText: { fontSize: 17, lineHeight: 26 },

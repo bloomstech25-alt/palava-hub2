@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React from "react";
 import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -28,7 +28,7 @@ export default function GuidelinesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
       <View style={[styles.header, { paddingTop: topPad, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
           <Feather name="arrow-left" size={22} color={colors.foreground} />

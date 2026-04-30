@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React, { useState } from "react";
 import {
   Alert,
@@ -69,7 +69,7 @@ export default function CreateAdScreen() {
   if (submitted) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar style="dark" />
+        <ThemedStatusBar />
         <View style={[styles.successScreen, { paddingTop: topPad + 40 }]}>
           <View style={[styles.successIcon, { backgroundColor: colors.accent }]}>
             <Feather name="check-circle" size={48} color={colors.primary} />
@@ -106,7 +106,7 @@ export default function CreateAdScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: topPad, backgroundColor: colors.background, borderBottomColor: colors.border }]}>

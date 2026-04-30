@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { PalavaStar } from "@/components/PalavaStar";
 import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -178,7 +178,7 @@ export default function ExploreScreen() {
   if (selectedSchool) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar style="dark" />
+        <ThemedStatusBar />
         <View style={[styles.header, { paddingTop: topPad, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={() => setSelectedSchool(null)} style={styles.backRow} activeOpacity={0.7}>
             <Feather name="arrow-left" size={20} color={colors.primary} />
@@ -215,7 +215,7 @@ export default function ExploreScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
 
       <View style={[styles.header, { paddingTop: topPad, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>Explore</Text>

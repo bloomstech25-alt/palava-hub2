@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { StatusBar } from "expo-status-bar";
+import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React, { useEffect } from "react";
 import {
   FlatList,
@@ -34,7 +34,7 @@ export default function NotificationsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
       <View style={[styles.header, { paddingTop: topPad, borderBottomColor: colors.border, backgroundColor: colors.background }]}>
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>Notifications</Text>
       </View>

@@ -27,6 +27,7 @@ import {
 import { auth, db, storage } from "@/lib/firebase";
 import { ref } from "firebase/storage";
 import { uploadUriToStorage } from "@/utils/uploadBlob";
+import { registerForPushNotificationsAsync, sendExpoPush } from "@/utils/notifications";
 
 export interface School {
   id: string;
@@ -54,6 +55,16 @@ export interface User {
   // these users are filtered out of feeds and conversations. Required by
   // Apple App Store Guideline 1.2 for any app with user-generated content.
   blockedUserIds?: string[];
+  // Expo push token registered from this device. Other clients send pushes
+  // directly via the Expo Push API using this token, so no server is needed.
+  expoPushToken?: string;
+  // Per-channel notification opt-ins. Defaults are "on" when missing.
+  notifications?: {
+    messages?: boolean;
+    likes?: boolean;
+    follows?: boolean;
+    comments?: boolean;
+  };
 }
 
 interface AuthContextType {
@@ -175,6 +186,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authUnsub();
     };
   }, []);
+
+  // Once we know who the user is, register this device's Expo push token and
+  // store it on their profile. Other clients will read it to send pushes
+  // directly via the Expo Push API. We re-register whenever the stored token
+  // doesn't match the current one (e.g. user reinstalled the app).
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await registerForPushNotificationsAsync();
+        if (cancelled || !token) return;
+        if (user.expoPushToken === token) return;
+        await updateDoc(doc(db, "users", user.id), { expoPushToken: token });
+      } catch {
+        // Push registration is best effort; never block the app on it.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, user?.expoPushToken]);
 
   const login = useCallback(async (email: string, password: string) => {
     // Set loading so the tab layout doesn't redirect during the transition
@@ -342,6 +375,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         following: Math.max(0, prev.following - 1),
       } : prev);
     });
+
+    // Notify the followed user. Read their token + opt-in fresh so we
+    // honor changes they've made on their other device.
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "users", targetId));
+        if (!snap.exists()) return;
+        const data = snap.data() as {
+          expoPushToken?: string;
+          notifications?: { follows?: boolean };
+        };
+        const allowed = data.notifications?.follows !== false;
+        if (!allowed || !data.expoPushToken) return;
+        await sendExpoPush({
+          to: data.expoPushToken,
+          title: "New follower",
+          body: `${user.name || "Someone"} started following you`,
+          data: { type: "follow", fromUserId: user.id },
+        });
+      } catch {
+        // best effort
+      }
+    })();
   }, [user]);
 
   const unfollowUser = useCallback(async (targetId: string) => {

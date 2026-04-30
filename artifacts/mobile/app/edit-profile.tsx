@@ -4,7 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { StatusBar } from "expo-status-bar";
+import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -107,7 +107,7 @@ export default function EditProfileScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <View style={[styles.header, { paddingTop: topPad, borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>

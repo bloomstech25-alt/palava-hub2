@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React, { useMemo } from "react";
 import {
   ActivityIndicator,
@@ -46,7 +46,7 @@ export default function CampusJamsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: topPad, borderBottomColor: colors.border }]}>

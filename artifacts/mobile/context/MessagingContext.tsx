@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthContext";
+import { sendExpoPush } from "@/utils/notifications";
 
 export function encryptMessage(text: string, _myId: string, _otherId: string): string {
   return text;
@@ -194,7 +195,31 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       { name: myName, username: myUsername, avatar: myAvatar, school: mySchool, lastMessage: lastMessagePreview, lastAt: now, unread: 1 },
       { merge: true }
     );
-  }, []);
+
+    // Fire-and-forget push to the recipient. We use the recipient's stored
+    // expoPushToken (and respect their `notifications.messages` toggle) so
+    // pushes work without any backend Cloud Function.
+    try {
+      const recipientSnap = await getDoc(doc(db, "users", toUserId));
+      if (recipientSnap.exists()) {
+        const recipient = recipientSnap.data() as {
+          expoPushToken?: string;
+          notifications?: { messages?: boolean };
+        };
+        const allowed = recipient.notifications?.messages !== false;
+        if (allowed && recipient.expoPushToken) {
+          void sendExpoPush({
+            to: recipient.expoPushToken,
+            title: myName || "New message",
+            body: lastMessagePreview || "Sent you a message",
+            data: { type: "message", fromUserId: myId },
+          });
+        }
+      }
+    } catch {
+      // Push failures must never break message send.
+    }
+  }, [blockedIds]);
 
   const markRead = useCallback((userId: string) => {
     if (!currentUserId) return;

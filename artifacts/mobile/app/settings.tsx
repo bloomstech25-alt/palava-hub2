@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -9,12 +9,14 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme, type ThemePreference } from "@/context/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 
 type RowProps = {
@@ -26,11 +28,40 @@ type RowProps = {
   iconColor?: string;
 };
 
+type ToggleRowProps = {
+  icon: keyof typeof Feather.glyphMap;
+  label: string;
+  description?: string;
+  value: boolean;
+  onValueChange: (v: boolean) => void;
+};
+
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const { user, logout, deleteAccount } = useAuth();
+  const { user, logout, deleteAccount, updateUser } = useAuth();
+  const { preference, setPreference } = useTheme();
+
+  // Default-on for every channel: missing field is treated as true so users
+  // who haven't touched settings still get pushes after upgrading.
+  const notif = user?.notifications ?? {};
+  const messagesOn = notif.messages !== false;
+  const likesOn = notif.likes !== false;
+  const followsOn = notif.follows !== false;
+  const commentsOn = notif.comments !== false;
+
+  const setNotif = (key: "messages" | "likes" | "follows" | "comments") => (value: boolean) => {
+    void updateUser({
+      notifications: { ...(user?.notifications ?? {}), [key]: value },
+    });
+  };
+
+  const themeOptions: { key: ThemePreference; label: string; icon: keyof typeof Feather.glyphMap }[] = [
+    { key: "light", label: "Light", icon: "sun" },
+    { key: "dark", label: "Dark", icon: "moon" },
+    { key: "system", label: "Auto", icon: "smartphone" },
+  ];
   const [deleting, setDeleting] = useState(false);
   // Custom confirmation modal — Alert.alert is unreliable on react-native-web
   // and Apple App Store Guideline 5.1.1(v) explicitly requires a confirmation
@@ -67,6 +98,28 @@ export default function SettingsScreen() {
     }
   }
 
+  function ToggleRow({ icon, label, description, value, onValueChange }: ToggleRowProps) {
+    return (
+      <View style={[styles.row, { borderBottomColor: colors.border }]}>
+        <View style={[styles.iconBubble, { backgroundColor: colors.accent }]}>
+          <Feather name={icon} size={17} color={colors.primary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.rowLabel, { color: colors.foreground }]}>{label}</Text>
+          {description ? (
+            <Text style={[styles.rowDesc, { color: colors.mutedForeground }]}>{description}</Text>
+          ) : null}
+        </View>
+        <Switch
+          value={value}
+          onValueChange={onValueChange}
+          trackColor={{ true: colors.primary, false: colors.border }}
+          thumbColor="#ffffff"
+        />
+      </View>
+    );
+  }
+
   function Row({ icon, label, description, onPress, destructive, iconColor }: RowProps) {
     const fg = destructive ? "#DC2626" : colors.foreground;
     return (
@@ -91,7 +144,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
       <View style={[styles.header, { paddingTop: topPad, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
           <Feather name="arrow-left" size={22} color={colors.foreground} />
@@ -122,6 +175,79 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
         ) : null}
+
+        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Appearance</Text>
+        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border, padding: 14 }]}>
+          <Text style={[styles.appearanceLabel, { color: colors.foreground }]}>Theme</Text>
+          <Text style={[styles.appearanceHint, { color: colors.mutedForeground }]}>
+            Choose how Palava Hub looks on this device.
+          </Text>
+          <View style={styles.themeRow}>
+            {themeOptions.map((opt) => {
+              const active = preference === opt.key;
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[
+                    styles.themePill,
+                    {
+                      backgroundColor: active ? colors.primary : colors.background,
+                      borderColor: active ? colors.primary : colors.border,
+                    },
+                  ]}
+                  onPress={() => void setPreference(opt.key)}
+                  activeOpacity={0.85}
+                >
+                  <Feather
+                    name={opt.icon}
+                    size={15}
+                    color={active ? "#ffffff" : colors.foreground}
+                  />
+                  <Text
+                    style={[
+                      styles.themePillText,
+                      { color: active ? "#ffffff" : colors.foreground },
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Notifications</Text>
+        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <ToggleRow
+            icon="message-circle"
+            label="Messages"
+            description="Push when someone sends you a message"
+            value={messagesOn}
+            onValueChange={setNotif("messages")}
+          />
+          <ToggleRow
+            icon="heart"
+            label="Likes"
+            description="Push when someone likes your post"
+            value={likesOn}
+            onValueChange={setNotif("likes")}
+          />
+          <ToggleRow
+            icon="user-plus"
+            label="New followers"
+            description="Push when someone follows you"
+            value={followsOn}
+            onValueChange={setNotif("follows")}
+          />
+          <ToggleRow
+            icon="message-square"
+            label="Comments"
+            description="Push when someone comments on your post"
+            value={commentsOn}
+            onValueChange={setNotif("comments")}
+          />
+        </View>
 
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Safety & Legal</Text>
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -302,4 +428,18 @@ const styles = StyleSheet.create({
   modalBtnGhostText: { fontSize: 14, fontWeight: "600" },
   modalBtnDanger: { backgroundColor: "#DC2626" },
   modalBtnDangerText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  appearanceLabel: { fontSize: 14, fontWeight: "700" },
+  appearanceHint: { fontSize: 12, marginTop: 4, marginBottom: 12 },
+  themeRow: { flexDirection: "row", gap: 8 },
+  themePill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  themePillText: { fontSize: 13, fontWeight: "600" },
 });

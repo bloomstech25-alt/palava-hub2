@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -17,13 +17,13 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, type User as AppUser } from "@/context/AuthContext";
 import { useMessaging, type Message } from "@/context/MessagingContext";
 import { useColors } from "@/hooks/useColors";
 import { db, storage } from "@/lib/firebase";
 import { ref } from "firebase/storage";
 import { uploadUriToStorage } from "@/utils/uploadBlob";
-import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, updateDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import VoiceCallModal from "@/components/VoiceCallModal";
 import VideoCallModal from "@/components/VideoCallModal";
 import EmojiPicker from "@/components/EmojiPicker";
@@ -198,6 +198,31 @@ export default function ChatScreen() {
 
   const chatMessages = useMemo(() => messages[userId] ?? [], [messages, userId]);
 
+  // Mutual-follow gate. Both users must follow each other before a chat
+  // can begin. We snapshot the other user's profile so the input unlocks
+  // as soon as they accept a follow.
+  const [otherUser, setOtherUser] = useState<AppUser | null>(null);
+  useEffect(() => {
+    if (!userId) return;
+    const unsub = onSnapshot(
+      doc(db, "users", userId),
+      (snap) => {
+        if (snap.exists()) setOtherUser({ ...(snap.data() as AppUser), id: snap.id });
+        else setOtherUser(null);
+      },
+      () => setOtherUser(null)
+    );
+    return unsub;
+  }, [userId]);
+
+  const iFollowThem = !!user && (user.followingIds ?? []).includes(userId);
+  const theyFollowMe = !!otherUser && !!user && (otherUser.followingIds ?? []).includes(user.id);
+  const isMutual = iFollowThem && theyFollowMe;
+  // If we already have at least one message in this thread, the conversation
+  // was started before the gate was enforced — don't lock existing chats out.
+  const hasExistingThread = chatMessages.length > 0;
+  const canMessage = isMutual || hasExistingThread;
+
   useEffect(() => {
     if (!user?.id || !userId) return;
     const unsub = subscribeToConversation(user.id, userId);
@@ -255,6 +280,7 @@ export default function ChatScreen() {
     media?: { uri: string; type: "image" | "video" | "audio"; duration?: number }
   ) => {
     if (!user) return;
+    if (!canMessage) return;
     setText("");
     setIsTyping(true);
     setTimeout(() => setIsTyping(false), 3500);
@@ -268,7 +294,7 @@ export default function ChatScreen() {
     } catch (e) {
       console.error("sendMessage error:", e);
     }
-  }, [user, userId, name, username, avatar, school, sendMessage]);
+  }, [user, userId, name, username, avatar, school, sendMessage, canMessage]);
 
   const handleSend = () => {
     if (!text.trim()) return;
@@ -416,7 +442,7 @@ export default function ChatScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: topPad, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
@@ -490,8 +516,45 @@ export default function ChatScreen() {
         </View>
       )}
 
-      {/* Recording bar */}
-      {recording ? (
+      {/* Mutual-follow gate — both users must follow each other before
+          starting a brand-new chat. Existing threads are grandfathered in. */}
+      {!canMessage ? (
+        <View
+          style={[
+            styles.gateBar,
+            {
+              backgroundColor: colors.card,
+              borderTopColor: colors.border,
+              paddingBottom: bottomPad + 14,
+            },
+          ]}
+        >
+          <View style={[styles.gateIcon, { backgroundColor: colors.accent }]}>
+            <Feather name="user-plus" size={18} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.gateTitle, { color: colors.foreground }]}>
+              Follow each other to start chatting
+            </Text>
+            <Text style={[styles.gateSub, { color: colors.mutedForeground }]}>
+              {!iFollowThem && !theyFollowMe
+                ? `Follow ${name?.split(" ")[0] ?? "this student"} and ask them to follow you back.`
+                : !iFollowThem
+                  ? `Follow ${name?.split(" ")[0] ?? "this student"} to start the conversation.`
+                  : `Waiting for ${name?.split(" ")[0] ?? "this student"} to follow you back.`}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({ pathname: "/(tabs)/profile", params: { userId } })
+            }
+            style={[styles.gateBtn, { backgroundColor: colors.primary }]}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.gateBtnText}>View profile</Text>
+          </TouchableOpacity>
+        </View>
+      ) : recording ? (
         <RecordingBar
           duration={recordDuration}
           onCancel={cancelRecording}
@@ -643,4 +706,17 @@ const styles = StyleSheet.create({
   emptyChatIcon: { width: 76, height: 76, borderRadius: 38, alignItems: "center", justifyContent: "center" },
   emptyChatTitle: { fontSize: 18, fontWeight: "700" },
   emptyChatSub: { fontSize: 14, textAlign: "center", lineHeight: 20 },
+  gateBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+  },
+  gateIcon: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  gateTitle: { fontSize: 14, fontWeight: "700" },
+  gateSub: { fontSize: 12, marginTop: 2, lineHeight: 16 },
+  gateBtn: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18 },
+  gateBtnText: { color: "#ffffff", fontSize: 13, fontWeight: "700" },
 });

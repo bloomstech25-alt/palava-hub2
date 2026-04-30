@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -66,7 +66,7 @@ export default function ProfileScreen() {
   if (isViewingOther && otherLoading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }]}>
-        <StatusBar style="dark" />
+        <ThemedStatusBar />
         <ActivityIndicator color={colors.primary} size="large" />
       </View>
     );
@@ -81,7 +81,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
 
       <FlatList
         data={userPosts}
