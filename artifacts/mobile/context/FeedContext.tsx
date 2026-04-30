@@ -310,7 +310,12 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         : "image/jpeg";
       const ext = mediaType === "video" ? "mp4" : mediaType === "audio" ? "m4a" : "jpg";
       const storageRef = ref(storage, `posts/${author.id}/${Date.now()}.${ext}`);
-      finalMediaUri = await uploadUriToStorage(mediaUri, storageRef, contentType);
+      // For images we compress before upload — a 12MP camera photo (~4MB)
+      // becomes ~200–400KB after this, which is the single biggest factor
+      // in how fast a media post lands on the feed.
+      finalMediaUri = await uploadUriToStorage(mediaUri, storageRef, contentType, {
+        compress: mediaType === "image",
+      });
       uploadedRef = storageRef;
     }
 
@@ -319,25 +324,32 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     const { phone: _omitPhone, ...publicAuthor } = author;
     void _omitPhone;
     try {
-      await addDoc(collection(db, "posts"), {
-        author: publicAuthor,
-        authorId: author.id,
-        content,
-        mediaUri: finalMediaUri,
-        mediaType: finalMediaUri ? (mediaType ?? null) : null,
-        audioDurationSec: mediaType === "audio" && options?.audioDurationSec
-          ? options.audioDurationSec
-          : null,
-        category: options?.category ?? "general",
-        likes: 0,
-        likedBy: [],
-        comments: 0,
-        shares: 0,
-        repostedBy: [],
-        isFollowing: false,
-        createdAt: serverTimestamp(),
-        tags,
-      });
+      // Run the post insert and the user-doc counter bump in parallel —
+      // they're independent writes, so there's no reason to wait for one
+      // before starting the other.
+      await Promise.all([
+        addDoc(collection(db, "posts"), {
+          author: publicAuthor,
+          authorId: author.id,
+          content,
+          mediaUri: finalMediaUri,
+          mediaType: finalMediaUri ? (mediaType ?? null) : null,
+          audioDurationSec: mediaType === "audio" && options?.audioDurationSec
+            ? options.audioDurationSec
+            : null,
+          category: options?.category ?? "general",
+          likes: 0,
+          likedBy: [],
+          comments: 0,
+          shares: 0,
+          repostedBy: [],
+          isFollowing: false,
+          createdAt: serverTimestamp(),
+          tags,
+        }),
+        updateDoc(doc(db, "users", author.id), { posts: increment(1) })
+          .catch(() => { /* counter bump is best-effort */ }),
+      ]);
     } catch (err) {
       // If we uploaded media but couldn't create the Firestore doc, clean up
       // the orphaned Storage object so we don't leak user quota / storage cost.
@@ -345,10 +357,6 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         try { await deleteObject(uploadedRef); } catch { /* best-effort */ }
       }
       throw err;
-    }
-    try {
-      await updateDoc(doc(db, "users", author.id), { posts: increment(1) });
-    } catch {
     }
   }, []);
 

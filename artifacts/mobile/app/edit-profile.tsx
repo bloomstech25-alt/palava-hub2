@@ -3,7 +3,8 @@ import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { storage } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref } from "firebase/storage";
+import { uploadUriToStorage } from "@/utils/uploadBlob";
 import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React, { useState } from "react";
 import {
@@ -78,11 +79,12 @@ export default function EditProfileScreen() {
       const isLocalUri = avatar !== user?.avatar && (avatar.startsWith("blob:") || avatar.startsWith("file:"));
       if (isLocalUri && user?.id) {
         try {
-          const response = await fetch(avatar);
-          const blob = await response.blob();
           const storageRef = ref(storage, `avatars/${user.id}`);
-          await uploadBytes(storageRef, blob);
-          finalAvatar = await getDownloadURL(storageRef);
+          // Use the shared helper so the avatar gets compressed (≈10× smaller
+          // payload than a raw camera roll photo) and so blob:/file:/ph:
+          // URIs are read via XHR — the previous fetch().blob() path failed
+          // on iOS PHPicker URIs.
+          finalAvatar = await uploadUriToStorage(avatar, storageRef, "image/jpeg", { compress: true });
         } catch {
           // Keep original avatar if upload fails
           finalAvatar = user?.avatar ?? avatar;

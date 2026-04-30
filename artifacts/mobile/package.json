@@ -61,6 +61,7 @@
     "expo-camera": "^17.0.10",
     "expo-device": "^8.0.10",
     "expo-file-system": "~19.0.21",
+    "expo-image-manipulator": "^14.0.8",
     "expo-media-library": "^55.0.14",
     "expo-notifications": "^0.32.17",
     "firebase": "^12.12.0",

@@ -195,28 +195,46 @@ export default function CreatePostScreen() {
     return `${m}:${r.toString().padStart(2, "0")}`;
   }
 
-  const handlePost = async () => {
-    if (!content.trim() || !user) return;
-    setIsPosting(true);
+  const handlePost = () => {
+    if (!content.trim() || !user || isPosting) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    try {
-      await addPost(
-        content.trim(),
-        tags,
-        user,
-        mediaUri ?? undefined,
-        mediaType ?? undefined,
-        {
-          category: isCampusJam ? "campus_jams" : "general",
-          audioDurationSec,
-        },
-      );
-      router.back();
-    } catch (err: unknown) {
+
+    // Snapshot the form values so they're stable across the async work — the
+    // component is going to unmount as soon as we call router.back(), so we
+    // can't read them out of state later.
+    const snapshot = {
+      content: content.trim(),
+      tags: [...tags],
+      mediaUri: mediaUri ?? undefined,
+      mediaType: mediaType ?? undefined,
+      category: isCampusJam ? ("campus_jams" as const) : ("general" as const),
+      audioDurationSec,
+      author: user,
+    };
+
+    // Optimistic close: we hand the upload off to the background and bounce
+    // the user back to the feed immediately. The new post will pop into the
+    // feed via the onSnapshot listener as soon as the write lands. If the
+    // upload fails, we surface an Alert from the background — Alert can fire
+    // from anywhere, not just from the create-post screen.
+    setIsPosting(true);
+    router.back();
+
+    addPost(
+      snapshot.content,
+      snapshot.tags,
+      snapshot.author,
+      snapshot.mediaUri,
+      snapshot.mediaType,
+      {
+        category: snapshot.category,
+        audioDurationSec: snapshot.audioDurationSec,
+      },
+    ).catch((err: unknown) => {
       const e = err as { code?: string; message?: string; serverResponse?: string } | null;
       const code = e?.code ?? "";
-      const mediaLabel = mediaType === "video" ? "video" : mediaType === "audio" ? "audio" : "image";
-      let message = `Could not upload your ${mediaLabel}. Please check your connection and try again.`;
+      const mediaLabel = snapshot.mediaType === "video" ? "video" : snapshot.mediaType === "audio" ? "audio" : snapshot.mediaType === "image" ? "image" : "post";
+      let message = `Could not publish your ${mediaLabel}. Please check your connection and try again.`;
       if (code === "storage/unauthorized") {
         message = `Upload was rejected by Firebase. The Storage rules in your Firebase Console need to be published — copy storage.rules from the project root into Firebase Console → Storage → Rules → Publish.`;
       } else if (code === "storage/quota-exceeded") {
@@ -227,19 +245,16 @@ export default function CreatePostScreen() {
         message = `Firebase Storage bucket not found. Make sure Storage is enabled in your Firebase Console (project: palava-hub) and the bucket name in firebase.ts matches what the Console shows.`;
       } else if (code === "storage/retry-limit-exceeded" || code === "storage/canceled") {
         message = `Upload was interrupted. Check your connection and try again.`;
+      } else if (code === "permission-denied") {
+        message = `The post was rejected by Firestore rules. Make sure you're signed in.`;
       } else if (code) {
-        message = `Upload failed (code: ${code}). ${e?.message ?? ""}`;
+        message = `Post failed (code: ${code}). ${e?.message ?? ""}`;
       } else if (e?.message) {
-        message = `Upload failed: ${e.message}`;
+        message = `Post failed: ${e.message}`;
       }
-      // Surface the raw error to the dev console so we can see what Firebase
-      // is actually returning if the user reports a generic failure.
-      // eslint-disable-next-line no-console
       console.warn("[create-post] addPost failed", { code, message: e?.message, serverResponse: e?.serverResponse, raw: err });
       Alert.alert("Post failed", message);
-    } finally {
-      setIsPosting(false);
-    }
+    });
   };
 
   const remaining = charLimit - content.length;

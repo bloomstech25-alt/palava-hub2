@@ -317,7 +317,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         (async () => {
           try {
             const storageRef = ref(storage, `avatars/${uid}`);
-            const avatarUrl = await uploadUriToStorage(data.avatarUri!, storageRef, "image/jpeg");
+            const avatarUrl = await uploadUriToStorage(data.avatarUri!, storageRef, "image/jpeg", { compress: true });
             await updateDoc(doc(db, "users", uid), { avatar: avatarUrl });
           } catch {
             // keep generated avatar on upload failure — non-fatal

@@ -321,7 +321,13 @@ export default function ChatScreen() {
       const ext = mediaType === "video" ? "mp4" : "jpg";
       const contentType = mediaType === "video" ? "video/mp4" : "image/jpeg";
       const storageRef = ref(storage, `chats/${user?.id}/${Date.now()}.${ext}`);
-      return await uploadUriToStorage(localUri, storageRef, contentType);
+      // Compress chat images the same way we compress feed images — saves
+      // a lot of bytes on mobile data so the picture appears in the bubble
+      // noticeably faster. Videos are left alone (re-encoding on-device
+      // would be slow and lossy).
+      return await uploadUriToStorage(localUri, storageRef, contentType, {
+        compress: mediaType === "image",
+      });
     } catch (err) {
       // Surface why the upload failed so we can debug picker / network /
       // permissions issues instead of just sending a text bubble silently.

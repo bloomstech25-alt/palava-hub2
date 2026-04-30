@@ -189,6 +189,10 @@ User-reported issues from store-readiness testing:
 2. **Slow follow** — `followUser`/`unfollowUser` (AuthContext) parallelize the two Firestore writes via `Promise.all` and use functional `setUser((prev)=>...)` rollback on error.
 3. **News feature removed** — deleted `app/news.tsx`, removed Stack.Screen registration in `_layout.tsx`, removed home-screen News button, removed Settings "News Pages" row, removed `routes/news.ts` and its registration in api-server.
 4. **Twitter-style retweet** — `Post` type gained `repostedBy: string[]` and `isReposted: boolean`. New `toggleRepost(postId)` in FeedContext uses a Firestore **transaction** (idempotent on rapid double-tap) to update `shares` + `repostedBy` atomically. PostCard's repeat icon turns Twitter-green (#17BF63) when reposted. The "share to other apps" affordance moved into the 3-dot menu so we don't lose external sharing.
+5. **Posting felt slow** — three changes:
+   - **Image compression**: every image upload now goes through `compressImageForUpload` in `utils/uploadBlob.ts` (resize to 1600px, JPEG q=0.75 via `expo-image-manipulator`). Wired into feed posts, chat images, signup avatars, and edit-profile avatars. A 4MB camera photo becomes ~200–400KB → uploads land 5–10× faster on mobile data.
+   - **Optimistic close**: `create-post.tsx` and `create-palava.tsx` now snapshot the form values, immediately `router.back()`, and run the upload + Firestore writes in the background. The new post appears in the feed via `onSnapshot` when the write lands. Errors surface as an `Alert` (which works from any screen).
+   - **Parallel writes**: `addPost` runs `addDoc(posts)` and `updateDoc(users)` (post-counter bump) via `Promise.all` instead of sequentially.
 
 ## Storage Rules (`storage.rules`)
 

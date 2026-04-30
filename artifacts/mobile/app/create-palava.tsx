@@ -59,32 +59,38 @@ export default function CreatePalavaScreen() {
     inputRef.current?.focus();
   }
 
-  async function handlePost() {
+  function handlePost() {
     if (!canPost || !user) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsPosting(true);
-    try {
-      const now = serverTimestamp();
-      await addDoc(collection(db, "palavaroomPosts"), {
-        text: text.trim(),
-        schoolName: user.school?.name ?? "A Liberian School",
-        schoolType: user.school?.type ?? "university",
-        reactions: { wahala: 0, funny: 0, realTalk: 0, spill: 0 },
-        wahalaBy: [],
-        funnyBy: [],
-        realTalkBy: [],
-        spillBy: [],
-        createdAt: now,
-      });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace("/(tabs)/palava-room");
-    } catch (err: any) {
+
+    // Snapshot the form values and bounce back to the room immediately so
+    // the user doesn't sit on a "Posting..." spinner while we wait for the
+    // round trip. The new post will appear via the onSnapshot listener.
+    const snapshot = {
+      text: text.trim(),
+      schoolName: user.school?.name ?? "A Liberian School",
+      schoolType: user.school?.type ?? "university",
+    };
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    router.replace("/(tabs)/palava-room");
+
+    addDoc(collection(db, "palavaroomPosts"), {
+      text: snapshot.text,
+      schoolName: snapshot.schoolName,
+      schoolType: snapshot.schoolType,
+      reactions: { wahala: 0, funny: 0, realTalk: 0, spill: 0 },
+      wahalaBy: [],
+      funnyBy: [],
+      realTalkBy: [],
+      spillBy: [],
+      createdAt: serverTimestamp(),
+    }).catch((err: any) => {
       // Surface the real reason so a permission-denied / rule mismatch
       // doesn't get hidden behind a generic "check your connection" toast.
       const code = err?.code as string | undefined;
       const message = err?.message as string | undefined;
       console.warn("[create-palava] post failed", { code, message, err });
-      setIsPosting(false);
       const friendly =
         code === "permission-denied"
           ? "You don't have permission to post right now. Make sure you're signed in."
@@ -92,7 +98,7 @@ export default function CreatePalavaScreen() {
           ? "Couldn't reach the server. Check your connection and try again."
           : message ?? "Could not post. Please try again.";
       Alert.alert("Could not post", friendly);
-    }
+    });
   }
 
   return (
