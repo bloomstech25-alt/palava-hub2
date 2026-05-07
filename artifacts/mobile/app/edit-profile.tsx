@@ -316,7 +316,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   saveBtnText: { fontSize: 15, fontWeight: "700" },
-  scroll: { paddingHorizontal: 20, paddingTop: 24 },
+  scroll: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    ...(Platform.OS === "web"
+      ? { maxWidth: 560, width: "100%", alignSelf: "center" as const }
+      : null),
+  },
   avatarSection: { alignItems: "center", marginBottom: 32, gap: 10 },
   avatarWrap: { width: 100, height: 100, borderRadius: 50, overflow: "hidden" },
   avatar: { width: 100, height: 100, borderRadius: 50 },

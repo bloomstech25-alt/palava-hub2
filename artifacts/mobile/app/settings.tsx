@@ -68,17 +68,22 @@ export default function SettingsScreen() {
   // step before account deletion, so we render our own cross-platform dialog.
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
+  async function performLogout() {
+    await logout();
+    router.replace("/welcome");
+  }
+
   function handleLogout() {
+    // Alert.alert is unreliable on react-native-web; use the browser confirm there.
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined" && window.confirm("Are you sure you want to log out?")) {
+        void performLogout();
+      }
+      return;
+    }
     Alert.alert("Log out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
-      {
-        text: "Log out",
-        style: "destructive",
-        onPress: async () => {
-          await logout();
-          router.replace("/welcome");
-        },
-      },
+      { text: "Log out", style: "destructive", onPress: performLogout },
     ]);
   }
 
@@ -153,7 +158,12 @@ export default function SettingsScreen() {
         <View style={{ width: 22 }} />
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView
+        contentContainerStyle={[
+          { paddingBottom: 40 },
+          Platform.OS === "web" ? { maxWidth: 640, width: "100%", alignSelf: "center" as const } : null,
+        ]}
+      >
         {/* Account */}
         {user ? (
           <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border }]}>

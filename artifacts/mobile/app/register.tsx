@@ -400,7 +400,13 @@ function InputField({ label, icon, value, onChangeText, placeholder, colors, key
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scroll: { flexGrow: 1, paddingHorizontal: 24 },
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    ...(Platform.OS === "web"
+      ? { maxWidth: 460, width: "100%", alignSelf: "center" as const }
+      : null),
+  },
   backBtn: { marginBottom: 20, width: 40 },
   heading: { marginBottom: 24 },
   title: { fontSize: 28, fontWeight: "700", letterSpacing: -0.5 },
