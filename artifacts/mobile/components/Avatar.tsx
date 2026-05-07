@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Image, type ImageStyle, StyleSheet, Text, View, type ViewStyle, type StyleProp } from "react-native";
 import { useColors } from "@/hooks/useColors";
 
@@ -23,6 +23,13 @@ interface AvatarProps {
 export function Avatar({ uri, name, size, style }: AvatarProps) {
   const colors = useColors();
   const [failed, setFailed] = useState(false);
+  // Reset the failure flag when the URL changes — otherwise once any avatar
+  // (e.g. a transient placeholder URL) fails to load, every subsequent URL
+  // is silently swallowed and the user sees the initial-letter fallback
+  // forever, even after they upload a new profile photo.
+  useEffect(() => {
+    setFailed(false);
+  }, [uri]);
 
   const isLoadable =
     typeof uri === "string" &&
