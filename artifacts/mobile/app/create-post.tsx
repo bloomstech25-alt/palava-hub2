@@ -113,7 +113,15 @@ export default function CreatePostScreen() {
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
-      setMediaUri(result.assets[0].uri);
+      const asset = result.assets[0];
+      // Storage rules cap videos at 50MB. Catch oversize files up front so
+      // the user gets a clear message instead of a cryptic upload error.
+      const sizeMB = (asset.fileSize ?? 0) / (1024 * 1024);
+      if (sizeMB > 50) {
+        Alert.alert("Video too large", `Max 50MB. This video is ${sizeMB.toFixed(0)}MB. Try a shorter clip.`);
+        return;
+      }
+      setMediaUri(asset.uri);
       setMediaType("video");
     }
   };

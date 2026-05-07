@@ -125,9 +125,9 @@ export default function EditProfileScreen() {
       // if it's something we didn't anticipate.
       const friendly =
         msg.includes("storage/unauthorized") || msg.includes("storage/unauthenticated") ? "Please sign in again."
-        : msg.includes("storage/quota-exceeded") ? "File too large. Try a smaller one."
+        : msg.includes("storage/quota-exceeded") ? "Photo too large. Try a smaller one."
         : msg.toLowerCase().includes("network") ? "Check your connection and try again."
-        : "Couldn't save. Please try again.";
+        : `Couldn't save.\n\n${msg.slice(0, 240)}`;
       Alert.alert("Error", friendly);
     } finally {
       setIsSaving(false);
