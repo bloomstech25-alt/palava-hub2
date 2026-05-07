@@ -236,7 +236,8 @@ export default function CreatePostScreen() {
     ).catch((err: unknown) => {
       const e = err as { code?: string; message?: string; serverResponse?: string } | null;
       const code = e?.code ?? "";
-      let message = "Couldn't post. Please try again.";
+      const raw = e?.message ?? String(err);
+      let message = `Couldn't post.\n\n${raw.slice(0, 240)}`;
       if (code === "storage/unauthorized" || code === "permission-denied") {
         message = "Please sign in again and try again.";
       } else if (code === "storage/quota-exceeded") {
