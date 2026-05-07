@@ -109,7 +109,7 @@ export default function CreatePostScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["videos"],
       allowsEditing: Platform.OS !== "ios",
-      videoMaxDuration: 60,
+      videoMaxDuration: 300,
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
