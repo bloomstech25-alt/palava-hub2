@@ -54,7 +54,7 @@ export default function RegisterScreen() {
   const pickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission needed", "Allow access to your photos to set a profile picture.");
+      Alert.alert("Allow photo access to set a picture.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({

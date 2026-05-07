@@ -82,7 +82,7 @@ export default function CreatePostScreen() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission needed", "Allow access to your photo library to attach images.");
+      Alert.alert("Allow photo access to attach images.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -103,7 +103,7 @@ export default function CreatePostScreen() {
   const pickVideo = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission needed", "Allow access to your photo library to attach videos.");
+      Alert.alert("Allow photo access to attach videos.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -155,7 +155,7 @@ export default function CreatePostScreen() {
         });
       }, 1000);
     } catch (e) {
-      Alert.alert("Recording failed", "Could not start audio recording. Please try again.");
+      Alert.alert("Couldn't start recording.");
     }
   }
 
@@ -177,7 +177,7 @@ export default function CreatePostScreen() {
         setAudioDurationSec(dur);
       }
     } catch {
-      Alert.alert("Recording failed", "Could not finish recording. Please try again.");
+      Alert.alert("Couldn't finish recording.");
     } finally {
       recordingRef.current = null;
       setIsRecording(false);
@@ -236,24 +236,15 @@ export default function CreatePostScreen() {
     ).catch((err: unknown) => {
       const e = err as { code?: string; message?: string; serverResponse?: string } | null;
       const code = e?.code ?? "";
-      const mediaLabel = snapshot.mediaType === "video" ? "video" : snapshot.mediaType === "audio" ? "audio" : snapshot.mediaType === "image" ? "image" : "post";
-      let message = `Could not publish your ${mediaLabel}. Please check your connection and try again.`;
-      if (code === "storage/unauthorized") {
-        message = `Upload was rejected by Firebase. The Storage rules in your Firebase Console need to be published — copy storage.rules from the project root into Firebase Console → Storage → Rules → Publish.`;
+      let message = "Couldn't post. Please try again.";
+      if (code === "storage/unauthorized" || code === "permission-denied") {
+        message = "Please sign in again and try again.";
       } else if (code === "storage/quota-exceeded") {
-        message = "Storage quota exceeded. Try a smaller file or contact support.";
+        message = "File too large. Try a smaller one.";
       } else if (code === "storage/unauthenticated") {
-        message = "Your session expired. Please sign out and sign back in, then try again.";
-      } else if (code === "storage/object-not-found" || code === "storage/bucket-not-found") {
-        message = `Firebase Storage bucket not found. Make sure Storage is enabled in your Firebase Console (project: palava-hub) and the bucket name in firebase.ts matches what the Console shows.`;
+        message = "Please sign in again.";
       } else if (code === "storage/retry-limit-exceeded" || code === "storage/canceled") {
-        message = `Upload was interrupted. Check your connection and try again.`;
-      } else if (code === "permission-denied") {
-        message = `The post was rejected by Firestore rules. Make sure you're signed in.`;
-      } else if (code) {
-        message = `Post failed (code: ${code}). ${e?.message ?? ""}`;
-      } else if (e?.message) {
-        message = `Post failed: ${e.message}`;
+        message = "Check your connection and try again.";
       }
       console.warn("[create-post] addPost failed", { code, message: e?.message, serverResponse: e?.serverResponse, raw: err });
       Alert.alert("Post failed", message);

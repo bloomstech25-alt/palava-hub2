@@ -55,7 +55,7 @@ export default function EditProfileScreen() {
   const pickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission needed", "Allow access to your photos to change your profile picture.");
+      Alert.alert("Allow photo access to change your picture.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -124,11 +124,10 @@ export default function EditProfileScreen() {
       // We also append the raw error tail so the user can screenshot it
       // if it's something we didn't anticipate.
       const friendly =
-        msg.includes("storage/unauthorized") ? "You don't have permission to upload. Please sign in again."
-        : msg.includes("storage/quota-exceeded") ? "Storage quota exceeded. Please try again later."
-        : msg.includes("storage/unauthenticated") ? "Please sign in again to change your photo."
-        : msg.toLowerCase().includes("network") ? "Couldn't reach the server. Check your connection and try again."
-        : `Could not save profile.\n\n${msg.slice(0, 200)}`;
+        msg.includes("storage/unauthorized") || msg.includes("storage/unauthenticated") ? "Please sign in again."
+        : msg.includes("storage/quota-exceeded") ? "File too large. Try a smaller one."
+        : msg.toLowerCase().includes("network") ? "Check your connection and try again."
+        : "Couldn't save. Please try again.";
       Alert.alert("Error", friendly);
     } finally {
       setIsSaving(false);

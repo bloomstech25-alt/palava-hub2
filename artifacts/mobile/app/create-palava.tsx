@@ -92,12 +92,10 @@ export default function CreatePalavaScreen() {
       const message = err?.message as string | undefined;
       console.warn("[create-palava] post failed", { code, message, err });
       const friendly =
-        code === "permission-denied"
-          ? "You don't have permission to post right now. Make sure you're signed in."
-          : code === "unavailable"
-          ? "Couldn't reach the server. Check your connection and try again."
-          : message ?? "Could not post. Please try again.";
-      Alert.alert("Could not post", friendly);
+        code === "permission-denied" ? "Please sign in again."
+        : code === "unavailable" ? "Check your connection and try again."
+        : "Couldn't post. Please try again.";
+      Alert.alert("Couldn't post", friendly);
     });
   }
 

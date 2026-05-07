@@ -209,10 +209,7 @@ export default function GoLiveScreen() {
           await addPost(caption, ["LiveReplay"], user, savedUri, "video");
         } catch (err) {
           console.warn("[go-live] upload replay failed:", err);
-          Alert.alert(
-            "Replay didn't save",
-            "Your live ended successfully, but we couldn't upload the recording to your profile. Check your connection and try going live again.",
-          );
+          Alert.alert("Replay didn't save", "Check your connection and try again.");
         }
       }
       setSavingClip(false);

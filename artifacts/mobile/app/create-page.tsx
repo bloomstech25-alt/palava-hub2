@@ -53,7 +53,7 @@ export default function CreatePageScreen() {
   const pickLogo = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission needed", "Allow access to your photos to set a page logo.");
+      Alert.alert("Allow photo access to set a logo.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -91,7 +91,7 @@ export default function CreatePageScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace({ pathname: "/page/[pageId]", params: { pageId: docRef.id } });
     } catch {
-      Alert.alert("Error", "Could not create your page. Please try again.");
+      Alert.alert("Couldn't create page. Please try again.");
     } finally {
       setIsCreating(false);
     }

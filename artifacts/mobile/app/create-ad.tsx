@@ -61,7 +61,7 @@ export default function CreateAdScreen() {
       });
       setSubmitted(true);
     } catch {
-      Alert.alert("Error", "Could not submit your ad. Please try again.");
+      Alert.alert("Couldn't submit ad. Please try again.");
     } finally {
       setSubmitting(false);
     }

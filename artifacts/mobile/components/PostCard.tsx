@@ -155,7 +155,7 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
     try {
       const { granted } = await MediaLibrary.requestPermissionsAsync();
       if (!granted) {
-        Alert.alert("Permission needed", "Please allow Palava Hub to save photos to your library.");
+        Alert.alert("Allow photo access to save images.");
         return;
       }
       const filename = FileSystem.documentDirectory + `palavahub_${Date.now()}.jpg`;
@@ -164,7 +164,7 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert("Saved! 🎉", "Image saved to your camera roll.");
     } catch {
-      Alert.alert("Error", "Could not save image. Please try again.");
+      Alert.alert("Couldn't save image.");
     }
   };
 
