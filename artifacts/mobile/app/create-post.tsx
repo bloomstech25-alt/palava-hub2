@@ -87,7 +87,10 @@ export default function CreatePostScreen() {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      allowsEditing: true,
+      // iOS native cropper crashes with "No suitable URL request handler
+      // found for blob:" on Expo Go when the picker URI is a blob: URL.
+      // Android's cropper handles all URI schemes fine.
+      allowsEditing: Platform.OS !== "ios",
       quality: 0.85,
       aspect: [4, 3],
     });
@@ -105,7 +108,7 @@ export default function CreatePostScreen() {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["videos"],
-      allowsEditing: true,
+      allowsEditing: Platform.OS !== "ios",
       videoMaxDuration: 60,
       quality: 0.8,
     });

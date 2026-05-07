@@ -9,7 +9,20 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
+import { LogBox } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+
+// Silence noisy, recoverable warnings that surface as scary red overlays
+// in dev. These are NOT crashes:
+//  - Firestore "Could not reach Cloud Firestore backend" — happens on flaky
+//    networks; the SDK works offline-first and reconnects automatically.
+//  - "No suitable URL request handler found for blob:" — guarded against in
+//    our upload utils, but Expo Go's iOS picker can still log it once.
+LogBox.ignoreLogs([
+  /Could not reach Cloud Firestore backend/,
+  /No suitable URL request handler found for blob/,
+  /@firebase\/firestore: Firestore/,
+]);
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";

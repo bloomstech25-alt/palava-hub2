@@ -59,7 +59,8 @@ export default function EditProfileScreen() {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      allowsEditing: true,
+      // iOS native cropper crashes on blob: URIs in Expo Go.
+      allowsEditing: Platform.OS !== "ios",
       aspect: [1, 1],
       quality: 0.85,
     });
