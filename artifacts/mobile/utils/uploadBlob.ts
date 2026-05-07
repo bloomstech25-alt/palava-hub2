@@ -87,8 +87,15 @@ export async function compressImageForUpload(uri: string): Promise<string> {
 }
 
 // Upload a local URI to Firebase Storage and return the download URL.
-// Wraps the blob conversion + upload + URL fetch into one call so every
+// Wraps the bytes conversion + upload + URL fetch into one call so every
 // caller (post media, chat media, avatars) handles URIs identically.
+//
+// We use `fetch(uri).arrayBuffer()` instead of XHR + Blob because:
+//  - Blob handling in React Native is buggy; `uploadBytes(blob)` has
+//    silently failed for several users on iOS LTE.
+//  - `arrayBuffer()` is a plain `Uint8Array` under the hood — Firebase
+//    Storage's `uploadBytes` accepts it directly and the upload is far
+//    more reliable across iOS/Android/web.
 //
 // Pass `compress: true` for user-supplied images to shrink them to a
 // reasonable size before upload (≈10× smaller payload than a raw camera
@@ -105,14 +112,18 @@ export async function uploadUriToStorage(
     sourceUri = await compressImageForUpload(uri);
   } else if (uri.startsWith("blob:")) {
     // Even when we skip compression (videos, audio) we still need to
-    // normalize blob: URIs to file:// so any downstream native code
-    // (and our XHR-based reader) gets a stable, file-backed source.
+    // normalize blob: URIs to file:// so RN's fetch can read them.
     sourceUri = await materializeBlobUriToFile(uri);
   } else {
     sourceUri = uri;
   }
-  const blob = await uriToBlob(sourceUri);
-  await uploadBytes(storageRef, blob, { contentType });
+  const response = await fetch(sourceUri);
+  if (!response.ok && response.status !== 0) {
+    // status 0 is normal for file:// in RN — only treat real HTTP errors as fatal.
+    throw new Error(`Failed to read URI (${response.status}): ${sourceUri}`);
+  }
+  const bytes = await response.arrayBuffer();
+  await uploadBytes(storageRef, bytes, { contentType });
   return await getDownloadURL(storageRef);
 }
 
