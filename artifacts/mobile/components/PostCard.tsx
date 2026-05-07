@@ -8,6 +8,7 @@ import * as MediaLibrary from "expo-media-library";
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Modal,
@@ -257,7 +258,7 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
             activeOpacity={0.95}
             style={styles.mediaWrap}
           >
-            <Image source={{ uri: post.mediaUri }} style={styles.postImage} resizeMode="cover" />
+            <PostImage uri={post.mediaUri} colors={colors} />
             <View style={[styles.longPressHint, { backgroundColor: "rgba(0,0,0,0.0)" }]}>
             </View>
           </TouchableOpacity>
@@ -746,6 +747,34 @@ export function AudioPlayerInline({
 
 // ─── Inline post video — preserves natural aspect ratio so vertical phone
 // videos don't get letterboxed inside a fixed landscape frame ────────────────
+// Twitter-style image tile: shows a centered spinner over a muted placeholder
+// until the image bytes finish downloading, then fades the photo in.
+export function PostImage({
+  uri,
+  colors,
+}: {
+  uri: string;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const [loading, setLoading] = useState(true);
+  return (
+    <View style={[styles.postImage, { backgroundColor: colors.muted, overflow: "hidden" }]}>
+      <Image
+        source={{ uri }}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+        onLoadStart={() => setLoading(true)}
+        onLoadEnd={() => setLoading(false)}
+      />
+      {loading && (
+        <View style={mediaLoaderStyles.overlay}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
+    </View>
+  );
+}
+
 export function PostVideo({
   uri,
   colors,
@@ -756,6 +785,7 @@ export function PostVideo({
   // Default to a friendly landscape until the video reports its real size,
   // then snap to whatever the source actually is (e.g. 9/16 for portrait).
   const [aspect, setAspect] = useState<number>(16 / 9);
+  const [loading, setLoading] = useState(true);
   return (
     <View
       style={[
@@ -770,7 +800,9 @@ export function PostVideo({
         resizeMode={ResizeMode.COVER}
         isLooping={false}
         shouldPlay={false}
+        onLoadStart={() => setLoading(true)}
         onReadyForDisplay={(e: any) => {
+          setLoading(false);
           const w = e?.naturalSize?.width;
           const h = e?.naturalSize?.height;
           if (typeof w === "number" && typeof h === "number" && w > 0 && h > 0) {
@@ -781,9 +813,22 @@ export function PostVideo({
           }
         }}
       />
+      {loading && (
+        <View style={mediaLoaderStyles.overlay} pointerEvents="none">
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
     </View>
   );
 }
+
+const mediaLoaderStyles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
 
 const videoStyles = StyleSheet.create({
   wrap: {
