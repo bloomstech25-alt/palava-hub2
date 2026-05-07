@@ -117,15 +117,18 @@ export default function EditProfileScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "";
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[edit-profile] save failed:", err);
       // Surface storage-specific errors so the user knows what's wrong
       // (auth, network, quota) instead of silently keeping the old photo.
+      // We also append the raw error tail so the user can screenshot it
+      // if it's something we didn't anticipate.
       const friendly =
         msg.includes("storage/unauthorized") ? "You don't have permission to upload. Please sign in again."
         : msg.includes("storage/quota-exceeded") ? "Storage quota exceeded. Please try again later."
         : msg.includes("storage/unauthenticated") ? "Please sign in again to change your photo."
-        : msg.includes("network") || msg.includes("Network") ? "Couldn't reach the server. Check your connection and try again."
-        : "Could not save profile. Please try again.";
+        : msg.toLowerCase().includes("network") ? "Couldn't reach the server. Check your connection and try again."
+        : `Could not save profile.\n\n${msg.slice(0, 200)}`;
       Alert.alert("Error", friendly);
     } finally {
       setIsSaving(false);

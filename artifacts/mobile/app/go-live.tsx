@@ -1,10 +1,12 @@
 import { Feather } from "@expo/vector-icons";
-import { CameraView, useCameraPermissions } from "expo-camera";
+import { CameraView, useCameraPermissions, useMicrophonePermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Animated,
   Dimensions,
   KeyboardAvoidingView,
@@ -30,6 +32,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import { useFeed } from "@/context/FeedContext";
 
 const IS_WEB = Platform.OS === "web";
 
@@ -50,12 +53,15 @@ export default function GoLiveScreen() {
   const bottomPad = Platform.OS === "web" ? 24 : insets.bottom;
 
   const [permission, requestPermission] = useCameraPermissions();
+  const [micPermission, requestMicPermission] = useMicrophonePermissions();
+  const { addPost } = useFeed();
   const [isLive, setIsLive] = useState(false);
   const [viewers, setViewers] = useState(0);
   const [duration, setDuration] = useState(0);
   const [chatInput, setChatInput] = useState("");
   const [liveComments, setLiveComments] = useState<LiveComment[]>([]);
   const [ending, setEnding] = useState(false);
+  const [savingClip, setSavingClip] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [facing, setFacing] = useState<"front" | "back">("front");
 
@@ -63,6 +69,9 @@ export default function GoLiveScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const durationRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const unsubRef = useRef<(() => void) | null>(null);
+  const cameraRef = useRef<CameraView | null>(null);
+  // Holds the in-flight recordAsync promise so endLive can await the file URI.
+  const recordPromiseRef = useRef<Promise<{ uri: string } | undefined> | null>(null);
 
   useEffect(() => {
     const pulse = Animated.loop(
@@ -114,6 +123,15 @@ export default function GoLiveScreen() {
   async function startLive() {
     if (!user) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // Ask for the mic too — without it the camera records video but no
+    // audio, which makes the saved replay useless.
+    if (!IS_WEB && !micPermission?.granted) {
+      try {
+        await requestMicPermission();
+      } catch {}
+    }
+
     try {
       const sid = `${user.id}_${Date.now()}`;
       await setDoc(doc(db, "lives", sid), {
@@ -134,6 +152,25 @@ export default function GoLiveScreen() {
       setViewers(0);
       setIsLive(true);
     }
+
+    // Kick off camera recording in the background — we await it inside
+    // endLive(). This must run AFTER setIsLive(true) so the CameraView is
+    // mounted; we defer one tick.
+    if (!IS_WEB) {
+      setTimeout(() => {
+        const cam = cameraRef.current;
+        if (!cam) return;
+        try {
+          // recordAsync resolves only when stopRecording() is called. We
+          // store the promise so endLive can await the resulting file URI.
+          recordPromiseRef.current = cam.recordAsync({
+            maxDuration: 60 * 60, // 1 hour cap
+          });
+        } catch (err) {
+          console.warn("[go-live] recordAsync failed:", err);
+        }
+      }, 400);
+    }
   }
 
   async function endLive() {
@@ -150,7 +187,38 @@ export default function GoLiveScreen() {
         });
       } catch {}
     }
-    setTimeout(() => router.back(), 2200);
+
+    // Stop recording, upload the clip, and post it to the user's profile so
+    // it stays viewable after the broadcast ends. Anything ≥3 seconds is
+    // worth saving; shorter clips are usually accidental taps.
+    let savedUri: string | null = null;
+    if (!IS_WEB && recordPromiseRef.current && cameraRef.current && user) {
+      setSavingClip(true);
+      try {
+        try { cameraRef.current.stopRecording(); } catch {}
+        const result = await recordPromiseRef.current;
+        savedUri = result?.uri ?? null;
+      } catch (err) {
+        console.warn("[go-live] stop/await recording failed:", err);
+      }
+      recordPromiseRef.current = null;
+
+      if (savedUri && duration >= 3) {
+        try {
+          const caption = `🔴 LIVE replay · ${formatDuration(duration)}${user.school?.name ? ` · ${user.school.name}` : ""}`;
+          await addPost(caption, ["LiveReplay"], user, savedUri, "video");
+        } catch (err) {
+          console.warn("[go-live] upload replay failed:", err);
+          Alert.alert(
+            "Replay didn't save",
+            "Your live ended successfully, but we couldn't upload the recording to your profile. Check your connection and try going live again.",
+          );
+        }
+      }
+      setSavingClip(false);
+    }
+
+    setTimeout(() => router.back(), savedUri ? 1500 : 2200);
   }
 
   async function sendComment() {
@@ -190,7 +258,18 @@ export default function GoLiveScreen() {
           <Text style={styles.endMeta}>
             {formatDuration(duration)} · {liveComments.length} comments
           </Text>
-          <Text style={styles.endSub}>Thanks for going live on Palava Hub 🇱🇷</Text>
+          {savingClip ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <ActivityIndicator color="#ef4444" />
+              <Text style={styles.endSub}>Saving replay to your profile…</Text>
+            </View>
+          ) : (
+            <Text style={styles.endSub}>
+              {duration >= 3 && !IS_WEB
+                ? "Your replay is now on your profile 🇱🇷"
+                : "Thanks for going live on Palava Hub 🇱🇷"}
+            </Text>
+          )}
         </View>
       </View>
     );
@@ -227,6 +306,7 @@ export default function GoLiveScreen() {
                   key={facing}
                   style={StyleSheet.absoluteFill}
                   facing={facing}
+                  mode="video"
                 />
                 <TouchableOpacity
                   style={styles.flipBtn}
@@ -307,7 +387,13 @@ export default function GoLiveScreen() {
             </Text>
           </View>
         ) : permission?.granted ? (
-          <CameraView key={facing} style={StyleSheet.absoluteFill} facing={facing} />
+          <CameraView
+            ref={cameraRef}
+            key={facing}
+            style={StyleSheet.absoluteFill}
+            facing={facing}
+            mode="video"
+          />
         ) : (
           <View style={styles.cameraFallback}>
             <Feather name="video" size={32} color="rgba(255,255,255,0.25)" />
