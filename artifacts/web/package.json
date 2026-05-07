@@ -1,0 +1,19 @@
+{
+  "name": "@workspace/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve-export.mjs",
+    "build": "pnpm --filter @workspace/mobile exec expo export --platform web --output-dir ../web/dist/public",
+    "serve": "node scripts/serve-export.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "express": "^5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "catalog:"
+  }
+}
