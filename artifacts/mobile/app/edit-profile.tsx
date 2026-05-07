@@ -172,7 +172,15 @@ export default function EditProfileScreen() {
           {/* Avatar */}
           <View style={styles.avatarSection}>
             <TouchableOpacity onPress={pickAvatar} activeOpacity={0.85} style={styles.avatarWrap}>
-              <Avatar uri={avatar} name={name} style={styles.avatar} />
+              {/* Avatar deliberately ignores blob:/file:/ph: URIs (they crash
+                  iOS native networking), so we render the freshly picked
+                  local file with a plain <Image> for the live preview, and
+                  fall back to <Avatar> for hosted URLs. */}
+              {avatar && !avatar.startsWith("http") && !avatar.startsWith("data:") ? (
+                <Image source={{ uri: avatar }} style={styles.avatar} />
+              ) : (
+                <Avatar uri={avatar} name={name} style={styles.avatar} />
+              )}
               <View style={[styles.avatarOverlay, { backgroundColor: "rgba(0,0,0,0.45)" }]}>
                 <Feather name="camera" size={22} color="#ffffff" />
                 <Text style={styles.avatarOverlayText}>Change Photo</Text>

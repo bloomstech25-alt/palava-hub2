@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { Audio } from "expo-av";
+import { Audio, ResizeMode, Video } from "expo-av";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
@@ -312,12 +312,14 @@ export default function CreatePostScreen() {
               {mediaType === "image" ? (
                 <Image source={{ uri: mediaUri }} style={styles.mediaPreview} resizeMode="cover" />
               ) : mediaType === "video" ? (
-                <View style={[styles.videoPreview, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  <View style={[styles.videoPlayIcon, { backgroundColor: colors.primary }]}>
-                    <Feather name="play" size={24} color="#ffffff" />
-                  </View>
-                  <Text style={[styles.videoLabel, { color: colors.mutedForeground }]}>Video selected</Text>
-                </View>
+                <Video
+                  source={{ uri: mediaUri }}
+                  style={styles.mediaPreview}
+                  useNativeControls
+                  resizeMode={ResizeMode.COVER}
+                  isLooping={false}
+                  shouldPlay={false}
+                />
               ) : (
                 <View style={[styles.videoPreview, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <View style={[styles.videoPlayIcon, { backgroundColor: colors.primary }]}>
