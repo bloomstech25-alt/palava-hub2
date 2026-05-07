@@ -32,25 +32,53 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedForeground,
         headerShown: false,
-        tabBarStyle: {
-          position: "absolute",
-          backgroundColor: isIOS ? "transparent" : colors.background,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          elevation: 0,
-          height: isWeb ? 84 : 62,
-        },
-        tabBarBackground: () =>
-          isIOS ? (
-            <BlurView
-              intensity={100}
-              tint={isDark ? "dark" : "light"}
-              style={StyleSheet.absoluteFill}
-            />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]} />
-          ),
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" as const, marginBottom: isWeb ? 8 : 4 },
+        ...(isWeb
+          ? {
+              tabBarPosition: "left" as const,
+              tabBarVariant: "material" as const,
+              tabBarLabelPosition: "beside-icon" as const,
+              tabBarStyle: {
+                backgroundColor: colors.background,
+                borderRightWidth: 1,
+                borderRightColor: colors.border,
+                borderTopWidth: 0,
+                width: 240,
+                paddingTop: 24,
+              },
+              tabBarItemStyle: {
+                borderRadius: 12,
+                marginHorizontal: 12,
+                marginVertical: 2,
+                height: 48,
+                justifyContent: "flex-start" as const,
+              },
+              tabBarLabelStyle: {
+                fontSize: 15,
+                fontWeight: "600" as const,
+                marginLeft: 12,
+              },
+            }
+          : {
+              tabBarStyle: {
+                position: "absolute" as const,
+                backgroundColor: isIOS ? "transparent" : colors.background,
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
+                elevation: 0,
+                height: 62,
+              },
+              tabBarBackground: () =>
+                isIOS ? (
+                  <BlurView
+                    intensity={100}
+                    tint={isDark ? "dark" : "light"}
+                    style={StyleSheet.absoluteFill}
+                  />
+                ) : (
+                  <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]} />
+                ),
+              tabBarLabelStyle: { fontSize: 11, fontWeight: "600" as const, marginBottom: 4 },
+            }),
       }}
     >
       <Tabs.Screen
