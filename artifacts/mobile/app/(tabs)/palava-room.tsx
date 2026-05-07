@@ -31,6 +31,7 @@ import {
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { DrawerButton } from "@/components/DrawerMenu";
 
 interface PalavaPost {
   id: string;
@@ -213,6 +214,7 @@ export default function PalavaRoomScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: topPad + 8, borderBottomColor: colors.border, backgroundColor: colors.background }]}>
         <View style={styles.headerLeft}>
+          <DrawerButton />
           <Text style={styles.headerEmoji}>🔥</Text>
           <View>
             <Text style={[styles.headerTitle, { color: colors.foreground }]}>Palava Room</Text>

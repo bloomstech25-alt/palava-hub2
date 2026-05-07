@@ -18,6 +18,8 @@ import { FeedProvider, useFeed } from "@/context/FeedContext";
 import { AdsProvider } from "@/context/AdsContext";
 import { MessagingProvider, useMessaging } from "@/context/MessagingContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { DrawerProvider } from "@/context/DrawerContext";
+import { DrawerMenu } from "@/components/DrawerMenu";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -93,7 +95,10 @@ export default function RootLayout() {
                   <FeedProvider>
                     <AdsProvider>
                       <MessagingProvider>
-                        <RootLayoutNav />
+                        <DrawerProvider>
+                          <RootLayoutNav />
+                          <DrawerMenu />
+                        </DrawerProvider>
                       </MessagingProvider>
                     </AdsProvider>
                   </FeedProvider>

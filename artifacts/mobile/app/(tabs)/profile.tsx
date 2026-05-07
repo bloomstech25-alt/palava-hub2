@@ -18,6 +18,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { DrawerButton } from "@/components/DrawerMenu";
 import { PostCard } from "@/components/PostCard";
 import { PalavaStar } from "@/components/PalavaStar";
 import { useAuth } from "@/context/AuthContext";
@@ -101,7 +102,9 @@ export default function ProfileScreen() {
         ListHeaderComponent={
           <View>
             <View style={[styles.header, { paddingTop: topPad, borderBottomColor: colors.border }]}>
-              {!isOwnProfile && (
+              {isOwnProfile ? (
+                <DrawerButton />
+              ) : (
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
                   <Feather name="arrow-left" size={22} color={colors.foreground} />
                 </TouchableOpacity>

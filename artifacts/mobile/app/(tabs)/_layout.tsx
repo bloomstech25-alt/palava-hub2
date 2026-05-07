@@ -118,6 +118,9 @@ export default function TabLayout() {
         name="notifications"
         options={{
           title: "Activity",
+          // Hide from mobile bottom tabs (now in drawer); keep visible in the
+          // web sidebar where there's room.
+          href: isWeb ? undefined : null,
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
           tabBarIcon: ({ color, focused }) =>
             isIOS ? (
@@ -131,6 +134,7 @@ export default function TabLayout() {
         name="pages"
         options={{
           title: "Pages",
+          href: isWeb ? undefined : null,
           tabBarIcon: ({ color, focused }) =>
             isIOS ? (
               <SymbolView name={focused ? "flag.fill" : "flag"} tintColor={color} size={24} />
@@ -143,6 +147,7 @@ export default function TabLayout() {
         name="messages"
         options={{
           title: "Messages",
+          href: isWeb ? undefined : null,
           tabBarBadge: msgUnread > 0 ? msgUnread : undefined,
           tabBarIcon: ({ color, focused }) =>
             isIOS ? (

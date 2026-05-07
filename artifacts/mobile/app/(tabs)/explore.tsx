@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { PalavaStar } from "@/components/PalavaStar";
+import { DrawerButton } from "@/components/DrawerMenu";
 import { router } from "expo-router";
 import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -250,7 +251,10 @@ export default function ExploreScreen() {
       <ThemedStatusBar />
 
       <View style={[styles.header, { paddingTop: topPad, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Explore</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <DrawerButton />
+          <Text style={[styles.headerTitle, { color: colors.foreground }]}>Explore</Text>
+        </View>
         <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Feather name="search" size={16} color={colors.mutedForeground} />
           <TextInput
