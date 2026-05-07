@@ -116,7 +116,20 @@ export default function CreatePostScreen() {
       const asset = result.assets[0];
       // Storage rules cap videos at 50MB. Catch oversize files up front so
       // the user gets a clear message instead of a cryptic upload error.
-      const sizeMB = (asset.fileSize ?? 0) / (1024 * 1024);
+      // The picker's `fileSize` is missing on web and on some iOS clips, so
+      // when it's not reported we measure the blob ourselves before letting
+      // the user post — much better UX than a silent upload failure.
+      let sizeMB = (asset.fileSize ?? 0) / (1024 * 1024);
+      if (!sizeMB) {
+        try {
+          const head = await fetch(asset.uri);
+          const blob = await head.blob();
+          sizeMB = blob.size / (1024 * 1024);
+        } catch {
+          // If we can't measure, let it through; the upload error path
+          // will surface the real reason if Storage rejects it.
+        }
+      }
       if (sizeMB > 50) {
         Alert.alert("Video too large", `Max 50MB. This video is ${sizeMB.toFixed(0)}MB. Try a shorter clip.`);
         return;
