@@ -21,7 +21,7 @@ import { useMessaging, type Conversation } from "@/context/MessagingContext";
 import { useAuth } from "@/context/AuthContext";
 import type { User } from "@/context/AuthContext";
 import { normalizeUser } from "@/utils/normalizeUser";
-import { safeAvatarUri } from "@/utils/avatarUri";
+import { Avatar } from "@/components/Avatar";
 import { formatRelativeTime } from "@/utils/time";
 
 // Discriminated union so a single FlatList can render both conversation
@@ -145,7 +145,7 @@ export default function MessagesScreen() {
           activeOpacity={0.8}
         >
           <View style={styles.avatarWrap}>
-            <Image source={{ uri: safeAvatarUri(conv.avatar, conv.name) }} style={styles.convAvatar} />
+            <Avatar uri={conv.avatar} name={conv.name} style={styles.convAvatar} />
             <View style={[styles.onlineDot, { backgroundColor: "#22c55e", borderColor: colors.background }]} />
           </View>
           <View style={styles.convInfo}>
@@ -183,13 +183,7 @@ export default function MessagesScreen() {
         activeOpacity={0.8}
         onPress={() => startNewChat(u.id, u.name, u.username, u.avatar, u.school?.name ?? "")}
       >
-        {u.avatar ? (
-          <Image source={{ uri: safeAvatarUri(u.avatar, u.name) }} style={styles.suggestionAvatar} />
-        ) : (
-          <View style={[styles.suggestionAvatar, styles.suggestionAvatarFallback, { backgroundColor: colors.primary }]}>
-            <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>{u.name?.[0]?.toUpperCase() ?? "?"}</Text>
-          </View>
-        )}
+        <Avatar uri={u.avatar} name={u.name} style={styles.suggestionAvatar} />
         <View style={{ flex: 1 }}>
           <Text style={[styles.suggestionName, { color: colors.foreground }]}>{u.name}</Text>
           <Text style={[styles.suggestionMeta, { color: colors.mutedForeground }]}>

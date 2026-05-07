@@ -19,7 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useFeed, type Comment } from "@/context/FeedContext";
 import { useColors } from "@/hooks/useColors";
 import { formatRelativeTime } from "@/utils/time";
-import { safeAvatarUri } from "@/utils/avatarUri";
+import { Avatar } from "@/components/Avatar";
 import { AudioPlayerInline, PostVideo } from "@/components/PostCard";
 import { PalavaStar } from "@/components/PalavaStar";
 
@@ -88,7 +88,7 @@ export default function PostDetailScreen() {
             <View>
               <View style={[styles.postContent, { borderBottomColor: colors.border }]}>
                 <View style={styles.authorRow}>
-                  <Image source={{ uri: safeAvatarUri(post.author.avatar, post.author.name) }} style={styles.avatar} />
+                  <Avatar uri={post.author.avatar} name={post.author.name} style={styles.avatar} />
                   <View style={styles.authorInfo}>
                     <View style={styles.authorNameRow}>
                       <Text style={[styles.authorName, { color: colors.foreground }]}>{post.author.name}</Text>
@@ -189,7 +189,7 @@ export default function PostDetailScreen() {
           }
           renderItem={({ item }: { item: Comment }) => (
             <View style={[styles.commentItem, { borderBottomColor: colors.border }]}>
-              <Image source={{ uri: safeAvatarUri(item.author.avatar, item.author.name) }} style={styles.commentAvatar} />
+              <Avatar uri={item.author.avatar} name={item.author.name} style={styles.commentAvatar} />
               <View style={styles.commentBody}>
                 <View style={styles.commentHeader}>
                   <Text style={[styles.commentAuthor, { color: colors.foreground }]}>{item.author.name}</Text>
@@ -218,7 +218,7 @@ export default function PostDetailScreen() {
         />
 
         <View style={[styles.commentInput, { borderTopColor: colors.border, backgroundColor: colors.background, paddingBottom: bottomPad + 8 }]}>
-          <Image source={{ uri: safeAvatarUri(user?.avatar, user?.name) }} style={styles.inputAvatar} />
+          <Avatar uri={user?.avatar} name={user?.name} style={styles.inputAvatar} />
           <View style={[styles.inputWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <TextInput
               style={[styles.input, { color: colors.foreground }]}

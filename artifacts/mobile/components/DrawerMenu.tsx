@@ -4,7 +4,6 @@ import React, { useEffect, useRef } from "react";
 import {
   Animated,
   Easing,
-  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -20,6 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useFeed } from "@/context/FeedContext";
 import { useMessaging } from "@/context/MessagingContext";
 import { useColors } from "@/hooks/useColors";
+import { Avatar } from "@/components/Avatar";
 
 type Item = {
   icon: keyof typeof Feather.glyphMap;
@@ -122,15 +122,7 @@ export function DrawerMenu() {
           onPress={() => go("/(tabs)/profile")}
           style={[styles.profileRow, { borderBottomColor: colors.border }]}
         >
-          {user?.avatar && (user.avatar.startsWith("http://") || user.avatar.startsWith("https://") || user.avatar.startsWith("data:")) ? (
-            <Image source={{ uri: user.avatar }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, { backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" }]}>
-              <Text style={{ color: colors.primaryForeground, fontWeight: "800", fontSize: 18 }}>
-                {(user?.name?.[0] ?? "?").toUpperCase()}
-              </Text>
-            </View>
-          )}
+          <Avatar uri={user?.avatar} name={user?.name} style={styles.avatar} />
           <View style={{ flex: 1 }}>
             <Text style={[styles.name, { color: colors.foreground }]} numberOfLines={1}>
               {user?.name ?? "Guest"}

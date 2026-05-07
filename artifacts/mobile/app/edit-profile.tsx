@@ -23,7 +23,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
-import { safeAvatarUri } from "@/utils/avatarUri";
+import { Avatar } from "@/components/Avatar";
 
 export default function EditProfileScreen() {
   const colors = useColors();
@@ -160,10 +160,7 @@ export default function EditProfileScreen() {
           {/* Avatar */}
           <View style={styles.avatarSection}>
             <TouchableOpacity onPress={pickAvatar} activeOpacity={0.85} style={styles.avatarWrap}>
-              <Image
-                source={{ uri: safeAvatarUri(avatar, name) }}
-                style={styles.avatar}
-              />
+              <Avatar uri={avatar} name={name} style={styles.avatar} />
               <View style={[styles.avatarOverlay, { backgroundColor: "rgba(0,0,0,0.45)" }]}>
                 <Feather name="camera" size={22} color="#ffffff" />
                 <Text style={styles.avatarOverlayText}>Change Photo</Text>

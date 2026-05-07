@@ -23,7 +23,7 @@ import { useColors } from "@/hooks/useColors";
 import { db, storage } from "@/lib/firebase";
 import { ref } from "firebase/storage";
 import { uploadUriToStorage } from "@/utils/uploadBlob";
-import { safeAvatarUri } from "@/utils/avatarUri";
+import { Avatar } from "@/components/Avatar";
 import { doc, onSnapshot } from "firebase/firestore";
 import EmojiPicker from "@/components/EmojiPicker";
 
@@ -356,7 +356,7 @@ export default function ChatScreen() {
           </View>
         )}
         <View style={[styles.msgRow, mine ? styles.msgRowMe : styles.msgRowThem]}>
-          {!mine && <Image source={{ uri: safeAvatarUri(avatar, name) }} style={styles.msgAvatar} />}
+          {!mine && <Avatar uri={avatar} name={name} style={styles.msgAvatar} />}
           <View style={styles.msgContent}>
             {/* Message bubble */}
             {item.mediaType === "audio" ? (
@@ -412,7 +412,7 @@ export default function ChatScreen() {
         </TouchableOpacity>
         <View style={styles.headerUser}>
           <View style={styles.avatarWrap}>
-            <Image source={{ uri: safeAvatarUri(avatar, name) }} style={styles.headerAvatar} />
+            <Avatar uri={avatar} name={name} style={styles.headerAvatar} />
             <View style={[styles.onlineDot, { backgroundColor: "#22c55e", borderColor: colors.background }]} />
           </View>
           <View style={{ flex: 1 }}>
@@ -458,7 +458,7 @@ export default function ChatScreen() {
       {/* Typing indicator */}
       {isTyping && (
         <View style={[styles.typingRow, { paddingHorizontal: 16 }]}>
-          <Image source={{ uri: safeAvatarUri(avatar, name) }} style={styles.typingAvatar} />
+          <Avatar uri={avatar} name={name} style={styles.typingAvatar} />
           <View style={[styles.typingBubble, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.typingDots, { color: colors.mutedForeground }]}>• • •</Text>
           </View>
