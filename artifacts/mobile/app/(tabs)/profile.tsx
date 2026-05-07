@@ -206,6 +206,42 @@ export default function ProfileScreen() {
                 <Text style={[styles.bio, { color: colors.foreground }]}>{profileUser.bio}</Text>
               ) : null}
 
+              {(profileUser.currentLocation || profileUser.currentEmployment || profileUser.maritalStatus) ? (
+                <View style={styles.detailsRow}>
+                  {profileUser.currentLocation ? (
+                    <View style={styles.detailItem}>
+                      <Feather name="map-pin" size={13} color={colors.mutedForeground} />
+                      <Text style={[styles.detailText, { color: colors.mutedForeground }]} numberOfLines={1}>
+                        {profileUser.currentLocation}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {profileUser.currentEmployment ? (
+                    <View style={styles.detailItem}>
+                      <Feather name="briefcase" size={13} color={colors.mutedForeground} />
+                      <Text style={[styles.detailText, { color: colors.mutedForeground }]} numberOfLines={1}>
+                        {profileUser.currentEmployment}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {profileUser.maritalStatus ? (
+                    <View style={styles.detailItem}>
+                      <Feather name="heart" size={13} color={colors.mutedForeground} />
+                      <Text style={[styles.detailText, { color: colors.mutedForeground }]}>
+                        {({
+                          single: "Single",
+                          in_relationship: "In a relationship",
+                          engaged: "Engaged",
+                          married: "Married",
+                          complicated: "It's complicated",
+                          prefer_not_to_say: "Prefer not to say",
+                        } as Record<string, string>)[profileUser.maritalStatus] ?? ""}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+
               <View style={[styles.stats, { borderTopColor: colors.border }]}>
                 {[
                   { label: "Posts", value: userPosts.length || profileUser.posts },
@@ -398,6 +434,9 @@ const styles = StyleSheet.create({
   schoolText: { fontSize: 13, fontWeight: "600" },
   schoolType: { fontSize: 12 },
   bio: { fontSize: 14, lineHeight: 20, marginTop: 10 },
+  detailsRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 10 },
+  detailItem: { flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "100%" },
+  detailText: { fontSize: 13 },
   stats: {
     flexDirection: "row",
     marginTop: 16,

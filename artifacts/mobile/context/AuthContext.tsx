@@ -66,6 +66,10 @@ export interface User {
     follows?: boolean;
     comments?: boolean;
   };
+  // Optional self-reported profile details. All can be empty.
+  maritalStatus?: "" | "single" | "in_relationship" | "engaged" | "married" | "complicated" | "prefer_not_to_say";
+  currentLocation?: string;
+  currentEmployment?: string;
 }
 
 interface AuthContextType {

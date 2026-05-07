@@ -35,13 +35,21 @@ export default function EditProfileScreen() {
   const [username, setUsername] = useState(user?.username ?? "");
   const [bio, setBio] = useState(user?.bio ?? "");
   const [avatar, setAvatar] = useState(user?.avatar ?? "");
+  const [maritalStatus, setMaritalStatus] = useState<NonNullable<typeof user>["maritalStatus"] | "">(
+    user?.maritalStatus ?? ""
+  );
+  const [currentLocation, setCurrentLocation] = useState(user?.currentLocation ?? "");
+  const [currentEmployment, setCurrentEmployment] = useState(user?.currentEmployment ?? "");
   const [isSaving, setIsSaving] = useState(false);
 
   const hasChanges =
     name !== user?.name ||
     username !== user?.username ||
     bio !== user?.bio ||
-    avatar !== user?.avatar;
+    avatar !== user?.avatar ||
+    (maritalStatus ?? "") !== (user?.maritalStatus ?? "") ||
+    currentLocation !== (user?.currentLocation ?? "") ||
+    currentEmployment !== (user?.currentEmployment ?? "");
 
   const pickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -95,6 +103,9 @@ export default function EditProfileScreen() {
         username: cleanUsername,
         bio: bio.trim(),
         avatar: finalAvatar,
+        maritalStatus: (maritalStatus || "") as NonNullable<typeof user>["maritalStatus"],
+        currentLocation: currentLocation.trim(),
+        currentEmployment: currentEmployment.trim(),
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
@@ -198,6 +209,68 @@ export default function EditProfileScreen() {
               <Text style={[styles.charCount, { color: colors.mutedForeground }]}>{bio.length}/160</Text>
             </FieldGroup>
 
+            <FieldGroup label="Current Location  ·  Optional" colors={colors}>
+              <TextInput
+                style={[styles.input, { color: colors.foreground }]}
+                value={currentLocation}
+                onChangeText={setCurrentLocation}
+                placeholder="e.g. Monrovia, Liberia"
+                placeholderTextColor={colors.mutedForeground}
+                maxLength={80}
+              />
+            </FieldGroup>
+
+            <FieldGroup label="Current Employment  ·  Optional" colors={colors}>
+              <TextInput
+                style={[styles.input, { color: colors.foreground }]}
+                value={currentEmployment}
+                onChangeText={setCurrentEmployment}
+                placeholder="e.g. Software Engineer at Lonestar"
+                placeholderTextColor={colors.mutedForeground}
+                maxLength={100}
+              />
+            </FieldGroup>
+
+            <FieldGroup label="Marital Status  ·  Optional" colors={colors}>
+              <View style={styles.chipRow}>
+                {([
+                  { v: "", label: "—" },
+                  { v: "single", label: "Single" },
+                  { v: "in_relationship", label: "In a relationship" },
+                  { v: "engaged", label: "Engaged" },
+                  { v: "married", label: "Married" },
+                  { v: "complicated", label: "It's complicated" },
+                  { v: "prefer_not_to_say", label: "Prefer not to say" },
+                ] as const).map((opt) => {
+                  const active = (maritalStatus ?? "") === opt.v;
+                  return (
+                    <TouchableOpacity
+                      key={opt.v || "none"}
+                      onPress={() => setMaritalStatus(opt.v as typeof maritalStatus)}
+                      style={[
+                        styles.chip,
+                        {
+                          backgroundColor: active ? colors.primary : colors.muted,
+                          borderColor: active ? colors.primary : colors.border,
+                        },
+                      ]}
+                      activeOpacity={0.85}
+                    >
+                      <Text
+                        style={{
+                          color: active ? colors.primaryForeground : colors.foreground,
+                          fontSize: 13,
+                          fontWeight: "600",
+                        }}
+                      >
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </FieldGroup>
+
             <View style={[styles.readonlyGroup, { backgroundColor: colors.muted, borderColor: colors.border }]}>
               <View style={styles.readonlyHeader}>
                 <Feather name="book-open" size={14} color={colors.mutedForeground} />
@@ -280,4 +353,6 @@ const styles = StyleSheet.create({
   readonlyLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 1 },
   readonlyValue: { fontSize: 16, fontWeight: "600" },
   readonlyHint: { fontSize: 12, marginTop: 4 },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingVertical: 10 },
+  chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1 },
 });
