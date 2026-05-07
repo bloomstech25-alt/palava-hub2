@@ -23,9 +23,7 @@ import { useColors } from "@/hooks/useColors";
 import { db, storage } from "@/lib/firebase";
 import { ref } from "firebase/storage";
 import { uploadUriToStorage } from "@/utils/uploadBlob";
-import { doc, setDoc, updateDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
-import VoiceCallModal from "@/components/VoiceCallModal";
-import VideoCallModal from "@/components/VideoCallModal";
+import { doc, onSnapshot } from "firebase/firestore";
 import EmojiPicker from "@/components/EmojiPicker";
 
 function formatTime(iso: string) {
@@ -188,10 +186,7 @@ export default function ChatScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordDuration, setRecordDuration] = useState(0);
-  const [showVoiceCall, setShowVoiceCall] = useState(false);
-  const [showVideoCall, setShowVideoCall] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
-  const [activeCallId, setActiveCallId] = useState("");
   const textInputRef = useRef<TextInput>(null);
   const flatRef = useRef<FlatList>(null);
   const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -233,85 +228,6 @@ export default function ChatScreen() {
   useEffect(() => {
     setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 150);
   }, [chatMessages.length]);
-
-  const startCall = useCallback(async (type: "voice" | "video") => {
-    if (!user?.id || !userId) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const callId = `${user.id}_${userId}_${Date.now()}`;
-    setActiveCallId(callId);
-    if (type === "voice") setShowVoiceCall(true);
-    else setShowVideoCall(true);
-
-    try {
-      await setDoc(doc(db, "calls", callId), {
-        callId,
-        callerId: user.id,
-        callerName: user.name,
-        callerAvatar: user.avatar,
-        calleeId: userId,
-        calleeName: name ?? "",
-        type,
-        status: "ringing",
-        startedAt: serverTimestamp(),
-      });
-    } catch { /* Firestore unavailable — call still opens locally */ }
-
-    // Request a Daily.co room from the API and store its URL (or the
-    // failure reason) on the call doc so the modal can show the user
-    // exactly what's wrong instead of spinning forever.
-    //
-    // React Native's fetch does NOT accept relative URLs the way a browser
-    // does — it needs a fully-qualified https://. So we MUST resolve a
-    // domain. We try the EXPO_PUBLIC_DOMAIN that the dev script bakes into
-    // the bundle, and only as a last resort surface a clear error.
-    const domain = process.env.EXPO_PUBLIC_DOMAIN;
-    if (!domain) {
-      // eslint-disable-next-line no-console
-      console.warn("[call] EXPO_PUBLIC_DOMAIN missing — bundle was built without API base URL");
-      try {
-        await updateDoc(doc(db, "calls", callId), {
-          errorMessage: "Calling isn't configured for this build. Please reload the app.",
-        });
-      } catch { /* ignore */ }
-      return;
-    }
-    const callsUrl = `https://${domain}/api/calls/room`;
-    // eslint-disable-next-line no-console
-    console.log("[call] requesting Daily room from", callsUrl);
-    try {
-      const res = await fetch(callsUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ callId, type }),
-      });
-      if (res.ok) {
-        const { url } = await res.json();
-        // eslint-disable-next-line no-console
-        console.log("[call] got room url", url);
-        if (url) {
-          try { await updateDoc(doc(db, "calls", callId), { roomUrl: url }); } catch { /* ignore */ }
-        } else {
-          try { await updateDoc(doc(db, "calls", callId), { errorMessage: "Server didn't return a call link." }); } catch { /* ignore */ }
-        }
-      } else {
-        const body = await res.json().catch(() => ({} as { error?: string }));
-        // eslint-disable-next-line no-console
-        console.warn("[call] server error", res.status, body);
-        const reason = body?.error === "calling_not_configured"
-          ? "Calling isn't set up yet. Ask the admin to add the Daily.co API key."
-          : `Could not start the call (${res.status}). Please try again in a moment.`;
-        try { await updateDoc(doc(db, "calls", callId), { errorMessage: reason }); } catch { /* ignore */ }
-      }
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn("[call] fetch threw", (e as Error)?.message);
-      try {
-        await updateDoc(doc(db, "calls", callId), {
-          errorMessage: `Network error starting the call: ${(e as Error)?.message ?? "unknown"}`,
-        });
-      } catch { /* ignore */ }
-    }
-  }, [user, userId, name]);
 
   const doSend = useCallback(async (
     txt: string,
@@ -506,18 +422,6 @@ export default function ChatScreen() {
             </View>
           </View>
         </View>
-        <TouchableOpacity
-          onPress={() => startCall("voice")}
-          style={styles.callBtn} activeOpacity={0.7}
-        >
-          <Feather name="phone" size={20} color={colors.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => startCall("video")}
-          style={styles.callBtn} activeOpacity={0.7}
-        >
-          <Feather name="video" size={20} color={colors.primary} />
-        </TouchableOpacity>
       </View>
 
       {/* Messages */}
@@ -664,24 +568,6 @@ export default function ChatScreen() {
         </View>
       )}
 
-      {/* Call modals */}
-      <VoiceCallModal
-        visible={showVoiceCall}
-        callId={activeCallId}
-        name={name ?? ""}
-        avatar={avatar ?? ""}
-        school={school ?? ""}
-        onEnd={() => { setShowVoiceCall(false); setActiveCallId(""); }}
-      />
-      <VideoCallModal
-        visible={showVideoCall}
-        callId={activeCallId}
-        name={name ?? ""}
-        avatar={avatar ?? ""}
-        school={school ?? ""}
-        myAvatar={user?.avatar ?? ""}
-        onEnd={() => { setShowVideoCall(false); setActiveCallId(""); }}
-      />
     </KeyboardAvoidingView>
   );
 }
@@ -704,7 +590,6 @@ const styles = StyleSheet.create({
   headerName: { fontSize: 15, fontWeight: "700" },
   headerSubRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   headerSub: { fontSize: 11, fontWeight: "600" },
-  callBtn: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
   e2eBanner: {
     flexDirection: "row",
     alignItems: "flex-start",

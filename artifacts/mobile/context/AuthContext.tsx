@@ -220,40 +220,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // eslint-disable-next-line no-console
       console.log("[auth] login: signed in uid=", cred.user.uid);
 
-      // Verify the Firestore profile exists. A signed-in Auth user with no
-      // profile doc is an "orphan account" — typically a register attempt
-      // that succeeded in Auth but failed mid-way to write to Firestore.
-      // We race the getDoc against an 8-second timeout so a slow/blocked
-      // Firestore connection (common behind the Expo dev proxy) can never
-      // hang the login button forever — onAuthStateChanged + onSnapshot
-      // will pick up the user once the connection recovers.
-      const profileSnap = await Promise.race([
-        getDoc(doc(db, "users", cred.user.uid)),
-        new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), 8000)),
-      ]);
-
-      if (profileSnap === "timeout") {
-        // eslint-disable-next-line no-console
-        console.warn("[auth] login: profile getDoc timed out — letting snapshot listener recover");
-        // Don't sign out — the auth side worked. The snapshot listener will
-        // eventually populate the user, or surface an orphan state. We
-        // return success so handleLogin's spinner stops and the login
-        // screen's useEffect can navigate as soon as isAuthenticated flips.
-        return { success: true };
-      }
-
-      if (!profileSnap.exists()) {
-        // eslint-disable-next-line no-console
-        console.warn("[auth] login: orphan account, signing out");
-        // Sign back out so we don't leave them in a half-logged-in state.
-        await signOut(auth);
-        setIsLoading(false);
-        return {
-          success: false,
-          error: "This account exists but has no profile. Please register again with the same email to recover it.",
-        };
-      }
-      // onAuthStateChanged fires after this and handles setting user + isLoading(false)
+      // Don't await the profile getDoc here — it adds a noticeable delay
+      // to login on slow/proxied connections. The onAuthStateChanged +
+      // onSnapshot listener already fetches the profile and will surface
+      // any orphan state by setting isLoading(false) without setting user.
+      // Returning immediately here makes the spinner stop and the login
+      // screen's useEffect navigate to /(tabs) as soon as
+      // isAuthenticated flips.
       return { success: true };
     } catch (err: any) {
       // eslint-disable-next-line no-console
