@@ -319,46 +319,6 @@ export default function ProfileScreen() {
               );
             })()}
 
-            {isOwnProfile && (
-              <TouchableOpacity
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push("/create-page");
-                }}
-                style={[styles.createPageBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.createPageIcon, { backgroundColor: colors.primary + "18" }]}>
-                  <Feather name="flag" size={18} color={colors.primary} />
-                </View>
-                <View style={styles.createPageText}>
-                  <Text style={[styles.createPageTitle, { color: colors.foreground }]}>Create a Page</Text>
-                  <Text style={[styles.createPageSub, { color: colors.mutedForeground }]}>Start a business, club, or community page</Text>
-                </View>
-                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-              </TouchableOpacity>
-            )}
-
-            {isOwnProfile && (
-              <TouchableOpacity
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push("/my-ads");
-                }}
-                style={[styles.createPageBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.createPageIcon, { backgroundColor: colors.primary + "18" }]}>
-                  <Feather name="bar-chart-2" size={18} color={colors.primary} />
-                </View>
-                <View style={styles.createPageText}>
-                  <Text style={[styles.createPageTitle, { color: colors.foreground }]}>My Ads & Insights</Text>
-                  <Text style={[styles.createPageSub, { color: colors.mutedForeground }]}>Run ads and see views, clicks, and reach</Text>
-                </View>
-                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-              </TouchableOpacity>
-            )}
-
             <Text style={[styles.postsHeader, { color: colors.mutedForeground }]}>POSTS</Text>
           </View>
         }

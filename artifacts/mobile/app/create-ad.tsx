@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 import React, { useState } from "react";
 import {
@@ -36,8 +36,9 @@ export default function CreateAdScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { createAd } = useAds();
   const { user } = useAuth();
+  const params = useLocalSearchParams<{ sponsor?: string }>();
 
-  const [sponsorName, setSponsorName] = useState("");
+  const [sponsorName, setSponsorName] = useState(params.sponsor ?? "");
   const [headline, setHeadline] = useState("");
   const [body, setBody] = useState("");
   const [cta, setCta] = useState<AdCTA>("Learn More");

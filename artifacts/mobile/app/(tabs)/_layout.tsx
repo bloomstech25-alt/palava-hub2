@@ -128,6 +128,18 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="pages"
+        options={{
+          title: "Pages",
+          tabBarIcon: ({ color, focused }) =>
+            isIOS ? (
+              <SymbolView name={focused ? "flag.fill" : "flag"} tintColor={color} size={24} />
+            ) : (
+              <Feather name="flag" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
         name="messages"
         options={{
           title: "Messages",
