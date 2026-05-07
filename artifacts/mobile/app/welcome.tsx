@@ -534,7 +534,10 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, overflow: "hidden" },
+  container: Platform.select({
+    web: { minHeight: "100vh" as unknown as number, position: "relative" as const },
+    default: { flex: 1, overflow: "hidden" as const },
+  })!,
 
   glowRed: {
     position: "absolute", top: -80, left: -80,
@@ -560,11 +563,19 @@ const styles = StyleSheet.create({
   maskBg3: { position: "absolute", bottom: height * 0.16, left: -24 },
   maskBg4: { position: "absolute", bottom: height * 0.10, right: -18 },
 
-  content: {
-    flex: 1,
-    paddingHorizontal: 28,
-    justifyContent: "space-between",
-  },
+  content: Platform.select({
+    web: {
+      minHeight: "100vh" as unknown as number,
+      paddingHorizontal: 28,
+      justifyContent: "space-between" as const,
+      gap: 32,
+    },
+    default: {
+      flex: 1,
+      paddingHorizontal: 28,
+      justifyContent: "space-between" as const,
+    },
+  })!,
 
   logoSection: { alignItems: "center", paddingTop: 12 },
   lockupImg: { width: 200, height: 300, marginBottom: 4 },
