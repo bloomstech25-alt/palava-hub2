@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFeed, type Notification } from "@/context/FeedContext";
 import { useColors } from "@/hooks/useColors";
 import { formatRelativeTime } from "@/utils/time";
+import { safeAvatarUri } from "@/utils/avatarUri";
 
 const ICON_MAP: Record<Notification["type"], { name: string; color: string; bg: string }> = {
   like: { name: "heart", color: "#ef4444", bg: "#fef2f2" },
@@ -57,7 +58,7 @@ export default function NotificationsScreen() {
               ]}
             >
               <View style={styles.avatarWrap}>
-                <Image source={{ uri: item.actor.avatar }} style={styles.avatar} />
+                <Image source={{ uri: safeAvatarUri(item.actor.avatar, item.actor.name) }} style={styles.avatar} />
                 <View style={[styles.typeIcon, { backgroundColor: meta.bg }]}>
                   <Feather name={meta.name as any} size={11} color={meta.color} />
                 </View>

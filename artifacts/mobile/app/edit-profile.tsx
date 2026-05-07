@@ -23,6 +23,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { safeAvatarUri } from "@/utils/avatarUri";
 
 export default function EditProfileScreen() {
   const colors = useColors();
@@ -94,6 +95,10 @@ export default function EditProfileScreen() {
           // URIs are read via XHR — the previous fetch().blob() path failed
           // on iOS PHPicker URIs.
           finalAvatar = await uploadUriToStorage(avatar, storageRef, "image/jpeg", { compress: true });
+          if (!finalAvatar.startsWith("http")) {
+            // safety net: never persist a non-http avatar URI to Firestore.
+            finalAvatar = user?.avatar ?? "";
+          }
         } catch {
           // Keep original avatar if upload fails
           finalAvatar = user?.avatar ?? avatar;
@@ -156,7 +161,7 @@ export default function EditProfileScreen() {
           <View style={styles.avatarSection}>
             <TouchableOpacity onPress={pickAvatar} activeOpacity={0.85} style={styles.avatarWrap}>
               <Image
-                source={{ uri: avatar || "https://ui-avatars.com/api/?name=" + encodeURIComponent(name) + "&background=0a7ea4&color=fff&size=200" }}
+                source={{ uri: safeAvatarUri(avatar, name) }}
                 style={styles.avatar}
               />
               <View style={[styles.avatarOverlay, { backgroundColor: "rgba(0,0,0,0.45)" }]}>

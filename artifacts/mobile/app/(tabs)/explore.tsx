@@ -30,6 +30,7 @@ import type { School, User } from "@/context/AuthContext";
 import { normalizeUser } from "@/utils/normalizeUser";
 import { useColors } from "@/hooks/useColors";
 import { collectPostTags } from "@/utils/tags";
+import { safeAvatarUri } from "@/utils/avatarUri";
 
 // Fallback "suggested" topics shown only when no posts contain hashtags yet
 // (e.g. fresh install / brand-new account). Once real activity exists, the
@@ -472,7 +473,7 @@ export default function ExploreScreen() {
                 </View>
 
                 {item.avatar ? (
-                  <Image source={{ uri: item.avatar }} style={styles.personAvatar} />
+                  <Image source={{ uri: safeAvatarUri(item.avatar, item.name) }} style={styles.personAvatar} />
                 ) : (
                   <View style={[styles.personAvatar, styles.personAvatarFallback, { backgroundColor: colors.primary }]}>
                     <Text style={styles.personAvatarInitial}>{item.name?.[0]?.toUpperCase() ?? "?"}</Text>

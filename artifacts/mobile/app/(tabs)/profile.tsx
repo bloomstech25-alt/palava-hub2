@@ -24,6 +24,7 @@ import { PalavaStar } from "@/components/PalavaStar";
 import { useAuth } from "@/context/AuthContext";
 import type { User } from "@/context/AuthContext";
 import { normalizeUser } from "@/utils/normalizeUser";
+import { safeAvatarUri } from "@/utils/avatarUri";
 import { useFeed, type Post } from "@/context/FeedContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -128,7 +129,7 @@ export default function ProfileScreen() {
 
             <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={styles.profileTop}>
-                <Image source={{ uri: profileUser.avatar }} style={styles.avatar} />
+                <Image source={{ uri: safeAvatarUri(profileUser.avatar, profileUser.name) }} style={styles.avatar} />
                 {!isOwnProfile ? (
                   <View style={styles.profileActions}>
                     <TouchableOpacity

@@ -122,7 +122,7 @@ export function DrawerMenu() {
           onPress={() => go("/(tabs)/profile")}
           style={[styles.profileRow, { borderBottomColor: colors.border }]}
         >
-          {user?.avatar ? (
+          {user?.avatar && (user.avatar.startsWith("http://") || user.avatar.startsWith("https://") || user.avatar.startsWith("data:")) ? (
             <Image source={{ uri: user.avatar }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, { backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" }]}>

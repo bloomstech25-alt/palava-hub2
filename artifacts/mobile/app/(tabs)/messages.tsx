@@ -21,6 +21,7 @@ import { useMessaging, type Conversation } from "@/context/MessagingContext";
 import { useAuth } from "@/context/AuthContext";
 import type { User } from "@/context/AuthContext";
 import { normalizeUser } from "@/utils/normalizeUser";
+import { safeAvatarUri } from "@/utils/avatarUri";
 import { formatRelativeTime } from "@/utils/time";
 
 // Discriminated union so a single FlatList can render both conversation
@@ -144,7 +145,7 @@ export default function MessagesScreen() {
           activeOpacity={0.8}
         >
           <View style={styles.avatarWrap}>
-            <Image source={{ uri: conv.avatar }} style={styles.convAvatar} />
+            <Image source={{ uri: safeAvatarUri(conv.avatar, conv.name) }} style={styles.convAvatar} />
             <View style={[styles.onlineDot, { backgroundColor: "#22c55e", borderColor: colors.background }]} />
           </View>
           <View style={styles.convInfo}>
@@ -183,7 +184,7 @@ export default function MessagesScreen() {
         onPress={() => startNewChat(u.id, u.name, u.username, u.avatar, u.school?.name ?? "")}
       >
         {u.avatar ? (
-          <Image source={{ uri: u.avatar }} style={styles.suggestionAvatar} />
+          <Image source={{ uri: safeAvatarUri(u.avatar, u.name) }} style={styles.suggestionAvatar} />
         ) : (
           <View style={[styles.suggestionAvatar, styles.suggestionAvatarFallback, { backgroundColor: colors.primary }]}>
             <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>{u.name?.[0]?.toUpperCase() ?? "?"}</Text>

@@ -23,6 +23,7 @@ import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/context/AuthContext";
 import { useFeed, type Post } from "@/context/FeedContext";
 import { formatRelativeTime } from "@/utils/time";
+import { safeAvatarUri } from "@/utils/avatarUri";
 
 interface PostCardProps {
   post: Post;
@@ -202,7 +203,7 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
             style={styles.authorRow}
             activeOpacity={0.7}
           >
-            <Image source={{ uri: post.author.avatar }} style={styles.avatar} />
+            <Image source={{ uri: safeAvatarUri(post.author.avatar, post.author.name) }} style={styles.avatar} />
             <View style={styles.authorInfo}>
               <View style={styles.authorNameRow}>
                 <Text style={[styles.authorName, { color: colors.foreground }]}>{post.author.name}</Text>

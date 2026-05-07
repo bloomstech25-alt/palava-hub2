@@ -190,7 +190,7 @@ export default function RegisterScreen() {
           <View style={styles.avatarSection}>
             <TouchableOpacity onPress={pickAvatar} activeOpacity={0.85} style={styles.avatarWrap}>
               <Image
-                source={{ uri: avatarUri ?? avatarPlaceholder }}
+                source={{ uri: avatarUri && (avatarUri.startsWith("file:") || avatarUri.startsWith("http") || avatarUri.startsWith("data:")) ? avatarUri : avatarPlaceholder }}
                 style={styles.avatar}
               />
               <View style={[styles.avatarOverlay, { backgroundColor: avatarUri ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.5)" }]}>
