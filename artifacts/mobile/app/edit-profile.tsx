@@ -84,24 +84,25 @@ export default function EditProfileScreen() {
     setIsSaving(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      // If the avatar has changed and is a local URI (blob: or file:), upload to Firebase Storage
+      // If the avatar has changed and is NOT already a hosted URL, upload it
+      // to Firebase Storage. We must accept every local URI scheme the
+      // pickers can hand us — file:// (Android, iOS file copy), ph:// (iOS
+      // PhotoKit), assets-library:// (legacy iOS), content:// (Android),
+      // and blob: (web/Expo Go web preview). The previous code only checked
+      // blob:/file: so iOS ph:// URIs got written to Firestore as-is and
+      // the avatar never appeared.
       let finalAvatar = avatar;
-      const isLocalUri = avatar !== user?.avatar && (avatar.startsWith("blob:") || avatar.startsWith("file:"));
-      if (isLocalUri && user?.id) {
-        try {
-          const storageRef = ref(storage, `avatars/${user.id}`);
-          // Use the shared helper so the avatar gets compressed (≈10× smaller
-          // payload than a raw camera roll photo) and so blob:/file:/ph:
-          // URIs are read via XHR — the previous fetch().blob() path failed
-          // on iOS PHPicker URIs.
-          finalAvatar = await uploadUriToStorage(avatar, storageRef, "image/jpeg", { compress: true });
-          if (!finalAvatar.startsWith("http")) {
-            // safety net: never persist a non-http avatar URI to Firestore.
-            finalAvatar = user?.avatar ?? "";
-          }
-        } catch {
-          // Keep original avatar if upload fails
-          finalAvatar = user?.avatar ?? avatar;
+      const needsUpload =
+        avatar !== user?.avatar &&
+        avatar.length > 0 &&
+        !avatar.startsWith("http://") &&
+        !avatar.startsWith("https://") &&
+        !avatar.startsWith("data:");
+      if (needsUpload && user?.id) {
+        const storageRef = ref(storage, `avatars/${user.id}`);
+        finalAvatar = await uploadUriToStorage(avatar, storageRef, "image/jpeg", { compress: true });
+        if (!finalAvatar.startsWith("http")) {
+          throw new Error("Avatar upload did not return a valid URL");
         }
       }
       await updateUser({
@@ -115,8 +116,17 @@ export default function EditProfileScreen() {
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
-    } catch {
-      Alert.alert("Error", "Could not save profile. Please try again.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "";
+      // Surface storage-specific errors so the user knows what's wrong
+      // (auth, network, quota) instead of silently keeping the old photo.
+      const friendly =
+        msg.includes("storage/unauthorized") ? "You don't have permission to upload. Please sign in again."
+        : msg.includes("storage/quota-exceeded") ? "Storage quota exceeded. Please try again later."
+        : msg.includes("storage/unauthenticated") ? "Please sign in again to change your photo."
+        : msg.includes("network") || msg.includes("Network") ? "Couldn't reach the server. Check your connection and try again."
+        : "Could not save profile. Please try again.";
+      Alert.alert("Error", friendly);
     } finally {
       setIsSaving(false);
     }
