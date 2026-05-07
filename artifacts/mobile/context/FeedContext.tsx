@@ -326,8 +326,16 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
 
     // Strip phone from the embedded author snapshot — posts are world-readable
     // and we never want a user's phone number leaking into the public feed.
-    const { phone: _omitPhone, ...publicAuthor } = author;
+    // Also strip every `undefined` field: Firestore rejects undefined values
+    // with `Unsupported field value: undefined`, and several optional User
+    // fields (expoPushToken, bio, maritalStatus, currentLocation, etc.) are
+    // undefined for users who haven't filled them in. Without this scrub,
+    // those users can never post.
+    const { phone: _omitPhone, ...rest } = author;
     void _omitPhone;
+    const publicAuthor = Object.fromEntries(
+      Object.entries(rest).filter(([, v]) => v !== undefined),
+    ) as typeof rest;
     try {
       // Run the post insert and the user-doc counter bump in parallel —
       // they're independent writes, so there's no reason to wait for one
@@ -463,9 +471,16 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
       // requires `request.resource.data.authorId == request.auth.uid`.
       // Without it, Firestore rejects the write with "Missing or insufficient
       // permissions" and the comment never lands.
+      // Same scrub as addPost: strip phone (privacy) and any undefined
+      // fields (Firestore rejects undefined with `invalid-argument`).
+      const { phone: _omitPhone, ...rest } = author;
+      void _omitPhone;
+      const safeAuthor = Object.fromEntries(
+        Object.entries(rest).filter(([, v]) => v !== undefined),
+      ) as typeof rest;
       await addDoc(collection(db, "posts", postId, "comments"), {
         authorId: author.id,
-        author,
+        author: safeAuthor,
         content,
         likes: 0,
         likedBy: [],
