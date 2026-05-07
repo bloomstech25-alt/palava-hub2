@@ -117,13 +117,18 @@ export async function uploadUriToStorage(
   } else {
     sourceUri = uri;
   }
+  // Use response.blob() — NOT arrayBuffer(). iOS Safari's Blob polyfill
+  // throws "Creating blobs from 'ArrayBuffer' and 'ArrayBufferView' are not
+  // supported" when Firebase Storage internally tries to wrap an
+  // ArrayBuffer back into a Blob for upload. A real Blob skips that
+  // conversion and uploads cleanly across iOS Safari, Android, and native.
   const response = await fetch(sourceUri);
   if (!response.ok && response.status !== 0) {
     // status 0 is normal for file:// in RN — only treat real HTTP errors as fatal.
     throw new Error(`Failed to read URI (${response.status}): ${sourceUri}`);
   }
-  const bytes = await response.arrayBuffer();
-  await uploadBytes(storageRef, bytes, { contentType });
+  const blob = await response.blob();
+  await uploadBytes(storageRef, blob, { contentType });
   return await getDownloadURL(storageRef);
 }
 
