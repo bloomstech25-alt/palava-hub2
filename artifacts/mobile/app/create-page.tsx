@@ -80,6 +80,7 @@ export default function CreatePageScreen() {
         description: description.trim(),
         website: website.trim(),
         logo: logoUri ?? null,
+        cover: null,
         ownerId: user.id,
         ownerName: user.name,
         ownerSchool: user.school?.name ?? "",

@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -35,6 +35,7 @@ interface PageData {
   description: string;
   website: string;
   logo: string | null;
+  cover: string | null;
   ownerId: string;
   ownerName: string;
   ownerSchool: string;
@@ -57,12 +58,19 @@ export default function PageScreen() {
 
   useEffect(() => {
     if (!pageId) return;
-    getDoc(doc(db, "pages", pageId)).then((snap) => {
-      if (snap.exists()) {
-        setPage({ id: snap.id, ...snap.data() } as PageData);
-      }
-      setLoading(false);
-    });
+    const unsub = onSnapshot(
+      doc(db, "pages", pageId),
+      (snap) => {
+        if (snap.exists()) {
+          setPage({ id: snap.id, ...snap.data() } as PageData);
+        } else {
+          setPage(null);
+        }
+        setLoading(false);
+      },
+      () => setLoading(false),
+    );
+    return unsub;
   }, [pageId]);
 
   const handleFollow = async () => {
@@ -115,7 +123,10 @@ export default function PageScreen() {
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.foreground }]} numberOfLines={1}>{page.name}</Text>
         {isOwner ? (
-          <TouchableOpacity activeOpacity={0.7}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.push({ pathname: "/edit-page/[pageId]", params: { pageId: page.id } })}
+          >
             <Feather name="edit-2" size={20} color={colors.foreground} />
           </TouchableOpacity>
         ) : (
@@ -124,12 +135,18 @@ export default function PageScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        {/* Cover / Logo */}
+        {/* Cover */}
         <View style={[styles.coverArea, { backgroundColor: colors.primary + "22" }]}>
+          {page.cover ? (
+            <Image source={{ uri: page.cover }} style={styles.coverImage} resizeMode="cover" />
+          ) : null}
+        </View>
+        {/* Logo (overlaps cover) */}
+        <View style={styles.logoWrap}>
           {page.logo ? (
-            <Image source={{ uri: page.logo }} style={styles.logo} />
+            <Image source={{ uri: page.logo }} style={[styles.logo, { borderColor: colors.background }]} />
           ) : (
-            <View style={[styles.logoFallback, { backgroundColor: colors.primary }]}>
+            <View style={[styles.logoFallback, { backgroundColor: colors.primary, borderColor: colors.background }]}>
               <Feather name={typeIcon} size={36} color="#ffffff" />
             </View>
           )}
@@ -234,10 +251,14 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 40 },
   coverArea: {
     height: 160,
-    alignItems: "center",
-    justifyContent: "center",
+    overflow: "hidden",
   },
-  logo: { width: 96, height: 96, borderRadius: 24, borderWidth: 3, borderColor: "#ffffff" },
+  coverImage: { width: "100%", height: "100%" },
+  logoWrap: {
+    alignItems: "center",
+    marginTop: -48,
+  },
+  logo: { width: 96, height: 96, borderRadius: 24, borderWidth: 3 },
   logoFallback: {
     width: 96,
     height: 96,
@@ -245,7 +266,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
-    borderColor: "#ffffff",
   },
   infoCard: {
     margin: 16,

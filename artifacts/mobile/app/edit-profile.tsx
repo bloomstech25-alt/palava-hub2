@@ -41,6 +41,7 @@ export default function EditProfileScreen() {
   );
   const [currentLocation, setCurrentLocation] = useState(user?.currentLocation ?? "");
   const [currentEmployment, setCurrentEmployment] = useState(user?.currentEmployment ?? "");
+  const [dateOfBirth, setDateOfBirth] = useState(user?.dateOfBirth ?? "");
   const [isSaving, setIsSaving] = useState(false);
 
   const hasChanges =
@@ -50,7 +51,8 @@ export default function EditProfileScreen() {
     avatar !== user?.avatar ||
     (maritalStatus ?? "") !== (user?.maritalStatus ?? "") ||
     currentLocation !== (user?.currentLocation ?? "") ||
-    currentEmployment !== (user?.currentEmployment ?? "");
+    currentEmployment !== (user?.currentEmployment ?? "") ||
+    dateOfBirth !== (user?.dateOfBirth ?? "");
 
   const pickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -113,6 +115,7 @@ export default function EditProfileScreen() {
         maritalStatus: (maritalStatus || "") as NonNullable<typeof user>["maritalStatus"],
         currentLocation: currentLocation.trim(),
         currentEmployment: currentEmployment.trim(),
+        dateOfBirth: dateOfBirth.trim(),
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
@@ -292,6 +295,25 @@ export default function EditProfileScreen() {
                   );
                 })}
               </View>
+            </FieldGroup>
+
+            <FieldGroup label="Date of Birth  ·  Optional" colors={colors}>
+              <TextInput
+                style={[styles.input, { color: colors.foreground }]}
+                value={dateOfBirth}
+                onChangeText={(t) => {
+                  // Auto-format as YYYY-MM-DD while typing.
+                  const digits = t.replace(/\D/g, "").slice(0, 8);
+                  let out = digits;
+                  if (digits.length > 4) out = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+                  if (digits.length > 6) out = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+                  setDateOfBirth(out);
+                }}
+                placeholder="YYYY-MM-DD  (e.g. 2002-04-15)"
+                placeholderTextColor={colors.mutedForeground}
+                keyboardType="number-pad"
+                maxLength={10}
+              />
             </FieldGroup>
 
             <View style={[styles.readonlyGroup, { backgroundColor: colors.muted, borderColor: colors.border }]}>

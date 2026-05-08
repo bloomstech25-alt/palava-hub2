@@ -210,7 +210,7 @@ export default function ProfileScreen() {
                 <Text style={[styles.bio, { color: colors.foreground }]}>{profileUser.bio}</Text>
               ) : null}
 
-              {(profileUser.currentLocation || profileUser.currentEmployment || profileUser.maritalStatus) ? (
+              {(profileUser.currentLocation || profileUser.currentEmployment || profileUser.maritalStatus || profileUser.dateOfBirth) ? (
                 <View style={styles.detailsRow}>
                   {profileUser.currentLocation ? (
                     <View style={styles.detailItem}>
@@ -240,6 +240,23 @@ export default function ProfileScreen() {
                           complicated: "It's complicated",
                           prefer_not_to_say: "Prefer not to say",
                         } as Record<string, string>)[profileUser.maritalStatus] ?? ""}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {profileUser.dateOfBirth ? (
+                    <View style={styles.detailItem}>
+                      <Feather name="gift" size={13} color={colors.mutedForeground} />
+                      <Text style={[styles.detailText, { color: colors.mutedForeground }]}>
+                        {(() => {
+                          // Show "Apr 15" — year hidden by default for privacy.
+                          const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(profileUser.dateOfBirth ?? "");
+                          if (!m) return profileUser.dateOfBirth;
+                          const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                          const monthIdx = parseInt(m[2], 10) - 1;
+                          const day = parseInt(m[3], 10);
+                          if (monthIdx < 0 || monthIdx > 11 || !day) return profileUser.dateOfBirth;
+                          return `${months[monthIdx]} ${day}`;
+                        })()}
                       </Text>
                     </View>
                   ) : null}

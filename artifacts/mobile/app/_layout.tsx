@@ -70,6 +70,7 @@ function RootLayoutNav() {
         <Stack.Screen name="topic/[tag]" />
         <Stack.Screen name="chat/[userId]" />
         <Stack.Screen name="page/[pageId]" />
+        <Stack.Screen name="edit-page/[pageId]" options={{ presentation: "modal" }} />
         <Stack.Screen name="settings" options={{ presentation: "modal" }} />
         <Stack.Screen name="legal/privacy" options={{ presentation: "modal" }} />
         <Stack.Screen name="legal/guidelines" options={{ presentation: "modal" }} />

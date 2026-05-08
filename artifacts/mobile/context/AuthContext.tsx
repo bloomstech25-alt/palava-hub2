@@ -70,6 +70,9 @@ export interface User {
   maritalStatus?: "" | "single" | "in_relationship" | "engaged" | "married" | "complicated" | "prefer_not_to_say";
   currentLocation?: string;
   currentEmployment?: string;
+  // ISO YYYY-MM-DD. Optional. Shown on the profile so people can wish each
+  // other on birthdays — never the year publicly unless the user wants it.
+  dateOfBirth?: string;
 }
 
 interface AuthContextType {
