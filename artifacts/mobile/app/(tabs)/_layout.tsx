@@ -3,7 +3,7 @@ import { router, Tabs } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
 import React, { useEffect } from "react";
-import { Platform, StyleSheet, Text, View, useColorScheme } from "react-native";
+import { Platform, StyleSheet, Text, View, useColorScheme, useWindowDimensions } from "react-native";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/context/AuthContext";
 import { useFeed } from "@/context/FeedContext";
@@ -15,6 +15,12 @@ export default function TabLayout() {
   const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
+  const { width: winWidth } = useWindowDimensions();
+  // Collapse the web sidebar to icon-only on narrow viewports so the feed
+  // isn't squeezed off-screen. The previous fixed 240px ate most of a
+  // phone-sized browser window.
+  const isNarrowWeb = isWeb && winWidth < 760;
+  const sidebarWidth = isNarrowWeb ? 72 : 200;
   const { isAuthenticated, isLoading } = useAuth();
   const { unreadCount } = useFeed();
   const { totalUnread: msgUnread } = useMessaging();
@@ -36,26 +42,26 @@ export default function TabLayout() {
           ? {
               tabBarPosition: "left" as const,
               tabBarVariant: "material" as const,
-              tabBarLabelPosition: "beside-icon" as const,
+              tabBarLabelPosition: (isNarrowWeb ? "below-icon" : "beside-icon") as "below-icon" | "beside-icon",
               tabBarStyle: {
                 backgroundColor: colors.background,
                 borderRightWidth: 1,
                 borderRightColor: colors.border,
                 borderTopWidth: 0,
-                width: 240,
+                width: sidebarWidth,
                 paddingTop: 24,
               },
               tabBarItemStyle: {
                 borderRadius: 12,
-                marginHorizontal: 12,
+                marginHorizontal: isNarrowWeb ? 6 : 10,
                 marginVertical: 2,
-                height: 48,
-                justifyContent: "flex-start" as const,
+                height: isNarrowWeb ? 56 : 44,
+                justifyContent: (isNarrowWeb ? "center" : "flex-start") as "center" | "flex-start",
               },
               tabBarLabelStyle: {
-                fontSize: 15,
+                fontSize: isNarrowWeb ? 10 : 14,
                 fontWeight: "600" as const,
-                marginLeft: 12,
+                marginLeft: isNarrowWeb ? 0 : 10,
               },
             }
           : {
