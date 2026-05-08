@@ -44,6 +44,12 @@ export default function CreatePostScreen() {
   const [isPosting, setIsPosting] = useState(false);
   const [mediaUri, setMediaUri] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video" | "audio" | null>(null);
+  // Track the picked video's measured size + filename so we can show the
+  // user a confirmation card even when the inline <Video> preview can't
+  // render the codec (HEVC, ProRes, certain MOVs). This way they always
+  // know their clip was attached and will upload, even without a preview.
+  const [videoMeta, setVideoMeta] = useState<{ sizeMB: number; name: string } | null>(null);
+  const [videoPreviewError, setVideoPreviewError] = useState<string | null>(null);
 
   // Audio recording state — uses expo-av (already in deps).
   const recordingRef = useRef<Audio.Recording | null>(null);
@@ -134,8 +140,11 @@ export default function CreatePostScreen() {
         Alert.alert("Video too large", `Max 50MB. This video is ${sizeMB.toFixed(0)}MB. Try a shorter clip.`);
         return;
       }
+      const fname = asset.fileName ?? asset.uri.split("/").pop() ?? "video";
       setMediaUri(asset.uri);
       setMediaType("video");
+      setVideoMeta({ sizeMB: sizeMB || 0, name: fname });
+      setVideoPreviewError(null);
     }
   };
 
@@ -144,6 +153,8 @@ export default function CreatePostScreen() {
     setMediaType(null);
     setAudioDurationSec(undefined);
     setRecordSecs(0);
+    setVideoMeta(null);
+    setVideoPreviewError(null);
   };
 
   // ─── Audio recording ───────────────────────────────────────────────────────
@@ -325,14 +336,37 @@ export default function CreatePostScreen() {
               {mediaType === "image" ? (
                 <Image source={{ uri: mediaUri }} style={styles.mediaPreview} resizeMode="cover" />
               ) : mediaType === "video" ? (
-                <Video
-                  source={{ uri: mediaUri }}
-                  style={styles.mediaPreview}
-                  useNativeControls
-                  resizeMode={ResizeMode.COVER}
-                  isLooping={false}
-                  shouldPlay={false}
-                />
+                videoPreviewError ? (
+                  // The <Video> element couldn't render this clip (usually
+                  // an iOS HEVC/ProRes file the browser/native player can't
+                  // decode). The bytes are still attached and will upload
+                  // fine — show a confirmation card so the user knows.
+                  <View style={[styles.videoPreview, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    <View style={[styles.videoPlayIcon, { backgroundColor: colors.primary }]}>
+                      <Feather name="film" size={22} color="#ffffff" />
+                    </View>
+                    <Text style={[styles.videoLabel, { color: colors.foreground, fontWeight: "600" }]} numberOfLines={1}>
+                      {videoMeta?.name ?? "Video"}{videoMeta?.sizeMB ? `  ·  ${videoMeta.sizeMB.toFixed(1)}MB` : ""}
+                    </Text>
+                    <Text style={[styles.videoLabel, { color: colors.mutedForeground, fontSize: 12, textAlign: "center", paddingHorizontal: 16 }]}>
+                      Preview unavailable for this format, but the video will still upload.
+                    </Text>
+                  </View>
+                ) : (
+                  <Video
+                    source={{ uri: mediaUri }}
+                    style={styles.mediaPreview}
+                    useNativeControls
+                    resizeMode={ResizeMode.COVER}
+                    isLooping={false}
+                    shouldPlay={false}
+                    onError={(err) => {
+                      const msg = typeof err === "string" ? err : (err as { message?: string } | undefined)?.message ?? "Couldn't preview video";
+                      console.warn("[create-post] video preview failed:", msg);
+                      setVideoPreviewError(msg);
+                    }}
+                  />
+                )
               ) : (
                 <View style={[styles.videoPreview, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <View style={[styles.videoPlayIcon, { backgroundColor: colors.primary }]}>
