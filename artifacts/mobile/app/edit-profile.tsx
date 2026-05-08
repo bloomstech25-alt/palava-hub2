@@ -36,6 +36,7 @@ export default function EditProfileScreen() {
   const [username, setUsername] = useState(user?.username ?? "");
   const [bio, setBio] = useState(user?.bio ?? "");
   const [avatar, setAvatar] = useState(user?.avatar ?? "");
+  const [coverImage, setCoverImage] = useState(user?.coverImage ?? "");
   const [maritalStatus, setMaritalStatus] = useState<NonNullable<typeof user>["maritalStatus"] | "">(
     user?.maritalStatus ?? ""
   );
@@ -49,6 +50,7 @@ export default function EditProfileScreen() {
     username !== user?.username ||
     bio !== user?.bio ||
     avatar !== user?.avatar ||
+    coverImage !== (user?.coverImage ?? "") ||
     (maritalStatus ?? "") !== (user?.maritalStatus ?? "") ||
     currentLocation !== (user?.currentLocation ?? "") ||
     currentEmployment !== (user?.currentEmployment ?? "") ||
@@ -69,6 +71,24 @@ export default function EditProfileScreen() {
     });
     if (!result.canceled && result.assets[0]) {
       setAvatar(result.assets[0].uri);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  };
+
+  const pickCover = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Allow photo access to change your cover photo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: Platform.OS !== "ios",
+      aspect: [16, 9],
+      quality: 0.85,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setCoverImage(result.assets[0].uri);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   };
@@ -107,11 +127,29 @@ export default function EditProfileScreen() {
           throw new Error("Avatar upload did not return a valid URL");
         }
       }
+
+      // Cover photo: stored under posts/{uid}/cover-{ts}.jpg so it lives in
+      // the existing public-read posts folder (the avatars rule restricts
+      // the filename to literally equal the uid, which can't fit the cover).
+      let finalCover = coverImage;
+      const coverNeedsUpload =
+        coverImage !== (user?.coverImage ?? "") &&
+        coverImage.length > 0 &&
+        !coverImage.startsWith("http://") &&
+        !coverImage.startsWith("https://") &&
+        !coverImage.startsWith("data:");
+      if (coverNeedsUpload && user?.id) {
+        const fname = `cover-${Date.now()}.jpg`;
+        const coverRef = ref(storage, `posts/${user.id}/${fname}`);
+        finalCover = await uploadUriToStorage(coverImage, coverRef, "image/jpeg", { compress: true });
+      }
+
       await updateUser({
         name: name.trim(),
         username: cleanUsername,
         bio: bio.trim(),
         avatar: finalAvatar,
+        coverImage: finalCover,
         maritalStatus: (maritalStatus || "") as NonNullable<typeof user>["maritalStatus"],
         currentLocation: currentLocation.trim(),
         currentEmployment: currentEmployment.trim(),
@@ -172,6 +210,21 @@ export default function EditProfileScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Cover photo */}
+          <TouchableOpacity onPress={pickCover} activeOpacity={0.85} style={[styles.coverWrap, { backgroundColor: colors.muted }]}>
+            {coverImage ? (
+              coverImage.startsWith("http") || coverImage.startsWith("data:") ? (
+                <Image source={{ uri: coverImage }} style={styles.coverImage} resizeMode="cover" />
+              ) : (
+                <Image source={{ uri: coverImage }} style={styles.coverImage} resizeMode="cover" />
+              )
+            ) : null}
+            <View style={styles.coverOverlay}>
+              <Feather name="camera" size={18} color="#ffffff" />
+              <Text style={styles.coverOverlayText}>{coverImage ? "Change Cover" : "Add Cover Photo"}</Text>
+            </View>
+          </TouchableOpacity>
+
           {/* Avatar */}
           <View style={styles.avatarSection}>
             <TouchableOpacity onPress={pickAvatar} activeOpacity={0.85} style={styles.avatarWrap}>
@@ -368,6 +421,24 @@ const styles = StyleSheet.create({
       ? { maxWidth: 560, width: "100%", alignSelf: "center" as const }
       : null),
   },
+  coverWrap: {
+    height: 140,
+    marginHorizontal: -20,
+    marginTop: -8,
+    marginBottom: 16,
+    justifyContent: "flex-end",
+    overflow: "hidden",
+  },
+  coverImage: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%" },
+  coverOverlay: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 8,
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  coverOverlayText: { color: "#ffffff", fontSize: 13, fontWeight: "600" },
   avatarSection: { alignItems: "center", marginBottom: 32, gap: 10 },
   avatarWrap: { width: 100, height: 100, borderRadius: 50, overflow: "hidden" },
   avatar: { width: 100, height: 100, borderRadius: 50 },

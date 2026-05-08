@@ -73,6 +73,9 @@ export interface User {
   // ISO YYYY-MM-DD. Optional. Shown on the profile so people can wish each
   // other on birthdays — never the year publicly unless the user wants it.
   dateOfBirth?: string;
+  // Optional cover/banner photo shown at the top of the profile screen.
+  // Stored under `avatars/{uid}-cover` in Firebase Storage.
+  coverImage?: string;
 }
 
 interface AuthContextType {

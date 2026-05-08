@@ -127,7 +127,13 @@ export default function ProfileScreen() {
               )}
             </View>
 
-            <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            {profileUser.coverImage ? (
+              <Image source={{ uri: profileUser.coverImage }} style={styles.coverBanner} resizeMode="cover" />
+            ) : (
+              <View style={[styles.coverBanner, { backgroundColor: colors.primary + "22" }]} />
+            )}
+
+            <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border, marginTop: -32 }]}>
               <View style={styles.profileTop}>
                 <Avatar uri={profileUser.avatar} name={profileUser.name} style={styles.avatar} />
                 {!isOwnProfile ? (
@@ -366,6 +372,10 @@ const styles = StyleSheet.create({
   backBtn: { marginRight: 12 },
   headerTitle: { fontSize: 18, fontWeight: "700", flex: 1 },
   logoutBtn: { padding: 4 },
+  coverBanner: {
+    width: "100%",
+    height: 140,
+  },
   profileCard: {
     margin: 12,
     borderRadius: 16,

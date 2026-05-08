@@ -57,5 +57,18 @@ export function normalizeUser(raw: unknown, fallbackId = ""): User {
       r.notifications && typeof r.notifications === "object"
         ? (r.notifications as User["notifications"])
         : undefined,
+    maritalStatus:
+      r.maritalStatus === "single" ||
+      r.maritalStatus === "in_relationship" ||
+      r.maritalStatus === "engaged" ||
+      r.maritalStatus === "married" ||
+      r.maritalStatus === "complicated" ||
+      r.maritalStatus === "prefer_not_to_say"
+        ? r.maritalStatus
+        : "",
+    currentLocation: typeof r.currentLocation === "string" ? r.currentLocation : "",
+    currentEmployment: typeof r.currentEmployment === "string" ? r.currentEmployment : "",
+    dateOfBirth: typeof r.dateOfBirth === "string" ? r.dateOfBirth : "",
+    coverImage: typeof r.coverImage === "string" ? r.coverImage : "",
   };
 }
