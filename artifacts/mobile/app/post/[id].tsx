@@ -118,9 +118,11 @@ export default function PostDetailScreen() {
 
                 {post.mediaUri && post.mediaType === "image" && (
                   <TouchableOpacity
-                    onPress={() =>
-                      router.push({ pathname: "/image-viewer", params: { uri: post.mediaUri! } })
-                    }
+                    onPress={() => {
+                      const u = post.mediaUri!;
+                      const b64 = btoa(unescape(encodeURIComponent(u)));
+                      router.push({ pathname: "/image-viewer", params: { uri: u, b64 } });
+                    }}
                     activeOpacity={0.95}
                   >
                     <Image

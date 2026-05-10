@@ -19,7 +19,20 @@ import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 const AnimatedImage = Animated.createAnimatedComponent(ExpoImage);
 
 export default function ImageViewerScreen() {
-  const { uri } = useLocalSearchParams<{ uri?: string }>();
+  const params = useLocalSearchParams<{ uri?: string; b64?: string }>();
+  // Firebase Storage download URLs contain `?alt=media&token=...` which can
+  // get mangled when serialized through expo-router's params. We send a
+  // base64-encoded copy in `b64` and prefer it; the plain `uri` is a
+  // best-effort fallback.
+  let resolvedUri: string | undefined = params.uri;
+  if (params.b64) {
+    try {
+      resolvedUri = decodeURIComponent(escape(atob(params.b64)));
+    } catch {
+      // fall through to plain uri
+    }
+  }
+  const uri = resolvedUri;
   const insets = useSafeAreaInsets();
   const { width: winW, height: winH } = useWindowDimensions();
   const [loadError, setLoadError] = useState<string | null>(null);

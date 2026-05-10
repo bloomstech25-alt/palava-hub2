@@ -252,9 +252,13 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
         {/* Image with long-press options */}
         {post.mediaUri && post.mediaType === "image" && (
           <TouchableOpacity
-            onPress={() =>
-              router.push({ pathname: "/image-viewer", params: { uri: post.mediaUri! } })
-            }
+            onPress={() => {
+              const u = post.mediaUri!;
+              // Firebase Storage URLs (with ?alt=media&token=...) get mangled
+              // by expo-router params; send a base64 copy as a safe channel.
+              const b64 = btoa(unescape(encodeURIComponent(u)));
+              router.push({ pathname: "/image-viewer", params: { uri: u, b64 } });
+            }}
             onLongPress={() => handleImageLongPress(post.mediaUri!)}
             delayLongPress={400}
             activeOpacity={0.95}
