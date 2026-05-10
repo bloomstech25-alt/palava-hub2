@@ -252,7 +252,9 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
         {/* Image with long-press options */}
         {post.mediaUri && post.mediaType === "image" && (
           <TouchableOpacity
-            onPress={onPress}
+            onPress={() =>
+              router.push({ pathname: "/image-viewer", params: { uri: post.mediaUri! } })
+            }
             onLongPress={() => handleImageLongPress(post.mediaUri!)}
             delayLongPress={400}
             activeOpacity={0.95}
