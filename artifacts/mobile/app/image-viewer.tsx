@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
-import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Gesture,
@@ -20,6 +20,7 @@ const AnimatedImage = Animated.createAnimatedComponent(Image);
 export default function ImageViewerScreen() {
   const { uri } = useLocalSearchParams<{ uri?: string }>();
   const insets = useSafeAreaInsets();
+  const { width: winW, height: winH } = useWindowDimensions();
 
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
@@ -95,7 +96,7 @@ export default function ImageViewerScreen() {
           <View style={styles.imageWrap}>
             <AnimatedImage
               source={{ uri }}
-              style={[styles.image, animatedStyle]}
+              style={[{ width: winW, height: winH }, animatedStyle]}
               resizeMode="contain"
             />
           </View>
@@ -116,7 +117,6 @@ export default function ImageViewerScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#000" },
   imageWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-  image: { width: "100%", height: "100%" },
   closeBtn: {
     position: "absolute",
     right: 16,
