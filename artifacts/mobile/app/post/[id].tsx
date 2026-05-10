@@ -117,11 +117,18 @@ export default function PostDetailScreen() {
                 ) : null}
 
                 {post.mediaUri && post.mediaType === "image" && (
-                  <Image
-                    source={{ uri: post.mediaUri }}
-                    style={styles.detailImage}
-                    resizeMode="cover"
-                  />
+                  <TouchableOpacity
+                    onPress={() =>
+                      router.push({ pathname: "/image-viewer", params: { uri: post.mediaUri! } })
+                    }
+                    activeOpacity={0.95}
+                  >
+                    <Image
+                      source={{ uri: post.mediaUri }}
+                      style={styles.detailImage}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
                 )}
 
                 {post.mediaUri && post.mediaType === "video" && (

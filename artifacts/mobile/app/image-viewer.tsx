@@ -1,7 +1,8 @@
 import { Feather } from "@expo/vector-icons";
+import { Image as ExpoImage } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import React from "react";
-import { Image, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import React, { useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Gesture,
@@ -15,12 +16,13 @@ import Animated, {
 } from "react-native-reanimated";
 import { ThemedStatusBar } from "@/components/ThemedStatusBar";
 
-const AnimatedImage = Animated.createAnimatedComponent(Image);
+const AnimatedImage = Animated.createAnimatedComponent(ExpoImage);
 
 export default function ImageViewerScreen() {
   const { uri } = useLocalSearchParams<{ uri?: string }>();
   const insets = useSafeAreaInsets();
   const { width: winW, height: winH } = useWindowDimensions();
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
@@ -97,8 +99,21 @@ export default function ImageViewerScreen() {
             <AnimatedImage
               source={{ uri }}
               style={[{ width: winW, height: winH }, animatedStyle]}
-              resizeMode="contain"
+              contentFit="contain"
+              transition={150}
+              onError={(e) => {
+                const msg = (e as { error?: string } | undefined)?.error ?? "Couldn't load image";
+                console.warn("[image-viewer] load failed:", msg, "uri:", uri);
+                setLoadError(msg);
+              }}
             />
+            {loadError && (
+              <View style={styles.errorOverlay} pointerEvents="none">
+                <Feather name="alert-circle" size={28} color="#fff" />
+                <Text style={styles.errorText}>Couldn't load image</Text>
+                <Text style={styles.errorSub} numberOfLines={2}>{loadError}</Text>
+              </View>
+            )}
           </View>
         </GestureDetector>
 
@@ -117,6 +132,14 @@ export default function ImageViewerScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#000" },
   imageWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
+  errorOverlay: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  errorText: { color: "#fff", fontSize: 16, fontWeight: "600", marginTop: 8 },
+  errorSub: { color: "#bbb", fontSize: 12, marginTop: 4, textAlign: "center" },
   closeBtn: {
     position: "absolute",
     right: 16,
