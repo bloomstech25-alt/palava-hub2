@@ -788,41 +788,87 @@ export function PostVideo({
   uri: string;
   colors: ReturnType<typeof useColors>;
 }) {
-  // Default to a friendly landscape until the video reports its real size,
-  // then snap to whatever the source actually is (e.g. 9/16 for portrait).
+  // Twitter / Instagram-style inline player:
+  //   • starts muted + autoplays + loops (so it works in any browser/iOS)
+  //   • tap once → toggle mute (the universal "I want sound" gesture)
+  //   • tap the play/pause pill → toggle playback
+  //   • no native chrome — feels native to the feed
+  const videoRef = useRef<Video | null>(null);
   const [aspect, setAspect] = useState<number>(16 / 9);
   const [loading, setLoading] = useState(true);
+  const [isMuted, setIsMuted] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(true);
+
+  const toggleMute = () => setIsMuted((m) => !m);
+  const togglePlay = async () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (isPlaying) {
+      await v.pauseAsync();
+      setIsPlaying(false);
+    } else {
+      await v.playAsync();
+      setIsPlaying(true);
+    }
+  };
+
   return (
     <View
       style={[
         videoStyles.wrap,
-        { aspectRatio: aspect, backgroundColor: colors.muted, borderColor: colors.border },
+        { aspectRatio: aspect, backgroundColor: "#000", borderColor: colors.border },
       ]}
     >
-      <Video
-        source={{ uri }}
-        style={StyleSheet.absoluteFill}
-        useNativeControls
-        resizeMode={ResizeMode.COVER}
-        isLooping={false}
-        shouldPlay={false}
-        onLoadStart={() => setLoading(true)}
-        onReadyForDisplay={(e: any) => {
-          setLoading(false);
-          const w = e?.naturalSize?.width;
-          const h = e?.naturalSize?.height;
-          if (typeof w === "number" && typeof h === "number" && w > 0 && h > 0) {
-            // Clamp extreme ratios so a 21:9 cinema clip still fits a phone
-            // screen, and a hyper-tall portrait doesn't blow out the feed.
-            const ratio = Math.min(Math.max(w / h, 0.5), 2.0);
-            setAspect(ratio);
-          }
-        }}
-      />
+      <TouchableOpacity activeOpacity={1} onPress={toggleMute} style={StyleSheet.absoluteFill}>
+        <Video
+          ref={(r) => { videoRef.current = r; }}
+          source={{ uri }}
+          style={StyleSheet.absoluteFill}
+          useNativeControls={false}
+          resizeMode={ResizeMode.CONTAIN}
+          isLooping
+          shouldPlay
+          isMuted={isMuted}
+          onLoadStart={() => setLoading(true)}
+          onPlaybackStatusUpdate={(s) => {
+            if (s.isLoaded) setIsPlaying(s.isPlaying ?? false);
+          }}
+          onReadyForDisplay={(e: any) => {
+            setLoading(false);
+            const w = e?.naturalSize?.width;
+            const h = e?.naturalSize?.height;
+            if (typeof w === "number" && typeof h === "number" && w > 0 && h > 0) {
+              const ratio = Math.min(Math.max(w / h, 0.5), 2.0);
+              setAspect(ratio);
+            }
+          }}
+        />
+      </TouchableOpacity>
+
       {loading && (
         <View style={mediaLoaderStyles.overlay} pointerEvents="none">
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color="#fff" />
         </View>
+      )}
+
+      {/* Mute / unmute pill — bottom right */}
+      <TouchableOpacity
+        onPress={toggleMute}
+        style={videoStyles.muteBtn}
+        hitSlop={10}
+      >
+        <Feather name={isMuted ? "volume-x" : "volume-2"} size={16} color="#fff" />
+      </TouchableOpacity>
+
+      {/* Play / pause pill — bottom left, only visible when paused */}
+      {!isPlaying && (
+        <TouchableOpacity
+          onPress={togglePlay}
+          style={videoStyles.playBtn}
+          hitSlop={10}
+        >
+          <Feather name="play" size={28} color="#fff" />
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -844,6 +890,30 @@ const videoStyles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: 12,
     position: "relative",
+  },
+  muteBtn: {
+    position: "absolute",
+    bottom: 10,
+    right: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  playBtn: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    width: 64,
+    height: 64,
+    marginLeft: -32,
+    marginTop: -32,
+    borderRadius: 32,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 

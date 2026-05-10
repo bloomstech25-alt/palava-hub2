@@ -6,6 +6,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/poppins";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
@@ -96,6 +97,22 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
+
+  // Configure audio mode once at app startup so inline feed videos play
+  // sound on iOS even when the device is in silent mode (Twitter / IG
+  // behavior). Without this, every video appears to "have no sound" on
+  // any iPhone with the ringer switch flipped down.
+  useEffect(() => {
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
+      interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
+      interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
+    }).catch((err) => console.warn("[audio] setAudioModeAsync failed:", err));
+  }, []);
 
   if (!fontsLoaded && !fontError) return null;
 
