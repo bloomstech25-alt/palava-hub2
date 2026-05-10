@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useFeed } from "@/context/FeedContext";
 import { useColors } from "@/hooks/useColors";
+import { compressVideoIfNeeded } from "@/utils/compressVideo";
 
 const SUGGESTED_TAGS = [
   "StudentLife", "StudyTips", "Academic", "STEM", "Sports",
@@ -50,6 +51,8 @@ export default function CreatePostScreen() {
   // know their clip was attached and will upload, even without a preview.
   const [videoMeta, setVideoMeta] = useState<{ sizeMB: number; name: string } | null>(null);
   const [videoPreviewError, setVideoPreviewError] = useState<string | null>(null);
+  const [isCompressingVideo, setIsCompressingVideo] = useState(false);
+  const [compressPct, setCompressPct] = useState(0);
 
   // Audio recording state — uses expo-av (already in deps).
   const recordingRef = useRef<Audio.Recording | null>(null);
@@ -141,10 +144,28 @@ export default function CreatePostScreen() {
         return;
       }
       const fname = asset.fileName ?? asset.uri.split("/").pop() ?? "video";
+      // Show the picked clip immediately so the user has feedback while we
+      // transcode in the background. We swap to the compressed URI when it
+      // lands. If compression fails for any reason, the original URI stays
+      // and the upload proceeds — never block the user on transcoding.
       setMediaUri(asset.uri);
       setMediaType("video");
       setVideoMeta({ sizeMB: sizeMB || 0, name: fname });
       setVideoPreviewError(null);
+      setIsCompressingVideo(true);
+      try {
+        const result = await compressVideoIfNeeded(asset.uri, {
+          reportedSizeMB: sizeMB,
+          onProgress: (pct) => setCompressPct(Math.round(pct * 100)),
+        });
+        setMediaUri(result.uri);
+        setVideoMeta({ sizeMB: result.sizeMB || sizeMB || 0, name: fname });
+      } catch (err) {
+        console.warn("[create-post] video compress error (non-fatal):", err);
+      } finally {
+        setIsCompressingVideo(false);
+        setCompressPct(0);
+      }
     }
   };
 
@@ -333,6 +354,14 @@ export default function CreatePostScreen() {
           {/* Media preview */}
           {mediaUri && (
             <View style={styles.mediaPreviewWrap}>
+              {isCompressingVideo && mediaType === "video" && (
+                <View style={styles.compressOverlay} pointerEvents="none">
+                  <Feather name="film" size={20} color="#ffffff" />
+                  <Text style={styles.compressOverlayText}>
+                    Optimizing video… {compressPct ? `${compressPct}%` : ""}
+                  </Text>
+                </View>
+              )}
               {mediaType === "image" ? (
                 <Image source={{ uri: mediaUri }} style={styles.mediaPreview} resizeMode="cover" />
               ) : mediaType === "video" ? (
@@ -549,6 +578,20 @@ const styles = StyleSheet.create({
   },
   mediaPreviewWrap: { position: "relative", marginBottom: 12, borderRadius: 16, overflow: "hidden" },
   mediaPreview: { width: "100%", height: 220, borderRadius: 16 },
+  compressOverlay: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    zIndex: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  compressOverlayText: { color: "#fff", fontSize: 12, fontWeight: "600" },
   videoPreview: {
     width: "100%",
     height: 160,
