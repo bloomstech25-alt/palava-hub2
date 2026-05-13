@@ -89,3 +89,21 @@ id = "pjNZaF_RgguRr5saUgpMV"
 uri = "file://attached_assets/palava-hub-launch-flyer.jpg"
 type = "image"
 title = "Palava Hub — Official Launch Flyer (May 4th, 2026)"
+
+[[outputs]]
+id = "4y79k2LyIkZrEo2mNOG9m"
+uri = "file://attached_assets/play-store/01-welcome.jpg"
+type = "image"
+title = "01 — Welcome / Onboarding"
+
+[[outputs]]
+id = "CGMOwE9l_KJis8g0hEujD"
+uri = "file://attached_assets/play-store/02-login.jpg"
+type = "image"
+title = "02 — Sign In"
+
+[[outputs]]
+id = "VIMfuBhZV7DFoGRZfxMIk"
+uri = "file://attached_assets/play-store/03-register.jpg"
+type = "image"
+title = "03 — Create Account"
