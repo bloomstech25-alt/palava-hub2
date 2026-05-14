@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node scripts/serve-export.mjs",
     "build": "pnpm --filter @workspace/mobile exec expo export --platform web --output-dir ../web/dist/public && node scripts/patch-export.mjs",
+    "build:hosting": "pnpm --filter @workspace/mobile exec expo export --platform web --output-dir ../web/dist/public && HOSTING=1 node scripts/patch-export.mjs",
     "serve": "node scripts/serve-export.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

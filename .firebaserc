@@ -1,0 +1,17 @@
+{
+  "projects": {
+    "default": "palava-hub"
+  },
+  "targets": {
+    "palava-hub": {
+      "hosting": {
+        "web": [
+          "palava-hub"
+        ],
+        "admin": [
+          "palava-hub-admin"
+        ]
+      }
+    }
+  }
+}

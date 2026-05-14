@@ -5,6 +5,14 @@
   "scripts": {
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "build:web": "pnpm --filter @workspace/web run build:hosting",
+    "build:admin": "pnpm --filter @workspace/admin run build",
+    "build:hosting": "pnpm run build:web && BASE_PATH=/ PORT=23744 pnpm run build:admin",
+    "deploy:rules": "firebase deploy --only firestore:rules,storage",
+    "deploy:web": "pnpm run build:web && firebase deploy --only hosting:web",
+    "deploy:admin": "BASE_PATH=/ PORT=23744 pnpm run build:admin && firebase deploy --only hosting:admin",
+    "deploy:hosting": "pnpm run build:hosting && firebase deploy --only hosting",
+    "deploy:all": "pnpm run build:hosting && firebase deploy",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },

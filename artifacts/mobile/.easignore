@@ -1,0 +1,32 @@
+# Files EAS Build should NOT upload (keeps build context small/fast).
+# Mirrors .gitignore plus monorepo cruft we don't need on the build server.
+
+node_modules
+.expo
+.expo-shared
+web-build
+dist
+build
+
+# Sibling artifacts — EAS only needs the mobile package
+../web
+../admin
+../api-server
+../mockup-sandbox
+
+# Workspace-level junk we don't ship to the build server
+../../attached_assets
+../../screenshots
+../../.cache
+../../.local
+../../.git
+../../node_modules
+../../*.tar.gz
+../../*.zip
+
+# Secrets must never reach EAS build context
+.env
+.env.*
+*.pem
+service-account*.json
+firebase-service-account*.json

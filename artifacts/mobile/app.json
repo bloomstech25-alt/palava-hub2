@@ -15,6 +15,8 @@
     },
     "ios": {
       "supportsTablet": false,
+      "bundleIdentifier": "com.palavahub.app",
+      "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "Palava Hub needs camera access to let you go live and post photos.",
         "NSMicrophoneUsageDescription": "Palava Hub needs microphone access for live video sessions.",
@@ -23,6 +25,12 @@
       }
     },
     "android": {
+      "package": "com.palavahub.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#0D0A08"
+      },
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
