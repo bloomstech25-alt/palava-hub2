@@ -236,7 +236,7 @@ export const FlagPostResponse = zod.object({
 });
 
 /**
- * @summary Pin or unpin a post
+ * @summary Toggle pin on a post
  */
 export const PinPostParams = zod.object({
   id: zod.coerce.string(),
@@ -244,5 +244,13 @@ export const PinPostParams = zod.object({
 
 export const PinPostResponse = zod.object({
   id: zod.string(),
+  content: zod.string(),
+  authorName: zod.string(),
+  authorUsername: zod.string(),
+  schoolName: zod.string(),
+  likes: zod.number(),
+  comments: zod.number(),
+  isFlagged: zod.boolean(),
   isPinned: zod.boolean(),
+  createdAt: zod.string(),
 });

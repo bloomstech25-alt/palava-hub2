@@ -99,6 +99,7 @@ export interface AdminPost {
   likes: number;
   comments: number;
   isFlagged: boolean;
+  isPinned: boolean;
   createdAt: string;
 }
 

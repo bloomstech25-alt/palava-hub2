@@ -1,6 +1,10 @@
 import { getApps, getApp, initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { initializeFirestore, getFirestore } from "firebase/firestore";
+import {
+  initializeFirestore,
+  getFirestore,
+  type FirestoreSettings,
+} from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -20,10 +24,14 @@ export const auth = getAuth(app);
 // (Replit's proxy blocks WebSocket upgrades, causing 600ms timeout errors).
 function buildDb() {
   try {
-    return initializeFirestore(app, {
+    // `useFetchStreams: false` is intentional and still respected at runtime
+    // on Firebase JS SDK ≥10, but its type was dropped from `FirestoreSettings`.
+    // Keep the runtime flag and silence the type-only complaint.
+    const settings = {
       experimentalAutoDetectLongPolling: true,
       useFetchStreams: false,
-    }, "default");
+    } as FirestoreSettings;
+    return initializeFirestore(app, settings, "default");
   } catch {
     return getFirestore(app, "default");
   }

@@ -230,6 +230,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/AdminUser"
 
+  /users/{id}:
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
   /posts:
     get:
       operationId: listPosts
@@ -283,6 +298,25 @@ paths:
       responses:
         "200":
           description: Post flagged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPost"
+
+  /posts/{id}/pin:
+    post:
+      operationId: pinPost
+      tags: [posts]
+      summary: Toggle pin on a post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Post pin toggled
           content:
             application/json:
               schema:
@@ -427,6 +461,8 @@ components:
           type: integer
         isFlagged:
           type: boolean
+        isPinned:
+          type: boolean
         createdAt:
           type: string
-      required: [id, content, authorName, authorUsername, schoolName, likes, comments, isFlagged, createdAt]
+      required: [id, content, authorName, authorUsername, schoolName, likes, comments, isFlagged, isPinned, createdAt]
