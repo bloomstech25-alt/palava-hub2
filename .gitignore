@@ -35,6 +35,14 @@ node_modules
 *.pem
 service-account*.json
 firebase-service-account*.json
+# Block any file whose name contains a service-account hint, regardless of extension
+**/*service-account*
+**/*service_account*
+**/*private-key*
+**/*private_key*
+attached_assets/Pasted--type-service-account*
+attached_assets/Pasted*private-key*
+attached_assets/Pasted*BEGIN*PRIVATE*KEY*
 
 # Firebase
 .firebase/
