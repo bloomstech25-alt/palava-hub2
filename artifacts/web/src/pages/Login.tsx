@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 
+const LOGO = `${import.meta.env.BASE_URL}palava-lockup.png`;
+
 export default function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
@@ -27,72 +29,109 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row items-center justify-center px-6 py-10 gap-12 lg:gap-24 max-w-[1100px] mx-auto">
-      <section className="flex-1 text-center lg:text-left">
-        <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
-          <div className="w-16 h-16 rounded-2xl bg-fb-blue flex items-center justify-center text-white font-black text-3xl shadow-lg">
-            P
-          </div>
-          <h1 className="text-5xl font-black text-fb-blue tracking-tight">
-            Palava Hub
-          </h1>
-        </div>
-        <p className="text-xl lg:text-2xl text-fb-text leading-snug max-w-md mx-auto lg:mx-0">
-          Connect with friends, classmates and your school community across Liberia.
-        </p>
-      </section>
+    <div
+      className="min-h-screen relative overflow-hidden"
+      style={{
+        background:
+          "radial-gradient(ellipse at top left, #2a1408 0%, #0d0a08 55%, #000 100%)",
+      }}
+    >
+      {/* Liberian flag accent stripes */}
+      <div className="absolute top-0 left-0 right-0 h-1 flex">
+        <div className="flex-1 bg-palava-red" />
+        <div className="flex-1 bg-white" />
+        <div className="flex-1 bg-palava-red" />
+        <div className="flex-1 bg-palava-gold" />
+      </div>
+      {/* Glow accents */}
+      <div className="pointer-events-none absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-palava-red/20 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-palava-gold/10 blur-3xl" />
 
-      <section className="w-full max-w-[400px]">
-        <form
-          onSubmit={submit}
-          className="bg-white rounded-xl shadow-xl p-5 space-y-3"
-        >
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email address"
-            required
-            autoComplete="email"
-            className="w-full px-4 py-3 border border-fb-border rounded-md text-[17px] focus:outline-none focus:ring-2 focus:ring-fb-blue/40 focus:border-fb-blue"
+      <div className="relative min-h-screen flex flex-col lg:flex-row items-center justify-center px-6 py-12 gap-10 lg:gap-20 max-w-[1200px] mx-auto">
+        {/* Hero / brand */}
+        <section className="flex-1 text-center lg:text-left text-white">
+          <img
+            src={LOGO}
+            alt="Palava Hub"
+            className="h-20 sm:h-24 mx-auto lg:mx-0 mb-6 select-none"
+            draggable={false}
           />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            required
-            autoComplete="current-password"
-            className="w-full px-4 py-3 border border-fb-border rounded-md text-[17px] focus:outline-none focus:ring-2 focus:ring-fb-blue/40 focus:border-fb-blue"
-          />
-          {error && (
-            <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded">
-              {error}
-            </div>
-          )}
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full bg-fb-blue hover:bg-fb-blue-hover text-white font-bold py-3 rounded-md text-[20px] disabled:opacity-60"
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-tight tracking-tight">
+            The home of Liberian
+            <br />
+            <span className="text-palava-gold">student life.</span>
+          </h1>
+          <p className="mt-5 text-lg sm:text-xl text-white/80 max-w-md mx-auto lg:mx-0 leading-snug">
+            Connect with friends, classmates and your school community across
+            Liberia — chat, share, and keep up with campus jams.
+          </p>
+          <div className="mt-6 flex items-center justify-center lg:justify-start gap-2 text-sm text-white/60">
+            <span className="inline-block w-2 h-2 rounded-full bg-palava-gold" />
+            Proudly Liberian · Made for students
+          </div>
+        </section>
+
+        {/* Auth card */}
+        <section className="w-full max-w-[420px]">
+          <form
+            onSubmit={submit}
+            className="bg-white rounded-2xl shadow-2xl p-6 space-y-3 border border-white/10"
           >
-            {busy ? "Signing in…" : "Log In"}
-          </button>
-          <div className="text-center text-fb-blue text-sm hover:underline cursor-pointer">
-            Forgotten password?
-          </div>
-          <div className="border-t border-fb-border pt-4 text-center">
-            <Link
-              href="/register"
-              className="inline-block bg-green-500 hover:bg-green-600 text-white font-bold px-6 py-3 rounded-md text-[17px]"
+            <h2 className="text-lg font-bold text-palava-dark-2 mb-1">
+              Welcome back
+            </h2>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email address"
+              required
+              autoComplete="email"
+              className="w-full px-4 py-3 border border-fb-border rounded-lg text-[16px] focus:outline-none focus:ring-2 focus:ring-palava-red/30 focus:border-palava-red"
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              required
+              autoComplete="current-password"
+              className="w-full px-4 py-3 border border-fb-border rounded-lg text-[16px] focus:outline-none focus:ring-2 focus:ring-palava-red/30 focus:border-palava-red"
+            />
+            {error && (
+              <div className="text-sm text-red-700 bg-red-50 border border-red-100 px-3 py-2 rounded">
+                {error}
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full bg-palava-red hover:bg-palava-red-dark text-white font-bold py-3 rounded-lg text-[17px] disabled:opacity-60 shadow-md shadow-palava-red/20 transition-colors"
             >
-              Create new account
-            </Link>
-          </div>
-        </form>
-        <p className="text-center text-xs text-fb-text-secondary mt-4">
-          Made with pride in Liberia 🇱🇷
-        </p>
-      </section>
+              {busy ? "Signing in…" : "Log In"}
+            </button>
+            <div className="text-center">
+              <button
+                type="button"
+                className="text-palava-red text-sm font-medium hover:underline"
+              >
+                Forgotten password?
+              </button>
+            </div>
+            <div className="border-t border-fb-border pt-4 text-center">
+              <Link
+                href="/register"
+                className="inline-block bg-palava-gold hover:bg-palava-gold-light text-palava-dark-2 font-bold px-6 py-3 rounded-lg text-[16px] shadow-md shadow-palava-gold/30 transition-colors"
+              >
+                Create new account
+              </Link>
+            </div>
+          </form>
+          <p className="text-center text-xs text-white/60 mt-5">
+            Made with pride in Liberia 🇱🇷
+          </p>
+        </section>
+      </div>
     </div>
   );
 }

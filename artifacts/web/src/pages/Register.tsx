@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 
+const LOGO = `${import.meta.env.BASE_URL}palava-lockup.png`;
+
 export default function Register() {
   const { register } = useAuth();
   const [name, setName] = useState("");
@@ -31,20 +33,37 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-[450px]">
-        <div className="flex items-center justify-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-xl bg-fb-blue flex items-center justify-center text-white font-black text-xl">
-            P
-          </div>
-          <h1 className="text-3xl font-black text-fb-blue">Palava Hub</h1>
-        </div>
+    <div
+      className="min-h-screen relative overflow-hidden flex items-center justify-center px-4 py-10"
+      style={{
+        background:
+          "radial-gradient(ellipse at top left, #2a1408 0%, #0d0a08 55%, #000 100%)",
+      }}
+    >
+      <div className="absolute top-0 left-0 right-0 h-1 flex">
+        <div className="flex-1 bg-palava-red" />
+        <div className="flex-1 bg-white" />
+        <div className="flex-1 bg-palava-red" />
+        <div className="flex-1 bg-palava-gold" />
+      </div>
+      <div className="pointer-events-none absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-palava-red/20 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-palava-gold/10 blur-3xl" />
+
+      <div className="relative w-full max-w-[460px]">
+        <img
+          src={LOGO}
+          alt="Palava Hub"
+          className="h-16 mx-auto mb-6 select-none"
+          draggable={false}
+        />
 
         <form
           onSubmit={submit}
-          className="bg-white rounded-xl shadow-xl p-6 space-y-3"
+          className="bg-white rounded-2xl shadow-2xl p-6 space-y-3 border border-white/10"
         >
-          <h2 className="text-2xl font-bold text-center">Create a new account</h2>
+          <h2 className="text-2xl font-bold text-center text-palava-dark-2">
+            Join Palava Hub
+          </h2>
           <p className="text-center text-sm text-fb-text-secondary border-b border-fb-border pb-3">
             It's quick and easy.
           </p>
@@ -54,7 +73,7 @@ export default function Register() {
             onChange={(e) => setName(e.target.value)}
             placeholder="Full name"
             required
-            className="w-full px-4 py-3 border border-fb-border rounded-md text-[15px] bg-fb-bg focus:bg-white focus:outline-none focus:ring-2 focus:ring-fb-blue/40"
+            className="w-full px-4 py-3 border border-fb-border rounded-lg text-[15px] bg-fb-bg focus:bg-white focus:outline-none focus:ring-2 focus:ring-palava-red/30 focus:border-palava-red"
           />
           <input
             type="text"
@@ -65,7 +84,7 @@ export default function Register() {
             placeholder="Username"
             required
             minLength={3}
-            className="w-full px-4 py-3 border border-fb-border rounded-md text-[15px] bg-fb-bg focus:bg-white focus:outline-none focus:ring-2 focus:ring-fb-blue/40"
+            className="w-full px-4 py-3 border border-fb-border rounded-lg text-[15px] bg-fb-bg focus:bg-white focus:outline-none focus:ring-2 focus:ring-palava-red/30 focus:border-palava-red"
           />
           <input
             type="email"
@@ -73,7 +92,7 @@ export default function Register() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email address"
             required
-            className="w-full px-4 py-3 border border-fb-border rounded-md text-[15px] bg-fb-bg focus:bg-white focus:outline-none focus:ring-2 focus:ring-fb-blue/40"
+            className="w-full px-4 py-3 border border-fb-border rounded-lg text-[15px] bg-fb-bg focus:bg-white focus:outline-none focus:ring-2 focus:ring-palava-red/30 focus:border-palava-red"
           />
           <input
             type="password"
@@ -82,10 +101,10 @@ export default function Register() {
             placeholder="New password (min 6 characters)"
             required
             minLength={6}
-            className="w-full px-4 py-3 border border-fb-border rounded-md text-[15px] bg-fb-bg focus:bg-white focus:outline-none focus:ring-2 focus:ring-fb-blue/40"
+            className="w-full px-4 py-3 border border-fb-border rounded-lg text-[15px] bg-fb-bg focus:bg-white focus:outline-none focus:ring-2 focus:ring-palava-red/30 focus:border-palava-red"
           />
           {error && (
-            <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded">
+            <div className="text-sm text-red-700 bg-red-50 border border-red-100 px-3 py-2 rounded">
               {error}
             </div>
           )}
@@ -95,16 +114,19 @@ export default function Register() {
           <button
             type="submit"
             disabled={busy}
-            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-md text-[17px] disabled:opacity-60"
+            className="w-full bg-palava-gold hover:bg-palava-gold-light text-palava-dark-2 font-bold py-3 rounded-lg text-[17px] disabled:opacity-60 shadow-md shadow-palava-gold/30 transition-colors"
           >
             {busy ? "Creating account…" : "Sign Up"}
           </button>
           <div className="text-center pt-2">
-            <Link href="/login" className="text-fb-blue text-sm hover:underline">
+            <Link href="/login" className="text-palava-red text-sm font-medium hover:underline">
               Already have an account?
             </Link>
           </div>
         </form>
+        <p className="text-center text-xs text-white/60 mt-5">
+          Made with pride in Liberia 🇱🇷
+        </p>
       </div>
     </div>
   );

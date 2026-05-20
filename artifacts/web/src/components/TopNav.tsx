@@ -32,10 +32,12 @@ export function TopNav() {
           className="flex items-center gap-2 shrink-0"
           aria-label="Palava Hub home"
         >
-          <div className="w-10 h-10 rounded-full bg-fb-blue flex items-center justify-center text-white font-black text-lg">
-            P
-          </div>
-          <span className="hidden lg:block font-black text-lg text-fb-text">
+          <img
+            src={`${import.meta.env.BASE_URL}palava-icon.png`}
+            alt=""
+            className="w-10 h-10 rounded-full object-cover"
+          />
+          <span className="hidden lg:block font-black text-lg text-palava-red">
             Palava Hub
           </span>
         </Link>

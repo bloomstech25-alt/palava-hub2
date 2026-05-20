@@ -1,16 +1,25 @@
 @import "tailwindcss";
 
 @theme {
-  --color-fb-blue: #0866ff;
-  --color-fb-blue-hover: #0a5ce0;
-  --color-fb-bg: #f0f2f5;
+  /* Palava Hub official palette (Liberian dark theme).
+     The `fb-*` token names are kept so component classes stay terse,
+     but the values are Palava brand colors — NOT Facebook blue. */
+  --color-fb-blue: #bf0a30;          /* Palava red (primary action) */
+  --color-fb-blue-hover: #9a0826;    /* Palava red hover */
+  --color-fb-bg: #f0f2f5;            /* light feed background */
   --color-fb-card: #ffffff;
-  --color-fb-border: #ced0d4;
-  --color-fb-text: #050505;
+  --color-fb-border: #e4e6eb;
+  --color-fb-text: #1a0e06;
   --color-fb-text-secondary: #65676b;
   --color-fb-hover: #f2f2f2;
+
   --color-palava-red: #bf0a30;
+  --color-palava-red-dark: #9a0826;
   --color-palava-gold: #d4a12a;
+  --color-palava-gold-light: #f1c232;
+  --color-palava-cream: #fdf6ef;
+  --color-palava-dark: #0d0a08;
+  --color-palava-dark-2: #1a0e06;
 }
 
 html, body, #root {
@@ -19,8 +28,8 @@ html, body, #root {
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   background: var(--color-fb-bg);
   color: var(--color-fb-text);
   -webkit-font-smoothing: antialiased;
