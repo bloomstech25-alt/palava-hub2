@@ -13,7 +13,8 @@ import {
 
 const router: IRouter = Router();
 
-router.get("/users", async (req, res): Promise<void> => {
+// Admin-only: exposes user PII (email) and moderation flags.
+router.get("/users", requireAdmin, async (req, res): Promise<void> => {
   const query = ListUsersQueryParams.safeParse(req.query);
   if (!query.success) {
     res.status(400).json({ error: query.error.message });

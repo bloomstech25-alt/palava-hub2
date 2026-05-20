@@ -12,9 +12,11 @@ import {
   UpdateSchoolResponse,
   DeleteSchoolParams,
 } from "@workspace/api-zod";
+import { requireAdmin } from "../lib/require-admin";
 
 const router: IRouter = Router();
 
+// Public: schools list is consumed by the mobile app's signup/school-picker.
 router.get("/schools", async (req, res): Promise<void> => {
   const query = ListSchoolsQueryParams.safeParse(req.query);
   if (!query.success) {
@@ -42,7 +44,7 @@ router.get("/schools", async (req, res): Promise<void> => {
   }))));
 });
 
-router.post("/schools", async (req, res): Promise<void> => {
+router.post("/schools", requireAdmin, async (req, res): Promise<void> => {
   const parsed = CreateSchoolBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -62,6 +64,7 @@ router.post("/schools", async (req, res): Promise<void> => {
   }));
 });
 
+// Public: individual school lookup is consumed by the mobile app.
 router.get("/schools/:id", async (req, res): Promise<void> => {
   const params = GetSchoolParams.safeParse(req.params);
   if (!params.success) {
@@ -85,7 +88,7 @@ router.get("/schools/:id", async (req, res): Promise<void> => {
   }));
 });
 
-router.put("/schools/:id", async (req, res): Promise<void> => {
+router.put("/schools/:id", requireAdmin, async (req, res): Promise<void> => {
   const params = UpdateSchoolParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -121,7 +124,7 @@ router.put("/schools/:id", async (req, res): Promise<void> => {
   }));
 });
 
-router.delete("/schools/:id", async (req, res): Promise<void> => {
+router.delete("/schools/:id", requireAdmin, async (req, res): Promise<void> => {
   const params = DeleteSchoolParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

@@ -13,7 +13,8 @@ import {
 
 const router: IRouter = Router();
 
-router.get("/posts", async (req, res): Promise<void> => {
+// Admin-only: moderation tool that surfaces all posts including flagged content.
+router.get("/posts", requireAdmin, async (req, res): Promise<void> => {
   const query = ListPostsQueryParams.safeParse(req.query);
   if (!query.success) {
     res.status(400).json({ error: query.error.message });
