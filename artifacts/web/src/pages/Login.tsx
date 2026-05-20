@@ -19,7 +19,11 @@ export default function Login() {
       await login(email, password);
     } catch (err) {
       const code = (err as { code?: string })?.code ?? "";
-      if (code.includes("invalid") || code.includes("wrong-password") || code.includes("user-not-found"))
+      if (code === "auth/user-disabled")
+        setError(
+          "Your account has been suspended. If you believe this is a mistake, please contact support at support@palavahub.com.",
+        );
+      else if (code.includes("invalid") || code.includes("wrong-password") || code.includes("user-not-found"))
         setError("Invalid email or password.");
       else if (code.includes("too-many"))
         setError("Too many attempts. Try again later.");

@@ -244,7 +244,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
       const code = err.code ?? "";
       const msg =
-        code === "auth/invalid-credential" || code === "auth/wrong-password"
+        code === "auth/user-disabled"
+          ? "Your account has been suspended. Please contact support via Settings → Report & Help, or email support@palavahub.com, if you believe this is a mistake."
+          : code === "auth/invalid-credential" || code === "auth/wrong-password"
           ? "Invalid email or password."
           : code === "auth/user-not-found"
           ? "No account with that email."
