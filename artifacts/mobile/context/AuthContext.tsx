@@ -354,8 +354,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     const updated = { ...user, ...updates };
     setUser(updated);
+    // If the user changed school, reconcile the per-school userCount counters
+    // so the admin's Schools tab stays accurate.
+    const oldSchoolName = user.school?.name;
+    const newSchoolName = updates.school?.name;
+    const schoolChanged =
+      typeof newSchoolName === "string" && newSchoolName !== oldSchoolName;
     try {
       await updateDoc(doc(db, "users", user.id), updates as Record<string, unknown>);
+      if (schoolChanged) {
+        void adjustSchoolUserCount(oldSchoolName, -1);
+        void adjustSchoolUserCount(newSchoolName, 1);
+      }
     } catch {
     }
   }, [user]);
