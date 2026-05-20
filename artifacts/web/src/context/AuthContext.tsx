@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -12,7 +13,16 @@ import {
   signOut,
   type User as FirebaseUser,
 } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
+  arrayUnion,
+  arrayRemove,
+  increment,
+} from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 
 export type UserProfile = {
@@ -27,6 +37,9 @@ export type UserProfile = {
   following?: number;
   posts?: number;
   isVerified?: boolean;
+  followingIds?: string[];
+  blockedUserIds?: string[];
+  theme?: "light" | "dark" | "auto";
 };
 
 type AuthContextValue = {
@@ -41,6 +54,12 @@ type AuthContextValue = {
     username: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
+  followUser: (targetId: string) => Promise<void>;
+  unfollowUser: (targetId: string) => Promise<void>;
+  blockUser: (targetId: string) => Promise<void>;
+  unblockUser: (targetId: string) => Promise<void>;
+  isFollowing: (targetId: string) => boolean;
+  updateProfile: (patch: Partial<UserProfile>) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -92,13 +111,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data.email.trim(),
       data.password,
     );
-    const newProfile: Omit<UserProfile, "id"> & { createdAt: unknown } = {
+    const newProfile = {
+      id: cred.user.uid,
       name: data.name,
       username: data.username,
       email: data.email,
       followers: 0,
       following: 0,
       posts: 0,
+      followingIds: [],
+      blockedUserIds: [],
       createdAt: serverTimestamp(),
     };
     await setDoc(doc(db, "users", cred.user.uid), newProfile);
@@ -108,9 +130,148 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut(auth);
   }
 
+  const followUser = useCallback(async (targetId: string) => {
+    if (!profile || targetId === profile.id) return;
+    if ((profile.followingIds ?? []).includes(targetId)) return;
+    setProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            followingIds: [...(prev.followingIds ?? []), targetId],
+            following: (prev.following ?? 0) + 1,
+          }
+        : prev,
+    );
+    try {
+      await Promise.all([
+        updateDoc(doc(db, "users", profile.id), {
+          followingIds: arrayUnion(targetId),
+          following: increment(1),
+        }),
+        updateDoc(doc(db, "users", targetId), {
+          followers: increment(1),
+        }),
+      ]);
+    } catch {
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              followingIds: (prev.followingIds ?? []).filter(
+                (id) => id !== targetId,
+              ),
+              following: Math.max(0, (prev.following ?? 1) - 1),
+            }
+          : prev,
+      );
+    }
+  }, [profile]);
+
+  const unfollowUser = useCallback(async (targetId: string) => {
+    if (!profile) return;
+    if (!(profile.followingIds ?? []).includes(targetId)) return;
+    setProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            followingIds: (prev.followingIds ?? []).filter(
+              (id) => id !== targetId,
+            ),
+            following: Math.max(0, (prev.following ?? 1) - 1),
+          }
+        : prev,
+    );
+    try {
+      await Promise.all([
+        updateDoc(doc(db, "users", profile.id), {
+          followingIds: arrayRemove(targetId),
+          following: increment(-1),
+        }),
+        updateDoc(doc(db, "users", targetId), {
+          followers: increment(-1),
+        }),
+      ]);
+    } catch {
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              followingIds: [...(prev.followingIds ?? []), targetId],
+              following: (prev.following ?? 0) + 1,
+            }
+          : prev,
+      );
+    }
+  }, [profile]);
+
+  const blockUser = useCallback(async (targetId: string) => {
+    if (!profile) return;
+    setProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            blockedUserIds: [...(prev.blockedUserIds ?? []), targetId],
+          }
+        : prev,
+    );
+    try {
+      await updateDoc(doc(db, "users", profile.id), {
+        blockedUserIds: arrayUnion(targetId),
+      });
+    } catch {
+      /* rollback handled by next snapshot */
+    }
+  }, [profile]);
+
+  const unblockUser = useCallback(async (targetId: string) => {
+    if (!profile) return;
+    setProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            blockedUserIds: (prev.blockedUserIds ?? []).filter(
+              (id) => id !== targetId,
+            ),
+          }
+        : prev,
+    );
+    try {
+      await updateDoc(doc(db, "users", profile.id), {
+        blockedUserIds: arrayRemove(targetId),
+      });
+    } catch {
+      /* ignore */
+    }
+  }, [profile]);
+
+  const isFollowing = useCallback(
+    (targetId: string) =>
+      !!profile && (profile.followingIds ?? []).includes(targetId),
+    [profile],
+  );
+
+  const updateProfile = useCallback(async (patch: Partial<UserProfile>) => {
+    if (!profile) return;
+    setProfile((prev) => (prev ? { ...prev, ...patch } : prev));
+    await updateDoc(doc(db, "users", profile.id), patch as Record<string, unknown>);
+  }, [profile]);
+
   return (
     <AuthContext.Provider
-      value={{ loading, firebaseUser, profile, login, register, logout }}
+      value={{
+        loading,
+        firebaseUser,
+        profile,
+        login,
+        register,
+        logout,
+        followUser,
+        unfollowUser,
+        blockUser,
+        unblockUser,
+        isFollowing,
+        updateProfile,
+      }}
     >
       {children}
     </AuthContext.Provider>
