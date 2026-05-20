@@ -169,8 +169,7 @@ Rules at `firestore.rules` are the server-side enforcement layer for moderation,
 
 #### Routes
 - `GET /api/healthz` — health check
-- `POST /api/admin/login` — admin authentication
-- `GET /api/admin/stats` — platform statistics (Firestore + PostgreSQL)
+- `GET /api/admin/stats` — platform statistics (Firestore + PostgreSQL); requires Firebase ID token with `admin` custom claim
 - `GET/POST /api/schools` — list and create schools (PostgreSQL)
 - `GET/PUT/DELETE /api/schools/:id` — individual school management (PostgreSQL)
 - `GET /api/users` — list users from Firestore (filterable)

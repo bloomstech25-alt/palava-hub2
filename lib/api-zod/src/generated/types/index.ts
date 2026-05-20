@@ -6,8 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export * from "./adminLoginBody";
-export * from "./adminLoginResponse";
 export * from "./adminPost";
 export * from "./adminStats";
 export * from "./adminUser";

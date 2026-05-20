@@ -3,37 +3,9 @@ import { db, schoolsTable } from "@workspace/db";
 import { eq, count } from "drizzle-orm";
 import { firestore } from "../lib/firebase-admin";
 import { requireAdmin } from "../lib/require-admin";
-import {
-  AdminLoginBody,
-  AdminLoginResponse,
-  GetAdminStatsResponse,
-} from "@workspace/api-zod";
+import { GetAdminStatsResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
-
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "studentconnect2024";
-
-router.post("/admin/login", async (req, res): Promise<void> => {
-  const parsed = AdminLoginBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-
-  if (
-    parsed.data.username !== ADMIN_USERNAME ||
-    parsed.data.password !== ADMIN_PASSWORD
-  ) {
-    res.status(401).json({ error: "Invalid credentials" });
-    return;
-  }
-
-  const token = Buffer.from(`${ADMIN_USERNAME}:${Date.now()}`).toString(
-    "base64"
-  );
-  res.json(AdminLoginResponse.parse({ success: true, token }));
-});
 
 router.get("/admin/stats", requireAdmin, async (_req, res): Promise<void> => {
   try {

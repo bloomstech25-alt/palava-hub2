@@ -33,27 +33,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
-  /admin/login:
-    post:
-      operationId: adminLogin
-      tags: [admin]
-      summary: Admin login
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminLoginBody"
-      responses:
-        "200":
-          description: Login success
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AdminLoginResponse"
-        "401":
-          description: Unauthorized
-
   /admin/stats:
     get:
       operationId: getAdminStats
@@ -330,24 +309,6 @@ components:
         status:
           type: string
       required: [status]
-
-    AdminLoginBody:
-      type: object
-      properties:
-        username:
-          type: string
-        password:
-          type: string
-      required: [username, password]
-
-    AdminLoginResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        token:
-          type: string
-      required: [success, token]
 
     AdminStats:
       type: object

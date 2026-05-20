@@ -9,16 +9,6 @@ export interface HealthStatus {
   status: string;
 }
 
-export interface AdminLoginBody {
-  username: string;
-  password: string;
-}
-
-export interface AdminLoginResponse {
-  success: boolean;
-  token: string;
-}
-
 export interface AdminStats {
   totalUsers: number;
   totalPosts: number;

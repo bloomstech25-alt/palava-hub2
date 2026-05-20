@@ -15,19 +15,6 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
- * @summary Admin login
- */
-export const AdminLoginBody = zod.object({
-  username: zod.string(),
-  password: zod.string(),
-});
-
-export const AdminLoginResponse = zod.object({
-  success: zod.boolean(),
-  token: zod.string(),
-});
-
-/**
  * @summary Get platform stats
  */
 export const GetAdminStatsResponse = zod.object({
