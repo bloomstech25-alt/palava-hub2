@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAdminAuth } from "@/lib/auth";
 import Layout from "@/components/layout";
 import LoginPage from "@/pages/login";
+import PrivacyPolicyPage from "@/pages/privacy";
 import DashboardPage from "@/pages/dashboard";
 import SchoolsPage from "@/pages/schools";
 import UsersPage from "@/pages/users";
@@ -42,6 +43,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={LoginPage} />
+      <Route path="/privacy" component={PrivacyPolicyPage} />
+      <Route path="/privacy-policy" component={PrivacyPolicyPage} />
       <Route path="/dashboard">
         <ProtectedRoute>
           <Layout>
