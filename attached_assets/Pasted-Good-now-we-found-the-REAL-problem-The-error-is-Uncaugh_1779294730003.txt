@@ -1,0 +1,173 @@
+Good — now we found the REAL problem.
+
+The error is:
+
+Uncaught TypeError: P.map is not a function
+
+That means your app is trying to use:
+
+something.map(...)
+
+…but that something is NOT an array.
+
+Since it is happening on ALL tabs, your app is probably receiving:
+
+an object instead of array
+null
+undefined
+Firebase snapshot object
+Firestore document object
+
+instead of:
+
+[]
+WHAT IS CAUSING IT
+
+You probably have code like:
+
+data.map(...)
+
+OR
+
+schools.map(...)
+
+But Firebase is returning:
+
+{}
+
+instead of:
+
+[]
+THE FIX
+
+Find every .map( in your project.
+
+In VS Code:
+
+CTRL + SHIFT + F
+
+Search:
+
+.map(
+Replace Unsafe Code
+
+BAD:
+
+schools.map((school) => (
+
+GOOD:
+
+Array.isArray(schools) && schools.map((school) => (
+
+OR:
+
+(schools || []).map((school) => (
+
+BEST:
+
+{Array.isArray(schools) ? (
+  schools.map((school) => (
+    <div key={school.id}>{school.name}</div>
+  ))
+) : (
+  <p>No data available</p>
+)}
+VERY COMMON FIREBASE MISTAKE
+
+You may be doing this:
+
+const data = doc.data();
+setSchools(data);
+
+But data is an OBJECT.
+
+Then later:
+
+schools.map(...)
+
+which crashes.
+
+CORRECT FIRESTORE ARRAY FETCH
+
+If fetching many documents:
+
+const querySnapshot = await getDocs(collection(db, "schools"));
+
+const schoolsArray = querySnapshot.docs.map(doc => ({
+  id: doc.id,
+  ...doc.data()
+}));
+
+setSchools(schoolsArray);
+ALSO INITIALIZE STATE CORRECTLY
+
+BAD:
+
+const [schools, setSchools] = useState();
+
+GOOD:
+
+const [schools, setSchools] = useState([]);
+
+Do this for ALL tabs:
+
+schools
+users
+posts
+staff
+classes
+etc.
+QUICK TEMPORARY FIX
+
+Add this everywhere:
+
+Array.isArray(data)
+
+before .map()
+
+Example:
+
+{Array.isArray(users) &&
+  users.map((user) => (
+    <div>{user.name}</div>
+))}
+WHY ALL TABS FAIL
+
+Because your dashboard probably uses the same reusable component or same Firebase fetch logic across all pages.
+
+One broken fetch structure affects everything.
+
+MOST LIKELY EXACT ISSUE
+
+You are probably storing Firestore data like this:
+
+{
+  "school1": {...},
+  "school2": {...}
+}
+
+But your frontend expects:
+
+[
+  {...},
+  {...}
+]
+WHAT TO DO NEXT
+
+Open the component causing the crash and look around line:
+
+39
+
+because the error says:
+
+index-xYmC0WY7.js:39
+
+There will be a .map() there.
+
+Fix it using:
+
+Array.isArray(...)
+
+or initialize with:
+
+useState([])

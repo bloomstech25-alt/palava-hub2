@@ -1,76 +1,88 @@
-import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import {
-  useListUsers,
-  getListUsersQueryKey,
-  useBanUser,
-  useUnbanUser,
-  useDeleteUser,
-} from "@workspace/api-client-react";
-import { collection, doc, onSnapshot, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
+type FirestoreUser = {
+  id: string;
+  name?: string;
+  username?: string;
+  email?: string;
+  schoolName?: string;
+  school?: { name?: string };
+  posts?: number;
+  followers?: number;
+  isBanned?: boolean;
+  verificationStatus?: "approved" | "pending" | "rejected";
+};
+
 export default function UsersPage() {
-  const qc = useQueryClient();
+  const [allUsers, setAllUsers] = useState<FirestoreUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [bannedFilter, setBannedFilter] = useState<string>("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmDeleteName, setConfirmDeleteName] = useState<string>("");
-
-  const params: { search?: string; banned?: boolean } = {};
-  if (search) params.search = search;
-  if (bannedFilter === "suspended") params.banned = true;
-  if (bannedFilter === "active") params.banned = false;
-
-  const usersQuery = useListUsers(params, {
-    query: { queryKey: getListUsersQueryKey(params) },
-  });
-
-  const suspendMutation = useBanUser({
-    mutation: { onSuccess: () => qc.invalidateQueries({ queryKey: getListUsersQueryKey() }) },
-  });
-
-  const unsuspendMutation = useUnbanUser({
-    mutation: { onSuccess: () => qc.invalidateQueries({ queryKey: getListUsersQueryKey() }) },
-  });
-
-  const deleteMutation = useDeleteUser({
-    mutation: {
-      onSuccess: () => {
-        qc.invalidateQueries({ queryKey: getListUsersQueryKey() });
-        setConfirmDeleteId(null);
-      },
-    },
-  });
-
-  // Live verification status from Firestore (so manual verify reflects immediately)
-  const [verifyStatus, setVerifyStatus] = useState<Record<string, "approved" | "pending" | "rejected" | undefined>>({});
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [verifyLoading, setVerifyLoading] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "users"), (snap) => {
-      const next: Record<string, "approved" | "pending" | "rejected" | undefined> = {};
-      snap.docs.forEach((d) => {
-        const v = (d.data() as { verificationStatus?: string }).verificationStatus;
-        if (v === "approved" || v === "pending" || v === "rejected") next[d.id] = v;
-      });
-      setVerifyStatus(next);
-    }, () => { /* offline — keep last */ });
+    const unsub = onSnapshot(
+      collection(db, "users"),
+      (snap) => {
+        const next: FirestoreUser[] = snap.docs.map((d) => {
+          const data = d.data() as Omit<FirestoreUser, "id">;
+          return { id: d.id, ...data };
+        });
+        setAllUsers(next);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("users onSnapshot failed:", err);
+        setLoading(false);
+      },
+    );
     return unsub;
   }, []);
+
+  const users = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return allUsers.filter((u) => {
+      if (bannedFilter === "suspended" && !u.isBanned) return false;
+      if (bannedFilter === "active" && u.isBanned) return false;
+      if (!q) return true;
+      return (
+        (u.name ?? "").toLowerCase().includes(q) ||
+        (u.username ?? "").toLowerCase().includes(q) ||
+        (u.email ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [allUsers, search, bannedFilter]);
 
   async function manuallyVerify(userId: string, name: string) {
     setVerifyLoading(userId);
     try {
-      // Mirror an approved request so it shows up under "Approved" in the verifications page
-      await setDoc(doc(db, "verificationRequests", userId), {
-        userName: name,
-        status: "approved",
-        appliedAt: serverTimestamp(),
-        reviewedAt: serverTimestamp(),
-        manualGrant: true,
-      }, { merge: true });
-      await updateDoc(doc(db, "users", userId), { verificationStatus: "approved" });
+      await setDoc(
+        doc(db, "verificationRequests", userId),
+        {
+          userName: name,
+          status: "approved",
+          appliedAt: serverTimestamp(),
+          reviewedAt: serverTimestamp(),
+          manualGrant: true,
+        },
+        { merge: true },
+      );
+      await updateDoc(doc(db, "users", userId), {
+        verificationStatus: "approved",
+      });
     } catch (err) {
       console.error("Manual verify failed:", err);
       alert("Could not verify user. Try again.");
@@ -81,31 +93,62 @@ export default function UsersPage() {
   async function revokeVerification(userId: string) {
     setVerifyLoading(userId);
     try {
-      await updateDoc(doc(db, "users", userId), { verificationStatus: "rejected" });
-      await setDoc(doc(db, "verificationRequests", userId), {
-        status: "rejected",
-        reviewedAt: serverTimestamp(),
-      }, { merge: true });
+      await updateDoc(doc(db, "users", userId), {
+        verificationStatus: "rejected",
+      });
+      await setDoc(
+        doc(db, "verificationRequests", userId),
+        { status: "rejected", reviewedAt: serverTimestamp() },
+        { merge: true },
+      );
     } catch (err) {
       console.error("Revoke verification failed:", err);
     }
     setVerifyLoading(null);
   }
 
-  const users = usersQuery.data ?? [];
+  async function setBanned(userId: string, banned: boolean) {
+    setActionLoading(userId);
+    try {
+      await updateDoc(doc(db, "users", userId), { isBanned: banned });
+    } catch (err) {
+      console.error("Ban toggle failed:", err);
+      alert("Could not update user. Try again.");
+    }
+    setActionLoading(null);
+  }
 
-  function getInitials(name: string) {
-    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  async function deleteUser(userId: string) {
+    setActionLoading(userId);
+    try {
+      await deleteDoc(doc(db, "users", userId));
+      setConfirmDeleteId(null);
+    } catch (err) {
+      console.error("Delete user failed:", err);
+      alert("Could not delete user. Try again.");
+    }
+    setActionLoading(null);
+  }
+
+  function getInitials(name?: string) {
+    if (!name) return "?";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   }
 
   return (
     <div className="p-6">
       <div className="mb-5">
         <h1 className="text-xl font-bold text-foreground">Users</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Manage student accounts across the platform</p>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Manage student accounts across the platform
+        </p>
       </div>
 
-      {/* Filters */}
       <div className="flex gap-2 mb-5">
         <input
           type="search"
@@ -127,174 +170,163 @@ export default function UsersPage() {
         </select>
       </div>
 
-      {/* User cards */}
       <div className="space-y-2">
-        {usersQuery.isLoading ? (
+        {loading ? (
           <div className="p-8 text-center text-muted-foreground text-sm bg-card border border-border rounded-xl">
             Loading users...
           </div>
         ) : users.length === 0 ? (
           <div className="p-12 text-center bg-card border border-border rounded-xl">
-            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6 text-muted-foreground">
-                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-              </svg>
-            </div>
             <p className="text-sm font-medium text-foreground">No users found</p>
-            <p className="text-xs text-muted-foreground mt-1">Adjust your search or filters</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Adjust your search or filters
+            </p>
           </div>
         ) : (
-          users.map((user) => (
-            <div
-              key={user.id}
-              data-testid={`row-user-${user.id}`}
-              className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:bg-muted/30 transition-colors"
-            >
-              {/* Avatar */}
-              <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground shrink-0">
-                {getInitials(user.name)}
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-semibold text-foreground truncate">{user.name}</p>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium shrink-0 ${
-                    user.isBanned
-                      ? "bg-amber-500/10 text-amber-600"
-                      : "bg-emerald-500/10 text-emerald-600"
-                  }`}>
-                    {user.isBanned ? "Suspended" : "Active"}
-                  </span>
+          users.map((user) => {
+            const isApproved = user.verificationStatus === "approved";
+            const schoolName = user.schoolName ?? user.school?.name ?? "";
+            return (
+              <div
+                key={user.id}
+                data-testid={`row-user-${user.id}`}
+                className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:bg-muted/30 transition-colors"
+              >
+                <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground shrink-0">
+                  {getInitials(user.name)}
                 </div>
-                <p className="text-xs text-muted-foreground truncate">@{user.username} · {user.email}</p>
-                <p className="text-xs text-muted-foreground truncate">{user.schoolName}</p>
-              </div>
-
-              {/* Stats */}
-              <div className="hidden sm:flex items-center gap-4 shrink-0 text-center">
-                <div>
-                  <p className="text-sm font-bold text-foreground">{user.postCount}</p>
-                  <p className="text-xs text-muted-foreground">Posts</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {user.name ?? "—"}
+                    </p>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium shrink-0 ${
+                        user.isBanned
+                          ? "bg-amber-500/10 text-amber-600"
+                          : "bg-emerald-500/10 text-emerald-600"
+                      }`}
+                    >
+                      {user.isBanned ? "Suspended" : "Active"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">
+                    @{user.username ?? "—"} · {user.email ?? "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {schoolName}
+                  </p>
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-foreground">{user.followerCount}</p>
-                  <p className="text-xs text-muted-foreground">Followers</p>
+
+                <div className="hidden sm:flex items-center gap-4 shrink-0 text-center">
+                  <div>
+                    <p className="text-sm font-bold text-foreground">
+                      {user.posts ?? 0}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Posts</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">
+                      {user.followers ?? 0}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Followers</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {isApproved ? (
+                    <button
+                      onClick={() => revokeVerification(user.id)}
+                      disabled={verifyLoading === user.id}
+                      title="Revoke verification badge"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 transition-colors disabled:opacity-50 whitespace-nowrap"
+                    >
+                      <svg viewBox="0 0 24 24" fill="#D4A53A" className="w-3.5 h-3.5">
+                        <polygon points="12,2 14.6,8.6 22,9 16,14 18,21 12,17 6,21 8,14 2,9 9.4,8.6" />
+                      </svg>
+                      Verified
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => manuallyVerify(user.id, user.name ?? "")}
+                      disabled={verifyLoading === user.id}
+                      title="Manually verify this user"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 transition-colors disabled:opacity-50 whitespace-nowrap"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
+                        <polygon points="12,2 14.6,8.6 22,9 16,14 18,21 12,17 6,21 8,14 2,9 9.4,8.6" />
+                      </svg>
+                      {verifyLoading === user.id ? "…" : "Verify"}
+                    </button>
+                  )}
+                  {user.isBanned ? (
+                    <button
+                      onClick={() => setBanned(user.id, false)}
+                      disabled={actionLoading === user.id}
+                      data-testid={`button-unban-${user.id}`}
+                      title="Unsuspend user"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors disabled:opacity-50 whitespace-nowrap"
+                    >
+                      Unsuspend
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setBanned(user.id, true)}
+                      disabled={actionLoading === user.id}
+                      data-testid={`button-ban-${user.id}`}
+                      title="Suspend user"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors disabled:opacity-50 whitespace-nowrap"
+                    >
+                      Suspend
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setConfirmDeleteId(user.id);
+                      setConfirmDeleteName(user.name ?? "this user");
+                    }}
+                    data-testid={`button-delete-${user.id}`}
+                    title="Delete user"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors whitespace-nowrap"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
-
-              {/* Action buttons */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                {/* Manual verify (no follower threshold) */}
-                {verifyStatus[user.id] === "approved" ? (
-                  <button
-                    onClick={() => revokeVerification(user.id)}
-                    disabled={verifyLoading === user.id}
-                    title="Revoke verification badge"
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 transition-colors disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {/* Gold star (verified) */}
-                    <svg viewBox="0 0 24 24" fill="#D4A53A" className="w-3.5 h-3.5">
-                      <polygon points="12,2 14.6,8.6 22,9 16,14 18,21 12,17 6,21 8,14 2,9 9.4,8.6" />
-                    </svg>
-                    Verified
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => manuallyVerify(user.id, user.name)}
-                    disabled={verifyLoading === user.id}
-                    title="Manually verify this user (no follower requirement)"
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 transition-colors disabled:opacity-50 whitespace-nowrap"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-                      <polygon points="12,2 14.6,8.6 22,9 16,14 18,21 12,17 6,21 8,14 2,9 9.4,8.6" />
-                    </svg>
-                    {verifyLoading === user.id ? "…" : "Verify"}
-                  </button>
-                )}
-                {user.isBanned ? (
-                  <button
-                    onClick={() => unsuspendMutation.mutate({ id: user.id })}
-                    disabled={unsuspendMutation.isPending}
-                    data-testid={`button-unban-${user.id}`}
-                    title="Unsuspend user"
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {/* Unlock icon */}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                      <path d="M7 11V7a5 5 0 019.9-1"/>
-                    </svg>
-                    Unsuspend
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => suspendMutation.mutate({ id: user.id })}
-                    disabled={suspendMutation.isPending}
-                    data-testid={`button-ban-${user.id}`}
-                    title="Suspend user"
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {/* Lock icon */}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                      <path d="M7 11V7a5 5 0 0110 0v4"/>
-                    </svg>
-                    Suspend
-                  </button>
-                )}
-                <button
-                  onClick={() => { setConfirmDeleteId(user.id); setConfirmDeleteName(user.name); }}
-                  data-testid={`button-delete-${user.id}`}
-                  title="Delete user"
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors whitespace-nowrap"
-                >
-                  {/* Trash icon */}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-                    <path d="M10 11v6M14 11v6"/>
-                    <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
-                  </svg>
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
-      {/* Delete confirmation modal */}
       {confirmDeleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
-            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6 text-destructive">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-                <path d="M10 11v6M14 11v6"/>
-                <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
-              </svg>
-            </div>
-            <h2 className="text-base font-bold text-foreground text-center mb-1">Delete Account</h2>
+            <h2 className="text-base font-bold text-foreground text-center mb-1">
+              Delete Account
+            </h2>
             <p className="text-sm text-muted-foreground text-center mb-6">
-              Permanently delete <span className="font-semibold text-foreground">{confirmDeleteName}</span>'s account? This cannot be undone.
+              Permanently delete{" "}
+              <span className="font-semibold text-foreground">
+                {confirmDeleteName}
+              </span>
+              's profile? This removes their Firestore data; their Firebase Auth
+              account will need to be deleted separately from the Firebase
+              Console. This cannot be undone.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDeleteId(null)}
-                disabled={deleteMutation.isPending}
+                disabled={actionLoading === confirmDeleteId}
                 className="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg border border-border bg-muted hover:bg-muted/70 text-foreground transition-colors disabled:opacity-60"
               >
                 Cancel
               </button>
               <button
-                onClick={() => deleteMutation.mutate({ id: confirmDeleteId })}
-                disabled={deleteMutation.isPending}
+                onClick={() => deleteUser(confirmDeleteId)}
+                disabled={actionLoading === confirmDeleteId}
                 className="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg bg-destructive text-white hover:bg-destructive/90 transition-colors disabled:opacity-60"
               >
-                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                {actionLoading === confirmDeleteId ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
