@@ -6,6 +6,7 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "grant-admin": "tsx ./src/grant-admin-claim.ts",
+    "seed-schools": "tsx ./src/seed-schools.ts",
     "wipe-all-users": "tsx ./src/wipe-all-users.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:rules": "PATH=\"$(ls -d /nix/store/*-openjdk-21*/bin 2>/dev/null | head -1):$PATH\" firebase --config ../firebase.json --project palava-hub-rules-test emulators:exec --only firestore 'tsx ./src/test-firestore-rules.ts'"
