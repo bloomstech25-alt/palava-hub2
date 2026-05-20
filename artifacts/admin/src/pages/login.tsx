@@ -119,7 +119,7 @@ export default function LoginPage() {
         {/* Brand lockup */}
         <div className="text-center mb-8">
           <div
-            className="inline-flex items-center justify-center w-20 h-20 rounded-3xl mb-5 relative"
+            className="inline-flex items-center justify-center w-28 h-28 rounded-3xl mb-5 relative"
             style={{
               background: "linear-gradient(135deg, #BF0A30 0%, #8B0820 100%)",
               boxShadow: "0 12px 40px rgba(191,10,48,0.45), inset 0 1px 0 rgba(255,255,255,0.18)",
@@ -128,7 +128,7 @@ export default function LoginPage() {
             <img
               src={`${import.meta.env.BASE_URL}logo.png`}
               alt="Palava Hub"
-              className="w-12 h-12 rounded-2xl"
+              className="w-20 h-20 rounded-2xl"
             />
             <span
               className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-[10px]"
@@ -144,7 +144,7 @@ export default function LoginPage() {
             </span>
           </div>
           <h1
-            className="text-4xl font-black tracking-tight mb-1"
+            className="text-6xl font-black tracking-tight mb-1"
             style={{
               background: "linear-gradient(135deg, #FFFFFF 0%, #F1C232 100%)",
               WebkitBackgroundClip: "text",
