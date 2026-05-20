@@ -170,6 +170,19 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Schools directory — read by the mobile app for the picker and by the
+    // admin's Schools tab. Writes are restricted: admins can do anything;
+    // regular signed-in users may only touch the `userCount` counter (so
+    // register/delete-account can keep the count in sync with reality).
+    match /schools/{schoolId} {
+      allow read: if isSignedIn();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userCount'])
+      );
+    }
+
     match /supportRequests/{id} {
       allow read: if isAdmin();
       allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;

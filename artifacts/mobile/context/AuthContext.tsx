@@ -259,6 +259,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Best-effort: adjust the `userCount` on the Firestore `schools` doc whose
+  // `name` matches the given school name. Used when a user joins or deletes
+  // their account so the admin's per-school count reflects reality.
+  // No-ops silently if no matching school doc exists (e.g. legacy users whose
+  // school isn't in the seeded list yet) — never blocks the auth flow.
+  async function adjustSchoolUserCount(schoolName: string | undefined, delta: 1 | -1) {
+    const name = (schoolName ?? "").trim();
+    if (!name) return;
+    try {
+      const snap = await getDocs(
+        query(collection(db, "schools"), where("name", "==", name))
+      );
+      if (snap.empty) return;
+      await Promise.all(
+        snap.docs.map((d) => updateDoc(d.ref, { userCount: increment(delta) }))
+      );
+    } catch {
+      // best-effort — admin's backfill script can repair drift
+    }
+  }
+
   const register = useCallback(async (data: RegisterData) => {
     try {
       const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
@@ -292,6 +313,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // to avoid leaking it in feed embeds — mirrors how `phone` is handled).
       await setDoc(doc(db, "users", uid), { ...newUser, dob: data.dob });
       setUser(newUser);
+
+      // Bump the school's userCount so the admin's Schools tab reflects the
+      // real number of signups. Fire-and-forget so it never delays the user
+      // landing in the app.
+      void adjustSchoolUserCount(data.school?.name, 1);
 
       // Now upload the avatar in the background and patch the doc once it's
       // done. We don't block registration on this — the user lands in the
@@ -473,6 +499,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    // Capture the user's school BEFORE deleting their profile so we can
+    // decrement its userCount after the wipe succeeds. We read from
+    // Firestore (not the React `user` state) because `deleteAccount` is
+    // wrapped in `useCallback(..., [])` and would otherwise close over a
+    // stale `user` reference.
+    let schoolNameAtDelete: string | undefined;
+    try {
+      const profileSnap = await getDoc(doc(db, "users", uid));
+      const profileData = profileSnap.data();
+      if (typeof profileData?.school?.name === "string") {
+        schoolNameAtDelete = profileData.school.name;
+      }
+    } catch {
+      // best-effort — proceed without the decrement if read fails
+    }
+
     try {
       // Try the auth delete FIRST so that if recent-login is required we
       // haven't touched any data yet.
@@ -491,6 +533,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         purgeBy("ads", "createdBy"),
         purgeBy("supportRequests", "userId"),
       ]);
+
+      // Decrement the school's userCount now that the user is fully gone.
+      // Best-effort — Promise.allSettled above may have already wiped some
+      // docs; this is independent and safe to retry via the backfill script.
+      void adjustSchoolUserCount(schoolNameAtDelete, -1);
 
       setUser(null);
       return { success: true };
