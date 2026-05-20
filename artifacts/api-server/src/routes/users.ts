@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { firestore, authAdmin } from "../lib/firebase-admin";
+import { requireAdmin } from "../lib/require-admin";
 import {
   ListUsersQueryParams,
   ListUsersResponse,
@@ -78,7 +79,7 @@ router.get("/users", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/users/:id/ban", async (req, res): Promise<void> => {
+router.post("/users/:id/ban", requireAdmin, async (req, res): Promise<void> => {
   const params = BanUserParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -94,11 +95,22 @@ router.post("/users/:id/ban", async (req, res): Promise<void> => {
       return;
     }
 
-    await ref.update({ isBanned: true });
     try {
       await authAdmin.updateUser(params.data.id, { disabled: true });
-    } catch {
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      if (code !== "auth/user-not-found") {
+        req.log.error({ err, uid: params.data.id }, "Failed to disable Firebase Auth user");
+        res.status(502).json({
+          error: `Could not disable Firebase Auth account: ${
+            (err as Error)?.message ?? code ?? "unknown error"
+          }`,
+        });
+        return;
+      }
+      req.log.warn({ uid: params.data.id }, "No Firebase Auth account to disable; proceeding with Firestore flag");
     }
+    await ref.update({ isBanned: true });
 
     const data = snap.data()!;
     const banSchool = data.school;
@@ -124,7 +136,7 @@ router.post("/users/:id/ban", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/users/:id/unban", async (req, res): Promise<void> => {
+router.post("/users/:id/unban", requireAdmin, async (req, res): Promise<void> => {
   const params = UnbanUserParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -140,11 +152,22 @@ router.post("/users/:id/unban", async (req, res): Promise<void> => {
       return;
     }
 
-    await ref.update({ isBanned: false });
     try {
       await authAdmin.updateUser(params.data.id, { disabled: false });
-    } catch {
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      if (code !== "auth/user-not-found") {
+        req.log.error({ err, uid: params.data.id }, "Failed to re-enable Firebase Auth user");
+        res.status(502).json({
+          error: `Could not re-enable Firebase Auth account: ${
+            (err as Error)?.message ?? code ?? "unknown error"
+          }`,
+        });
+        return;
+      }
+      req.log.warn({ uid: params.data.id }, "No Firebase Auth account to re-enable; clearing Firestore flag");
     }
+    await ref.update({ isBanned: false });
 
     const data = snap.data()!;
     const unbanSchool = data.school;
@@ -170,7 +193,7 @@ router.post("/users/:id/unban", async (req, res): Promise<void> => {
   }
 });
 
-router.delete("/users/:id", async (req, res): Promise<void> => {
+router.delete("/users/:id", requireAdmin, async (req, res): Promise<void> => {
   const params = DeleteUserParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -184,6 +207,25 @@ router.delete("/users/:id", async (req, res): Promise<void> => {
     if (!snap.exists) {
       res.status(404).json({ error: "User not found" });
       return;
+    }
+
+    // Delete Firebase Auth account FIRST so a failure leaves the
+    // Firestore profile intact (no half-deleted state where the Auth
+    // login still works but the profile is gone).
+    try {
+      await authAdmin.deleteUser(params.data.id);
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      if (code !== "auth/user-not-found") {
+        req.log.error({ err, uid: params.data.id }, "Failed to delete Firebase Auth user");
+        res.status(502).json({
+          error: `Could not delete Firebase Auth account: ${
+            (err as Error)?.message ?? code ?? "unknown error"
+          }`,
+        });
+        return;
+      }
+      req.log.warn({ uid: params.data.id }, "No Firebase Auth account to delete; proceeding with Firestore cleanup");
     }
 
     // Delete all posts by this user
@@ -200,12 +242,6 @@ router.delete("/users/:id", async (req, res): Promise<void> => {
 
     // Delete Firestore user profile
     await ref.delete();
-
-    // Delete Firebase Auth account
-    try {
-      await authAdmin.deleteUser(params.data.id);
-    } catch {
-    }
 
     res.status(200).json({ success: true });
   } catch (err) {

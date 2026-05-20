@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { firestore } from "../lib/firebase-admin";
+import { requireAdmin } from "../lib/require-admin";
 import {
   ListPostsQueryParams,
   ListPostsResponse,
@@ -65,7 +66,7 @@ router.get("/posts", async (req, res): Promise<void> => {
   }
 });
 
-router.delete("/posts/:id", async (req, res): Promise<void> => {
+router.delete("/posts/:id", requireAdmin, async (req, res): Promise<void> => {
   const params = DeletePostParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -89,7 +90,7 @@ router.delete("/posts/:id", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/posts/:id/flag", async (req, res): Promise<void> => {
+router.post("/posts/:id/flag", requireAdmin, async (req, res): Promise<void> => {
   const params = FlagPostParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -130,7 +131,7 @@ router.post("/posts/:id/flag", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/posts/:id/pin", async (req, res): Promise<void> => {
+router.post("/posts/:id/pin", requireAdmin, async (req, res): Promise<void> => {
   const params = PinPostParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

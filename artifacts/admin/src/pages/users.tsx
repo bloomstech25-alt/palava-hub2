@@ -1,14 +1,59 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   collection,
-  deleteDoc,
   doc,
   onSnapshot,
   serverTimestamp,
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
+
+const API_BASE: string = (
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? ""
+).replace(/\/+$/, "");
+
+async function callAdminApi(path: string, method: "POST" | "DELETE") {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error("You are not signed in. Please log in again.");
+  }
+  const token = await user.getIdToken();
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  // Guard against the request being silently rewritten to an SPA HTML
+  // shell (e.g. when deployed behind a static host without an /api proxy).
+  // Successful admin responses are always JSON or empty (204).
+  const contentType = res.headers.get("content-type") ?? "";
+  const isJson = contentType.toLowerCase().includes("application/json");
+  const isEmpty =
+    res.status === 204 || res.headers.get("content-length") === "0";
+
+  if (!res.ok) {
+    let detail = "";
+    try {
+      detail = isJson ? ((await res.json())?.error ?? "") : await res.text();
+    } catch {
+      detail = "";
+    }
+    throw new Error(`HTTP ${res.status}${detail ? `: ${detail}` : ""}`);
+  }
+
+  if (!isEmpty && !isJson) {
+    throw new Error(
+      "Admin API request was misrouted (non-JSON response). " +
+        "Set VITE_API_BASE_URL to your api-server origin.",
+    );
+  }
+
+  return res;
+}
 
 type FirestoreUser = {
   id: string;
@@ -110,10 +155,17 @@ export default function UsersPage() {
   async function setBanned(userId: string, banned: boolean) {
     setActionLoading(userId);
     try {
-      await updateDoc(doc(db, "users", userId), { isBanned: banned });
+      await callAdminApi(
+        `/api/users/${encodeURIComponent(userId)}/${banned ? "ban" : "unban"}`,
+        "POST",
+      );
     } catch (err) {
       console.error("Ban toggle failed:", err);
-      alert("Could not update user. Try again.");
+      alert(
+        `Could not ${banned ? "suspend" : "unsuspend"} user. ${
+          err instanceof Error ? err.message : ""
+        }`.trim(),
+      );
     }
     setActionLoading(null);
   }
@@ -121,11 +173,18 @@ export default function UsersPage() {
   async function deleteUser(userId: string) {
     setActionLoading(userId);
     try {
-      await deleteDoc(doc(db, "users", userId));
+      await callAdminApi(
+        `/api/users/${encodeURIComponent(userId)}`,
+        "DELETE",
+      );
       setConfirmDeleteId(null);
     } catch (err) {
       console.error("Delete user failed:", err);
-      alert("Could not delete user. Try again.");
+      alert(
+        `Could not delete user. ${
+          err instanceof Error ? err.message : ""
+        }`.trim(),
+      );
     }
     setActionLoading(null);
   }
@@ -309,9 +368,8 @@ export default function UsersPage() {
               <span className="font-semibold text-foreground">
                 {confirmDeleteName}
               </span>
-              's profile? This removes their Firestore data; their Firebase Auth
-              account will need to be deleted separately from the Firebase
-              Console. This cannot be undone.
+              's profile? This removes their Firestore data AND their Firebase
+              Auth login. This cannot be undone.
             </p>
             <div className="flex gap-3">
               <button
