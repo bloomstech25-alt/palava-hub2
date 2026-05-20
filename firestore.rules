@@ -170,27 +170,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Schools directory — read by the mobile app for the picker and by the
-    // admin's Schools tab. Writes are restricted: admins can do anything;
-    // regular signed-in users may only adjust the `userCount` counter by
-    // exactly ±1 (so register/delete-account/change-school stay in sync but
-    // metrics can't be tampered with). The current value must already be a
-    // number, and the new value must be a non-negative number that differs
-    // by exactly 1 in either direction.
+    // Schools directory — read by the mobile app for the school picker and
+    // by the admin's Schools tab. Writes are admin-only: even bounded ±1
+    // client writes are tamperable (a malicious user could loop them to
+    // inflate/deflate metrics arbitrarily). `userCount` is instead kept in
+    // sync by the `backfill-school-counts` admin script, which recomputes
+    // every school's count from the actual users collection.
     match /schools/{schoolId} {
       allow read: if isSignedIn();
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (
-        isSignedIn()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userCount'])
-        && resource.data.userCount is number
-        && request.resource.data.userCount is number
-        && request.resource.data.userCount >= 0
-        && (
-          request.resource.data.userCount == resource.data.userCount + 1
-          || request.resource.data.userCount == resource.data.userCount - 1
-        )
-      );
+      allow write: if isAdmin();
     }
 
     match /supportRequests/{id} {
