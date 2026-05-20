@@ -29,11 +29,19 @@ jobs:
           BASE_PATH: /
           PORT: "23744"
         run: pnpm --filter @workspace/admin run build
-      - name: Deploy to Firebase Hosting
+      - name: Deploy web to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: palava-hub
           channelId: live
-          target: web,admin
+          target: web
+      - name: Deploy admin to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: palava-hub
+          channelId: live
+          target: admin
