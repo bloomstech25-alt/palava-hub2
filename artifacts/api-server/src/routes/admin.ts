@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, schoolsTable } from "@workspace/db";
 import { eq, count } from "drizzle-orm";
 import { firestore } from "../lib/firebase-admin";
+import { requireAdmin } from "../lib/require-admin";
 import {
   AdminLoginBody,
   AdminLoginResponse,
@@ -34,7 +35,7 @@ router.post("/admin/login", async (req, res): Promise<void> => {
   res.json(AdminLoginResponse.parse({ success: true, token }));
 });
 
-router.get("/admin/stats", async (_req, res): Promise<void> => {
+router.get("/admin/stats", requireAdmin, async (_req, res): Promise<void> => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
