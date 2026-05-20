@@ -1,14 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import {
-  Home,
-  Users,
-  MessageCircle,
-  Bell,
-  Search,
-  LogOut,
-  Menu,
-} from "lucide-react";
+import { Home, Search, LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar } from "./Avatar";
 
@@ -19,9 +11,6 @@ export function TopNav() {
 
   const tabs = [
     { href: "/", icon: Home, label: "Home" },
-    { href: "/friends", icon: Users, label: "Friends" },
-    { href: "/messages", icon: MessageCircle, label: "Messages" },
-    { href: "/notifications", icon: Bell, label: "Notifications" },
   ];
 
   return (
