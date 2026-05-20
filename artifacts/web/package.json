@@ -4,17 +4,26 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node scripts/serve-export.mjs",
-    "build": "pnpm --filter @workspace/mobile exec expo export --platform web --output-dir ../web/dist/public && node scripts/patch-export.mjs",
-    "build:hosting": "pnpm --filter @workspace/mobile exec expo export --platform web --output-dir ../web/dist/public && HOSTING=1 node scripts/patch-export.mjs",
-    "serve": "node scripts/serve-export.mjs",
+    "dev": "vite --config vite.config.ts --host 0.0.0.0",
+    "build": "vite build --config vite.config.ts",
+    "build:hosting": "BASE_PATH=/ vite build --config vite.config.ts",
+    "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "express": "^5"
+    "firebase": "^12.12.0"
   },
   "devDependencies": {
-    "@types/express": "^5.0.6",
-    "@types/node": "catalog:"
+    "@tailwindcss/vite": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "lucide-react": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tailwindcss": "catalog:",
+    "vite": "catalog:",
+    "wouter": "^3.3.5"
   }
 }

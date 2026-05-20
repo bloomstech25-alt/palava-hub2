@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme {
+  --color-fb-blue: #0866ff;
+  --color-fb-blue-hover: #0a5ce0;
+  --color-fb-bg: #f0f2f5;
+  --color-fb-card: #ffffff;
+  --color-fb-border: #ced0d4;
+  --color-fb-text: #050505;
+  --color-fb-text-secondary: #65676b;
+  --color-fb-hover: #f2f2f2;
+  --color-palava-red: #bf0a30;
+  --color-palava-gold: #d4a12a;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  background: var(--color-fb-bg);
+  color: var(--color-fb-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
