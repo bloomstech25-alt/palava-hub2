@@ -94,6 +94,7 @@ export function LeftSidebar() {
         </div>
         <div className="mt-2 font-semibold">Palava Hub © 2026</div>
         <div className="mt-1">Made with pride in Liberia 🇱🇷</div>
+        <div className="mt-1">Powered by Blooms Technologies</div>
       </div>
 
       {/* Keep Bookmark import "used" if Saved is later added */}
