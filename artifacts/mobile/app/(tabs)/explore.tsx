@@ -420,8 +420,8 @@ export default function ExploreScreen() {
                 <Feather name={item.type === "university" ? "book" : "award"} size={20} color={colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.schoolName, { color: colors.foreground }]}>{item.name}</Text>
-                <Text style={[styles.schoolMeta, { color: colors.mutedForeground }]}>{item.type === "university" ? "University" : "Senior High School"} · {item.location}</Text>
+                <Text style={[styles.schoolName, { color: colors.foreground }]} numberOfLines={1}>{item.name}</Text>
+                <Text style={[styles.schoolMeta, { color: colors.mutedForeground }]} numberOfLines={1}>{item.type === "university" ? "University" : "Senior High School"} · {item.location}</Text>
               </View>
               <View style={[styles.schoolArrow, { backgroundColor: colors.accent }]}>
                 <Feather name="trending-up" size={14} color={colors.primary} />

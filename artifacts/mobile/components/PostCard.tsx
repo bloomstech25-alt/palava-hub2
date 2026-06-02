@@ -207,10 +207,10 @@ export function PostCard({ post, onLike, onFollow, onPress, onDelete, onShare }:
             <Avatar uri={post.author.avatar} name={post.author.name} style={styles.avatar} />
             <View style={styles.authorInfo}>
               <View style={styles.authorNameRow}>
-                <Text style={[styles.authorName, { color: colors.foreground }]}>{post.author.name}</Text>
+                <Text style={[styles.authorName, { color: colors.foreground }]} numberOfLines={1}>{post.author.name}</Text>
                 {post.author.verificationStatus === "approved" && <PalavaStar size={15} />}
               </View>
-              <Text style={[styles.authorMeta, { color: colors.mutedForeground }]}>
+              <Text style={[styles.authorMeta, { color: colors.mutedForeground }]} numberOfLines={1}>
                 @{post.author.username}{post.author.school?.name ? ` · ${post.author.school.name}` : ""}
               </Text>
             </View>
@@ -533,10 +533,12 @@ const styles = StyleSheet.create({
   authorNameRow: {
     flexDirection: "row",
     alignItems: "center",
+    flexShrink: 1,
   },
   authorName: {
     fontSize: 15,
     fontWeight: "600",
+    flexShrink: 1,
   },
   authorMeta: {
     fontSize: 12,

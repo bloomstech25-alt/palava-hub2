@@ -30,7 +30,7 @@ export function AdCard({ ad }: AdCardProps) {
           <Feather name="zap" size={10} color={colors.primary} />
           <Text style={[styles.sponsoredText, { color: colors.primary }]}>Sponsored</Text>
         </View>
-        <Text style={[styles.sponsorName, { color: colors.mutedForeground }]}>{ad.sponsorName}</Text>
+        <Text style={[styles.sponsorName, { color: colors.mutedForeground }]} numberOfLines={1}>{ad.sponsorName}</Text>
       </View>
 
       {/* Ad content */}
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   sponsoredText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.5 },
-  sponsorName: { fontSize: 12, fontWeight: "500" },
+  sponsorName: { fontSize: 12, fontWeight: "500", flex: 1, textAlign: "right", marginLeft: 8 },
   headline: { fontSize: 16, fontWeight: "800", letterSpacing: -0.3 },
   body: { fontSize: 14, lineHeight: 20 },
   ctaBtn: {

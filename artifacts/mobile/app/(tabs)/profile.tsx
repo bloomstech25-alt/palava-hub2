@@ -203,7 +203,7 @@ export default function ProfileScreen() {
               {profileUser.school?.name ? (
                 <View style={[styles.schoolBadge, { backgroundColor: colors.accent }]}>
                   <Feather name="book-open" size={13} color={colors.primary} />
-                  <Text style={[styles.schoolText, { color: colors.primary }]}>{profileUser.school.name}</Text>
+                  <Text style={[styles.schoolText, { color: colors.primary }]} numberOfLines={1}>{profileUser.school.name}</Text>
                   {profileUser.school.type ? (
                     <Text style={[styles.schoolType, { color: colors.mutedForeground }]}>
                       · {profileUser.school.type === "university" ? "University" : "High School"}
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   avatar: { width: 72, height: 72, borderRadius: 36 },
-  profileActions: { flexDirection: "row", gap: 8, alignItems: "center" },
+  profileActions: { flexDirection: "row", gap: 8, alignItems: "center", flexShrink: 1, flexWrap: "wrap" },
   actionBtn: {
     paddingHorizontal: 20,
     paddingVertical: 9,
@@ -421,8 +421,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignSelf: "flex-start",
     marginTop: 10,
+    maxWidth: "100%",
   },
-  schoolText: { fontSize: 13, fontWeight: "600" },
+  schoolText: { fontSize: 13, fontWeight: "600", flexShrink: 1 },
   schoolType: { fontSize: 12 },
   bio: { fontSize: 14, lineHeight: 20, marginTop: 10 },
   detailsRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 10 },

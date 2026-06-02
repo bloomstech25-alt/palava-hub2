@@ -150,7 +150,7 @@ export default function MessagesScreen() {
           </View>
           <View style={styles.convInfo}>
             <View style={styles.convTopRow}>
-              <Text style={[styles.convName, { color: colors.foreground }, conv.unread > 0 && styles.convNameBold]}>
+              <Text style={[styles.convName, { color: colors.foreground }, conv.unread > 0 && styles.convNameBold]} numberOfLines={1}>
                 {conv.name}
               </Text>
               <Text style={[styles.convTime, { color: colors.mutedForeground }]}>
@@ -170,7 +170,7 @@ export default function MessagesScreen() {
                 </View>
               )}
             </View>
-            <Text style={[styles.convSchool, { color: colors.mutedForeground }]}>{conv.school}</Text>
+            <Text style={[styles.convSchool, { color: colors.mutedForeground }]} numberOfLines={1}>{conv.school}</Text>
           </View>
         </TouchableOpacity>
       );
@@ -185,8 +185,8 @@ export default function MessagesScreen() {
       >
         <Avatar uri={u.avatar} name={u.name} style={styles.suggestionAvatar} />
         <View style={{ flex: 1 }}>
-          <Text style={[styles.suggestionName, { color: colors.foreground }]}>{u.name}</Text>
-          <Text style={[styles.suggestionMeta, { color: colors.mutedForeground }]}>
+          <Text style={[styles.suggestionName, { color: colors.foreground }]} numberOfLines={1}>{u.name}</Text>
+          <Text style={[styles.suggestionMeta, { color: colors.mutedForeground }]} numberOfLines={1}>
             @{u.username}{u.school?.name ? ` · ${u.school.name}` : ""}
           </Text>
         </View>
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   },
   convInfo: { flex: 1, gap: 3 },
   convTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  convName: { fontSize: 15, fontWeight: "500" },
+  convName: { fontSize: 15, fontWeight: "500", flex: 1, marginRight: 6 },
   convNameBold: { fontWeight: "700" },
   convTime: { fontSize: 12 },
   convBottomRow: { flexDirection: "row", alignItems: "center", gap: 6 },
