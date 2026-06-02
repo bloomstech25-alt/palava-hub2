@@ -1,11 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
+  Animated,
+  Dimensions,
   Image,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -14,66 +15,78 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 
+const { width, height } = Dimensions.get("window");
+
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
+  const topPad = Platform.OS === "web" ? 0 : insets.top;
+  const bottomPad = Platform.OS === "web" ? 20 : insets.bottom;
   const { isAuthenticated, isLoading } = useAuth();
+
+  const fadeIn = useRef(new Animated.Value(0)).current;
+  const slideUp = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) router.replace("/(tabs)");
   }, [isAuthenticated, isLoading]);
 
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeIn, { toValue: 1, duration: 700, useNativeDriver: false }),
+      Animated.timing(slideUp, { toValue: 0, duration: 700, useNativeDriver: false }),
+    ]).start();
+  }, []);
+
   return (
-    <View style={styles.root}>
+    <View style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Background gradient */}
+      {/* Background */}
       <LinearGradient
-        colors={["#0D0000", "#130202", "#0A0000"]}
-        style={StyleSheet.absoluteFillObject}
+        colors={["#0D0A08", "#1A0E06", "#0A1628", "#0D1B3E"]}
+        locations={[0, 0.3, 0.65, 1]}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       />
-      {/* Red glow behind logo */}
-      <View style={styles.glowHalo} />
-      <View style={styles.glowCore} />
 
-      <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 },
+      {/* Glow accents */}
+      <View style={styles.glowRed} />
+      <View style={styles.glowBlue} />
+      <View style={styles.glowGold} />
+
+      {/* Main content — fills screen, no scrolling */}
+      <Animated.View
+        style={[
+          styles.content,
+          {
+            paddingTop: topPad + 20,
+            paddingBottom: bottomPad + 8,
+            opacity: fadeIn,
+            transform: [{ translateY: slideUp }],
+          },
         ]}
-        showsVerticalScrollIndicator={false}
       >
-        {/* ── BLOOMS TECHNOLOGIES PRESENTS ─────────────────────────────── */}
-        <Text style={styles.presenter}>Blooms Technologies Presents</Text>
-
-        {/* ── Logo + Title row ─────────────────────────────────────────── */}
-        <View style={styles.brandRow}>
+        {/* ── Logo section ─────────────────────────────────────────────── */}
+        <View style={styles.logoSection}>
           <Image
-            source={require("../assets/images/icon.png")}
-            style={styles.icon}
+            source={require("../assets/images/palava-lockup.png")}
+            style={styles.lockupImg}
             resizeMode="contain"
           />
-          <View style={styles.brandText}>
-            <Text style={styles.brandName}>PALAVA HUB</Text>
-            <View style={styles.subtitleRow}>
-              <Text style={styles.flag}>🇱🇷</Text>
-              <Text style={styles.subtitle}>LIBERIA'S OWN SOCIAL MEDIA</Text>
-            </View>
+          <View style={styles.nameDivider}>
+            <View style={[styles.divLine, { backgroundColor: "#BF0A30" }]} />
+            <Text style={styles.lrBadge}>🇱🇷 LR</Text>
+            <View style={[styles.divLine, { backgroundColor: "#002868" }]} />
           </View>
+          <Text style={styles.tagline}>Where Liberian students connect, share & grow</Text>
         </View>
 
-        {/* ── Tagline ───────────────────────────────────────────────────── */}
-        <Text style={styles.tagline}>
-          Where Liberian students{" "}
-          <Text style={styles.taglineAccent}>connect</Text>,{" "}
-          <Text style={styles.taglineAccent}>share</Text> &{" "}
-          <Text style={styles.taglineAccent}>grow</Text> together
-        </Text>
-
         {/* ── Feature pills ─────────────────────────────────────────────── */}
-        <View style={styles.pillsGrid}>
+        <View style={styles.pills}>
           {[
             { icon: "🎓", label: "Campus Stories" },
-            { icon: "🔥", label: "Trending Feed" },
+            { icon: "🔥", label: "Trending" },
             { icon: "💬", label: "Live Chat" },
             { icon: "📡", label: "Go Live" },
           ].map((f) => (
@@ -86,233 +99,173 @@ export default function WelcomeScreen() {
 
         {/* ── Schools strip ─────────────────────────────────────────────── */}
         <View style={styles.schoolsRow}>
-          <Text style={styles.schoolsText}>UL · Cuttington · CWA · BWI · UMU · Ricks</Text>
+          <Text style={styles.schoolsLabel}>UL · Cuttington · CWA · BWI · UMU · Ricks</Text>
           <Text style={styles.schoolsMore}>+70 schools</Text>
         </View>
 
         {/* ── CTA buttons ───────────────────────────────────────────────── */}
-        <View style={styles.ctaBlock}>
+        <View style={styles.actions}>
           <TouchableOpacity
             style={styles.primaryBtn}
             activeOpacity={0.88}
             onPress={() => router.push("/register")}
           >
-            <Text style={styles.primaryBtnText}>Join Palava Hub  →</Text>
+            <LinearGradient
+              colors={["#BF0A30", "#8B0620"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.primaryGradient}
+            >
+              <Text style={styles.primaryBtnText}>Join Palava Hub</Text>
+              <Text style={styles.primaryBtnArrow}>→</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.secondaryBtn}
-            activeOpacity={0.85}
+            activeOpacity={0.8}
             onPress={() => router.push("/login")}
           >
             <Text style={styles.secondaryBtnText}>I already have an account</Text>
           </TouchableOpacity>
-
-          <Text style={styles.legalText}>
-            By continuing, you agree to our{" "}
-            <Text style={styles.legalLink} onPress={() => router.push("/legal/guidelines")}>
-              Community Guidelines
-            </Text>{" "}
-            &{" "}
-            <Text style={styles.legalLink} onPress={() => router.push("/legal/privacy")}>
-              Privacy Policy
-            </Text>
-            .
-          </Text>
         </View>
 
         {/* ── Footer ────────────────────────────────────────────────────── */}
         <Text style={styles.poweredBy}>Powered by Blooms Technologies</Text>
-      </ScrollView>
+      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#0D0000",
-    ...(Platform.OS === "web" ? ({ minHeight: "100vh" } as object) : {}),
-  },
+  container: Platform.select({
+    web: { minHeight: "100vh" as unknown as number, position: "relative" as const },
+    default: { flex: 1 },
+  })!,
 
-  glowHalo: {
+  glowRed: {
     position: "absolute",
-    top: "5%",
-    alignSelf: "center",
-    width: 480,
-    height: 480,
-    borderRadius: 240,
+    top: -60,
+    left: -60,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
     backgroundColor: "#BF0A30",
-    opacity: 0.14,
+    opacity: 0.13,
   },
-  glowCore: {
+  glowBlue: {
     position: "absolute",
-    top: "12%",
-    alignSelf: "center",
+    bottom: -80,
+    right: -60,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: "#002868",
+    opacity: 0.18,
+  },
+  glowGold: {
+    position: "absolute",
+    top: height * 0.38,
+    left: width * 0.15,
     width: 240,
     height: 240,
     borderRadius: 120,
-    backgroundColor: "#DC2626",
-    opacity: 0.20,
+    backgroundColor: "#D4A855",
+    opacity: 0.05,
   },
 
-  scroll: {
-    flexGrow: 1,
+  content: Platform.select({
+    web: {
+      minHeight: "100vh" as unknown as number,
+      paddingHorizontal: 28,
+      justifyContent: "space-between" as const,
+    },
+    default: {
+      flex: 1,
+      paddingHorizontal: 28,
+      justifyContent: "space-between" as const,
+    },
+  })!,
+
+  logoSection: {
     alignItems: "center",
-    paddingHorizontal: 24,
-    gap: 0,
+    gap: 10,
   },
-
-  presenter: {
-    color: "#D4A855",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 2.5,
-    textTransform: "uppercase",
-    textAlign: "center",
-    marginBottom: 28,
-    opacity: 0.9,
+  lockupImg: {
+    width: width * 0.55,
+    height: width * 0.55,
   },
-
-  brandRow: {
+  nameDivider: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    marginBottom: 20,
+    gap: 12,
+    width: "80%",
+    marginTop: 2,
   },
-  icon: {
-    width: 72,
-    height: 72,
-    borderRadius: 16,
+  divLine: { flex: 1, height: 1.5, borderRadius: 1, opacity: 0.6 },
+  lrBadge: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.8)",
+    fontWeight: "600",
+    letterSpacing: 1,
   },
-  brandText: {
-    gap: 6,
-  },
-  brandName: {
-    color: "#FFFFFF",
-    fontSize: 30,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-  },
-  subtitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  flag: { fontSize: 14 },
-  subtitle: {
-    color: "#D4A855",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-  },
-
   tagline: {
-    color: "#C9C0B8",
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 14,
+    color: "rgba(255,255,255,0.6)",
     textAlign: "center",
-    marginBottom: 28,
-    paddingHorizontal: 8,
-  },
-  taglineAccent: {
-    color: "#FFFFFF",
-    fontWeight: "700",
+    lineHeight: 20,
+    maxWidth: 260,
   },
 
-  pillsGrid: {
+  pills: {
     flexDirection: "row",
     flexWrap: "wrap",
+    gap: 8,
     justifyContent: "center",
-    gap: 10,
-    marginBottom: 24,
-    width: "100%",
   },
   pill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255,255,255,0.07)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    borderRadius: 20,
+    gap: 5,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.11)",
   },
   pillIcon: { fontSize: 14 },
-  pillLabel: {
-    color: "#E0D8D0",
-    fontSize: 13,
-    fontWeight: "600",
-  },
+  pillLabel: { color: "rgba(255,255,255,0.88)", fontSize: 12, fontWeight: "600" },
 
-  schoolsRow: {
-    alignItems: "center",
-    gap: 4,
-    marginBottom: 32,
-  },
-  schoolsText: {
-    color: "#7A7269",
-    fontSize: 12,
-    textAlign: "center",
-  },
-  schoolsMore: {
-    color: "#BF0A30",
+  schoolsRow: { alignItems: "center", gap: 3 },
+  schoolsLabel: {
+    color: "rgba(212,168,85,0.75)",
     fontSize: 11,
-    fontWeight: "700",
-  },
-
-  ctaBlock: {
-    width: "100%",
-    gap: 12,
-    marginBottom: 24,
-  },
-  primaryBtn: {
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#BF0A30",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#BF0A30",
-    shadowOpacity: 0.50,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
-  },
-  primaryBtnText: {
-    color: "#FFFFFF",
-    fontSize: 17,
-    fontWeight: "800",
+    textAlign: "center",
     letterSpacing: 0.3,
   },
-  secondaryBtn: {
-    height: 50,
-    borderRadius: 25,
+  schoolsMore: { color: "rgba(212,168,85,0.5)", fontSize: 10 },
+
+  actions: { gap: 11 },
+  primaryBtn: { borderRadius: 16, overflow: "hidden" },
+  primaryGradient: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
   },
-  secondaryBtnText: {
-    color: "#9A9089",
-    fontSize: 15,
-    fontWeight: "600",
-  },
+  primaryBtnText: { color: "#fff", fontSize: 17, fontWeight: "800", letterSpacing: 0.3 },
+  primaryBtnArrow: { color: "rgba(255,255,255,0.8)", fontSize: 18 },
 
-  legalText: {
-    color: "#5A5248",
-    fontSize: 11,
-    textAlign: "center",
-    lineHeight: 16,
-  },
-  legalLink: {
-    color: "#BF0A30",
-    fontWeight: "600",
-  },
+  secondaryBtn: { alignItems: "center", paddingVertical: 10 },
+  secondaryBtnText: { color: "rgba(255,255,255,0.55)", fontSize: 14 },
 
   poweredBy: {
-    color: "#4A4440",
-    fontSize: 11,
+    color: "rgba(255,255,255,0.2)",
+    fontSize: 10,
     textAlign: "center",
     letterSpacing: 0.5,
-    marginTop: 4,
   },
 });
