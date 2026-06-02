@@ -81,7 +81,17 @@ export function LeftSidebar() {
       </Link>
 
       <div className="pt-4 px-3 text-[11px] text-fb-text-secondary leading-relaxed">
-        Privacy · Terms · Cookies · Community Guidelines
+        <div className="flex flex-wrap gap-x-2 gap-y-1">
+          <Link href="/privacy-policy" className="hover:underline">Privacy</Link>
+          <span>·</span>
+          <Link href="/terms-of-service" className="hover:underline">Terms</Link>
+          <span>·</span>
+          <Link href="/community-guidelines" className="hover:underline">Guidelines</Link>
+          <span>·</span>
+          <Link href="/support" className="hover:underline">Support</Link>
+          <span>·</span>
+          <Link href="/account-deletion" className="hover:underline">Delete Account</Link>
+        </div>
         <div className="mt-2 font-semibold">Palava Hub © 2026</div>
         <div className="mt-1">Made with pride in Liberia 🇱🇷</div>
       </div>

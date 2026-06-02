@@ -1,0 +1,115 @@
+Create four public, SEO-friendly legal and support pages for the Palava Hub website.
+
+Requirements:
+- These pages must be publicly accessible without login.
+- Add them to the website navigation footer.
+- Make them responsive for desktop and mobile.
+- Use the existing Palava Hub design system, colors, fonts, and layout.
+- Generate clean React/Next.js/Vite-compatible code based on the existing project structure.
+- Include proper page titles and meta descriptions.
+
+Create the following routes:
+
+1. /privacy-policy
+2. /terms-of-service
+3. /support
+4. /account-deletion
+
+------------------------------------
+PRIVACY POLICY PAGE
+------------------------------------
+Title: Privacy Policy
+
+Include sections:
+- Introduction
+- Information We Collect
+- Account Information
+- User Generated Content
+- Photos and Videos
+- Messaging and Communications
+- Device Information
+- Location Information (if enabled)
+- Notifications
+- Firebase Services and Cloud Storage
+- How We Use Information
+- Data Security
+- Data Retention
+- Third-Party Services
+- Children's Privacy
+- User Rights
+- Account Deletion
+- Contact Information
+
+Company Name: Palava Hub
+
+Support Email:
+support@palavahub.com
+
+Website:
+https://www.palavahub.com
+
+------------------------------------
+TERMS OF SERVICE PAGE
+------------------------------------
+Title: Terms of Service
+
+Include sections:
+- Acceptance of Terms
+- Eligibility
+- User Accounts
+- Community Guidelines
+- Prohibited Activities
+- User Content
+- Intellectual Property
+- Content Moderation
+- Account Suspension and Termination
+- Limitation of Liability
+- Disclaimer of Warranties
+- Changes to the Service
+- Governing Law
+- Contact Information
+
+------------------------------------
+SUPPORT PAGE
+------------------------------------
+Title: Support Center
+
+Include:
+- Contact support form
+- Support email
+- Frequently Asked Questions
+
+FAQ examples:
+- How do I create an account?
+- How do I reset my password?
+- How do I report content?
+- How do I delete my account?
+- How do I change my profile information?
+
+Include a button:
+"Contact Support"
+
+------------------------------------
+ACCOUNT DELETION PAGE
+------------------------------------
+Title: Account Deletion
+
+Include:
+- Explanation of how users can delete their account.
+- Instructions for deleting directly in the app:
+  Settings → Account → Delete Account
+- Explain what data is removed.
+- Explain what data may be retained for legal or security reasons.
+- Include support contact information.
+- Include a confirmation request form.
+
+------------------------------------
+ADDITIONAL REQUIREMENTS
+------------------------------------
+- Add links to these pages in the website footer.
+- Ensure pages are indexable by search engines.
+- Generate sitemap updates.
+- Generate SEO metadata.
+- Generate structured data where appropriate.
+- Follow Apple App Store and Google Play Store compliance requirements for social media applications.
+- Produce production-ready code and automatically register all routes.

@@ -76,6 +76,8 @@ function RootLayoutNav() {
         <Stack.Screen name="legal/privacy" options={{ presentation: "modal" }} />
         <Stack.Screen name="legal/guidelines" options={{ presentation: "modal" }} />
         <Stack.Screen name="legal/report-help" options={{ presentation: "modal" }} />
+        <Stack.Screen name="legal/terms" options={{ presentation: "modal" }} />
+        <Stack.Screen name="legal/account-deletion" options={{ presentation: "modal" }} />
         <Stack.Screen name="image-viewer" options={{ presentation: "fullScreenModal", animation: "fade" }} />
         <Stack.Screen name="campus-jams" options={{ presentation: "modal" }} />
         <Stack.Screen name="index" />

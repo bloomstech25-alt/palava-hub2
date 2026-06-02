@@ -14,6 +14,11 @@ import PostDetail from "@/pages/PostDetail";
 import Search from "@/pages/Search";
 import Settings from "@/pages/Settings";
 import Topic from "@/pages/Topic";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsOfService from "@/pages/TermsOfService";
+import CommunityGuidelines from "@/pages/CommunityGuidelines";
+import Support from "@/pages/Support";
+import AccountDeletion from "@/pages/AccountDeletion";
 import { TopNav } from "@/components/TopNav";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { RightSidebar } from "@/components/RightSidebar";
@@ -149,6 +154,21 @@ export default function App() {
               <ProtectedLayout hideRightSidebar>
                 <Settings />
               </ProtectedLayout>
+            </Route>
+            <Route path="/privacy-policy">
+              <PrivacyPolicy />
+            </Route>
+            <Route path="/terms-of-service">
+              <TermsOfService />
+            </Route>
+            <Route path="/community-guidelines">
+              <CommunityGuidelines />
+            </Route>
+            <Route path="/support">
+              <Support />
+            </Route>
+            <Route path="/account-deletion">
+              <AccountDeletion />
             </Route>
             <Route>
               <Redirect to="/" />

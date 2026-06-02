@@ -268,6 +268,12 @@ export default function SettingsScreen() {
             onPress={() => router.push("/legal/privacy")}
           />
           <Row
+            icon="file-text"
+            label="Terms of Service"
+            description="Rules and conditions for using Palava Hub"
+            onPress={() => router.push("/legal/terms")}
+          />
+          <Row
             icon="book-open"
             label="Community Guidelines"
             description="Rules that keep Palava Hub safe and respectful"
@@ -278,6 +284,12 @@ export default function SettingsScreen() {
             label="Report & Help"
             description="Report a problem or get support"
             onPress={() => router.push("/legal/report-help")}
+          />
+          <Row
+            icon="trash-2"
+            label="Account Deletion"
+            description="How to permanently delete your account and data"
+            onPress={() => router.push("/legal/account-deletion")}
           />
         </View>
 
