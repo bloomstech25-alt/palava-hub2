@@ -56,7 +56,7 @@ export function LegalLayout({ title, description, children }: LegalLayoutProps) 
             <Link href="/support" className="hover:underline">Support</Link>
             <Link href="/account-deletion" className="hover:underline">Account Deletion</Link>
           </div>
-          <div>Palava Hub © 2026 · Made with pride in Liberia 🇱🇷</div>
+          <div>Palava Hub © 2026 · Powered by Blooms Technologies</div>
         </div>
       </footer>
     </div>

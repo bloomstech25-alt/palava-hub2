@@ -93,7 +93,6 @@ export function LeftSidebar() {
           <Link href="/account-deletion" className="hover:underline">Delete Account</Link>
         </div>
         <div className="mt-2 font-semibold">Palava Hub © 2026</div>
-        <div className="mt-1">Made with pride in Liberia 🇱🇷</div>
         <div className="mt-1">Powered by Blooms Technologies</div>
       </div>
 

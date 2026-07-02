@@ -127,7 +127,7 @@ export default function PrivacyPolicyPage() {
 
         <footer className="mt-16 pt-6 border-t border-slate-200 text-xs text-slate-500 flex items-center justify-between">
           <span>© {new Date().getFullYear()} Palava Hub</span>
-          <span>Made with pride in Liberia 🇱🇷</span>
+          <span>Powered by Blooms Technologies</span>
         </footer>
       </main>
     </div>

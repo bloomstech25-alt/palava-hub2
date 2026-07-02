@@ -280,7 +280,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center mt-6 text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
-          Made with pride in Liberia 🇱🇷
+          Powered by Blooms Technologies
         </p>
       </div>
     </div>

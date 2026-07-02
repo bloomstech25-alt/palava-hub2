@@ -125,7 +125,7 @@ export default function Register() {
           </div>
         </form>
         <p className="text-center text-xs text-white/60 mt-5">
-          Made with pride in Liberia 🇱🇷
+          Powered by Blooms Technologies
         </p>
       </div>
     </div>

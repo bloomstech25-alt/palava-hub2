@@ -132,7 +132,7 @@ export default function Login() {
             </div>
           </form>
           <p className="text-center text-xs text-white/60 mt-5">
-            Made with pride in Liberia 🇱🇷
+            Powered by Blooms Technologies
           </p>
         </section>
       </div>
