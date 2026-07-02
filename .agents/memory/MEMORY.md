@@ -1,0 +1,1 @@
+- [Palava Hub Web header height coupling](palava-web-header-sidebar-coupling.md) — TopNav height changes must update LeftSidebar/RightSidebar sticky top + max-h offsets in lockstep.

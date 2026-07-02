@@ -34,7 +34,7 @@ export function LegalLayout({ title, description, children }: LegalLayoutProps) 
             <img
               src={`${import.meta.env.BASE_URL}logo.png`}
               alt="Palava Hub"
-              className="w-7 h-7 rounded-lg"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg shrink-0"
             />
             <span className="font-bold text-palava-red text-sm">Palava Hub</span>
           </Link>

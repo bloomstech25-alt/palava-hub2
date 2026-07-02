@@ -1,0 +1,89 @@
+Perform a complete mobile responsiveness and UI audit of the entire Palava Hub Expo React Native application.
+
+Current problem:
+The app appears distorted on real Android devices. Many pages, containers, cards, images, forms, and layouts are larger than the screen width and height. Content overflows, spacing is inconsistent, and some screens do not fit properly on mobile devices.
+
+Objectives:
+1. Make every screen fully responsive.
+2. Ensure all content fits properly on Android phones, iPhones, and tablets.
+3. Prevent horizontal scrolling and overflow.
+4. Preserve the existing design and branding.
+5. Optimize for Expo SDK 54 and React Native.
+
+Required fixes:
+
+LAYOUT
+- Replace fixed widths and heights with responsive layouts.
+- Remove hardcoded pixel dimensions where possible.
+- Use flexbox correctly throughout the application.
+- Ensure root containers use flex: 1.
+- Prevent components from exceeding screen width.
+- Fix overflowing cards, forms, images, modals, and dialogs.
+- Ensure bottom navigation and headers fit correctly.
+
+SAFE AREA
+- Wrap all screen roots with SafeAreaView from react-native-safe-area-context.
+- Prevent content from rendering under notches, status bars, and system UI.
+
+SCROLLING
+- Add ScrollView where content may exceed screen height.
+- Prevent content from being cut off.
+- Ensure forms and settings pages are scrollable.
+
+TEXT
+- Audit all font sizes.
+- Ensure text scales properly on small devices.
+- Fix text clipping and overflow.
+- Ensure buttons and labels remain readable.
+
+IMAGES
+- Make images responsive.
+- Prevent image overflow.
+- Use resizeMode correctly.
+- Ensure profile photos, posts, and media previews fit all screen sizes.
+
+DIMENSIONS
+- Use Dimensions or responsive percentage-based sizing where needed.
+- Support phones from 320px width up to tablets.
+- Handle portrait and landscape orientation correctly.
+
+WEB STYLES
+- Remove any web-only CSS or styling that affects mobile layouts.
+- Remove fixed desktop widths and max-width settings that break mobile screens.
+
+MODALS AND DRAWERS
+- Ensure all modals fit on screen.
+- Fix overflow issues in dialogs and bottom sheets.
+- Ensure drawers and side menus are responsive.
+
+TESTING
+Audit and test:
+- Login
+- Registration
+- Home Feed
+- Profile
+- Messaging
+- Notifications
+- Search
+- Settings
+- Create Post
+- Comments
+- Media Uploads
+- Legal Pages
+- Admin Areas
+
+DELIVERABLES
+1. Fix every responsiveness issue found.
+2. Provide a detailed report listing:
+   - Every file modified
+   - What issue was found
+   - How it was fixed
+3. Ensure the application renders correctly on:
+   - Android phones
+   - Android tablets
+   - iPhone
+   - iPad
+4. Verify there are no horizontal overflows.
+5. Verify all screens fit within the device viewport.
+
+After completing the audit, rebuild and test the entire application for mobile responsiveness and provide a summary of all changes made.

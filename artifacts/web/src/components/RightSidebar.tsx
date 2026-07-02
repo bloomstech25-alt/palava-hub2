@@ -67,7 +67,7 @@ export function RightSidebar() {
   }, []);
 
   return (
-    <aside className="hidden xl:block w-[320px] shrink-0 sticky top-14 self-start max-h-[calc(100vh-3.5rem)] overflow-y-auto py-4 pr-2 pl-4 space-y-6">
+    <aside className="hidden xl:block w-[320px] shrink-0 sticky top-20 self-start max-h-[calc(100vh-5rem)] overflow-y-auto py-4 pr-2 pl-4 space-y-6">
       <section>
         <div className="flex items-center gap-2 mb-2 px-2">
           <TrendingUp className="w-4 h-4 text-fb-text-secondary" />

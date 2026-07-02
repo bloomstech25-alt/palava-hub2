@@ -57,7 +57,7 @@ export default function Login() {
           <img
             src={LOGO}
             alt="Palava Hub"
-            className="h-20 sm:h-24 mx-auto lg:mx-0 mb-6 select-none"
+            className="h-28 sm:h-32 lg:h-36 mx-auto lg:mx-0 mb-6 select-none max-w-full w-auto"
             draggable={false}
           />
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-tight tracking-tight">

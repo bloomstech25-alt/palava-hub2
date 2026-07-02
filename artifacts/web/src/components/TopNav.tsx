@@ -37,8 +37,11 @@ export function TopNav() {
   }
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-fb-border shadow-sm">
-      <div className="max-w-[1600px] mx-auto px-4 h-14 flex items-center gap-2 md:gap-4">
+    <header
+      className="sticky top-0 z-30 bg-white border-b border-fb-border shadow-sm"
+      style={{ paddingTop: "var(--safe-top)" }}
+    >
+      <div className="max-w-[1600px] mx-auto px-4 h-16 sm:h-[4.75rem] lg:h-20 flex items-center gap-2 md:gap-4">
         <Link
           href="/"
           className="flex items-center gap-2 shrink-0"
@@ -47,7 +50,7 @@ export function TopNav() {
           <img
             src={`${import.meta.env.BASE_URL}palava-icon.png`}
             alt=""
-            className="w-10 h-10 rounded-full object-cover"
+            className="w-14 h-14 sm:w-16 sm:h-16 lg:w-[4.5rem] lg:h-[4.5rem] rounded-full object-cover shrink-0"
           />
           <span className="hidden lg:block font-black text-lg text-palava-red">
             Palava Hub

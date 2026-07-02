@@ -31,7 +31,7 @@ export function LeftSidebar() {
   ];
 
   return (
-    <aside className="hidden lg:block w-[300px] shrink-0 sticky top-14 self-start max-h-[calc(100vh-3.5rem)] overflow-y-auto py-4 pl-2 pr-4 space-y-1">
+    <aside className="hidden lg:block w-[300px] shrink-0 sticky top-20 self-start max-h-[calc(100vh-5rem)] overflow-y-auto py-4 pl-2 pr-4 space-y-1">
       <Link
         href={`/profile/${profile?.id ?? ""}`}
         className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-fb-hover"

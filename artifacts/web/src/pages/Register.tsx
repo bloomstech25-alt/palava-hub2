@@ -53,7 +53,7 @@ export default function Register() {
         <img
           src={LOGO}
           alt="Palava Hub"
-          className="h-16 mx-auto mb-6 select-none"
+          className="h-24 sm:h-28 mx-auto mb-6 select-none max-w-full w-auto"
           draggable={false}
         />
 
